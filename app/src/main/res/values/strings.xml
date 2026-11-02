@@ -1,3 +1,16 @@
 <resources>
     <string name="app_name">Konteksto</string>
+    <string name="login_subtitle">Live Seminar &amp; Conference Companion</string>
+    <string name="login_hero_title">Understand every talk, in real time.</string>
+    <string name="login_hero_subheadline">Turn specialized terminology, complex ideas, and presentation slides into clear, everyday explanations across any field.</string>
+    <string name="login_feature_1_number">01</string>
+    <string name="login_feature_1_title">Live Jargon Clarity</string>
+    <string name="login_feature_1_description">Real-time plain-language and Taglish analogies as the speaker talks.</string>
+    <string name="login_feature_2_number">02</string>
+    <string name="login_feature_2_title">Slide-Grounded Context</string>
+    <string name="login_feature_2_description">Explanations anchored directly to the speaker’s uploaded presentation deck.</string>
+    <string name="login_feature_3_number">03</string>
+    <string name="login_feature_3_title">Personal Concept Glossary</string>
+    <string name="login_feature_3_description">Ask questions at your own pace and save key takeaways from any session.</string>
+    <string name="login_continue_google">Continue with Google</string>
 </resources>
