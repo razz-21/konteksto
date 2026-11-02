@@ -13,6 +13,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.glossary.GlossaryScreen
 import com.example.konteksto.ui.host.HostSessionsScreen
 import com.example.konteksto.ui.navigation.MainTab
@@ -24,7 +25,12 @@ import com.example.konteksto.ui.theme.KontekstoTheme
 fun MainScreen(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
+    hostSessions: List<HostSession> = emptyList(),
+    isHostRefreshing: Boolean = false,
+    onHostRefresh: () -> Unit = {},
     onSignOut: () -> Unit = {},
+    onNavigateToCreateSession: () -> Unit = {},
+    onNavigateToPresentQr: (HostSession) -> Unit = {},
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -47,7 +53,13 @@ fun MainScreen(
                 SessionsScreen()
             }
             composable(MainTab.HostSessions.route) {
-                HostSessionsScreen()
+                HostSessionsScreen(
+                    sessions = hostSessions,
+                    isRefreshing = isHostRefreshing,
+                    onRefresh = onHostRefresh,
+                    onNewSessionClick = onNavigateToCreateSession,
+                    onPresentQrClick = onNavigateToPresentQr,
+                )
             }
             composable(MainTab.Glossary.route) {
                 GlossaryScreen()

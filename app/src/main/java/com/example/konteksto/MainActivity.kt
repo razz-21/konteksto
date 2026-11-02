@@ -5,9 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.example.konteksto.ui.navigation.KontekstoNavHost
 import com.example.konteksto.ui.theme.KontekstoTheme
@@ -18,16 +17,14 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             KontekstoTheme {
-                Scaffold(
+                Surface(
                     modifier = Modifier.fillMaxSize(),
-                    containerColor = MaterialTheme.colorScheme.background,
+                    color = MaterialTheme.colorScheme.background,
                     contentColor = MaterialTheme.colorScheme.onBackground,
-                ) { innerPadding ->
-                    KontekstoNavHost(modifier = Modifier.padding(innerPadding))
+                ) {
+                    KontekstoNavHost()
                 }
             }
         }
     }
 }
-
-
