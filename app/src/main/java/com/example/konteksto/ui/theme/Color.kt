@@ -2,6 +2,10 @@ package com.example.konteksto.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+val KontekstoBlue = Color(0xFF005EFF)
+val KontekstoLightBlue = Color(0xFF9EC2FF)
+val KontekstoDarkNavy = Color(0xFF0A1A3A)
+
 val Purple80 = Color(0xFFD0BCFF)
 val PurpleGrey80 = Color(0xFFCCC2DC)
 val Pink80 = Color(0xFFEFB8C8)

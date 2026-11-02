@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="brand_primary">#005EFF</color>
+    <color name="brand_secondary">#9EC2FF</color>
+    <color name="brand_text_dark">#0A1A3A</color>
+    <color name="ic_launcher_background">#005EFF</color>
+
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
