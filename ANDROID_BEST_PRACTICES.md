@@ -142,6 +142,12 @@ Modifier.drawBehind { drawRect(animatedColor) }
 ### E. Avoid Backwards Writes
 Never update state inside the body of a Composable function after reading it. Update state only in response to events or within lambda event handlers (e.g., `onClick`).
 
+### F. One Composable Per File (Composable Separation)
+To maintain code quality, readability, modularity, and isolated preview rendering, each Composable function should reside in its own separate file:
+- **Dedicated File per Composable:** Do not stack multiple top-level UI or component composables in a single file. For instance, route wrappers (`LoginRoute.kt`), screen content (`LoginScreen.kt`), feature rows (`FeatureItem.kt`), and custom buttons (`GoogleSignInButton.kt`) should each have their own file.
+- **Preview Placement:** Keep `@Preview` composables at the bottom of the file containing the primary Composable they render.
+- **Benefits:** Prevents massive bloated screen files, simplifies unit testing and preview generation, improves compile times, and makes component reusability straightforward.
+
 ---
 
 ## 4. Coroutines & Kotlin Flow Best Practices
@@ -210,8 +216,9 @@ com.example.konteksto/
 ├── di/                   # Hilt DI Modules
 ├── ui/
 │   ├── components/       # Shared design system components
-│   ├── home/             # HomeScreen, HomeViewModel, HomeUiState
-│   ├── profile/          # ProfileScreen, ProfileViewModel
+│   ├── login/            # LoginRoute.kt, LoginScreen.kt, GoogleSignInButton.kt, FeatureItem.kt, LoginViewModel.kt
+│   ├── profile/          # ProfileScreen.kt, ProfileScreenContent.kt, SignedInProfileCard.kt, SignedOutProfileCard.kt, ProfileViewModel.kt
+│   ├── home/             # HomeScreen.kt, HomeViewModel.kt
 │   └── theme/            # Color, Type, Theme
 └── util/                 # Utility functions & extensions
 ```

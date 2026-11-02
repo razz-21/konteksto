@@ -180,6 +180,8 @@ com.example.konteksto/
 │   └── usecase/              # CreateSessionUseCase, StreamTranscriptUseCase, AnalyzeSlideUseCase
 ├── ui/
 │   ├── components/           # QR Scanner, Transcript Card, Glossary Sheet, Mic Controls
+│   ├── login/                # LoginRoute.kt, LoginScreen.kt, GoogleSignInButton.kt, FeatureItem.kt
+│   ├── profile/              # ProfileScreen.kt, ProfileScreenContent.kt, SignedInProfileCard.kt
 │   ├── history/              # SessionHistoryScreen & ViewModel
 │   ├── host/                 # HostLiveSessionScreen & ViewModel
 │   ├── join/                 # JoinSessionScreen (QR + Code input)
