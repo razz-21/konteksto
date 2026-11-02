@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -19,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -61,9 +61,10 @@ fun HomeScreen(modifier: Modifier = Modifier) {
 
             // Logo Icon Display Card
             Card(
-                shape = RoundedCornerShape(24.dp),
+                shape = MaterialTheme.shapes.medium,
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 ),
                 modifier = Modifier.padding(16.dp),
             ) {
@@ -75,7 +76,9 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                     Image(
                         painter = painterResource(id = R.drawable.ic_logo_icon),
                         contentDescription = "Konteksto Logo Icon",
-                        modifier = Modifier.size(100.dp),
+                        modifier = Modifier
+                            .size(100.dp)
+                            .clip(MaterialTheme.shapes.small),
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))

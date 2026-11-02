@@ -2,7 +2,6 @@ package com.example.konteksto.ui.login
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,8 +14,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -121,7 +121,7 @@ fun LoginScreen(
                         contentDescription = stringResource(id = R.string.app_name),
                         modifier = Modifier
                             .size(44.dp)
-                            .clip(RoundedCornerShape(12.dp)),
+                            .clip(MaterialTheme.shapes.small),
                     )
 
                     Spacer(modifier = Modifier.width(12.dp))
@@ -215,7 +215,8 @@ fun LoginScreen(
                 if (!errorMessage.isNullOrBlank()) {
                     Surface(
                         color = MaterialTheme.colorScheme.errorContainer,
-                        shape = RoundedCornerShape(12.dp),
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                        shape = MaterialTheme.shapes.small,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 12.dp),
@@ -297,22 +298,26 @@ fun GoogleSignInButton(
     modifier: Modifier = Modifier,
     isLoading: Boolean = false,
 ) {
-    Box(
-        modifier = modifier
-            .height(54.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF191C22))
-            .clickable(enabled = !isLoading, onClick = onClick),
-        contentAlignment = Alignment.Center
+    Button(
+        onClick = onClick,
+        enabled = !isLoading,
+        shape = MaterialTheme.shapes.medium,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+            disabledContentColor = MaterialTheme.colorScheme.onPrimary,
+        ),
+        modifier = modifier.height(54.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+            horizontalArrangement = Arrangement.Center,
         ) {
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(22.dp),
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onPrimary,
                     strokeWidth = 2.5.dp,
                 )
                 Spacer(modifier = Modifier.width(12.dp))
@@ -320,23 +325,23 @@ fun GoogleSignInButton(
                     text = stringResource(id = R.string.login_signing_in),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 15.sp
+                        fontSize = 15.sp,
                     ),
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onPrimary,
                 )
             } else {
                 Box(
                     modifier = Modifier
                         .size(28.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(Color.White),
-                    contentAlignment = Alignment.Center
+                        .clip(MaterialTheme.shapes.extraSmall)
+                        .background(MaterialTheme.colorScheme.surfaceContainerLowest),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_google_logo),
                         contentDescription = "Google Logo",
                         modifier = Modifier.size(18.dp),
-                        tint = Color.Unspecified
+                        tint = Color.Unspecified,
                     )
                 }
 
@@ -346,9 +351,9 @@ fun GoogleSignInButton(
                     text = stringResource(id = R.string.login_continue_google),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 15.sp
+                        fontSize = 15.sp,
                     ),
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onPrimary,
                 )
             }
         }
