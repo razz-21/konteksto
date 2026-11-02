@@ -1,5 +1,6 @@
 package com.example.konteksto.ui.navigation
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
@@ -12,13 +13,24 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.konteksto.data.repository.AuthRepository
 import com.example.konteksto.data.repository.FirebaseAuthRepository
+import com.example.konteksto.data.repository.FirebaseSessionRepository
+import com.example.konteksto.data.repository.SessionRepository
 import com.example.konteksto.domain.model.AuthUser
+import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.ui.host.CreateSessionScreen
+import com.example.konteksto.ui.host.HostViewModel
+import com.example.konteksto.ui.host.PresentQrScreen
 import com.example.konteksto.ui.login.LoginRoute
 import com.example.konteksto.ui.main.MainScreen
 
@@ -35,6 +47,19 @@ fun KontekstoNavHost(
     authRepository: AuthRepository = remember { FirebaseAuthRepository() },
     startDestination: String? = null,
 ) {
+    val context = LocalContext.current
+    val sessionRepository: SessionRepository = remember(context) {
+        FirebaseSessionRepository(context = context.applicationContext)
+    }
+    val hostViewModel: HostViewModel = viewModel(
+        factory = HostViewModel.provideFactory(
+            sessionRepository = sessionRepository,
+            authRepository = authRepository,
+        ),
+    )
+    val hostSessions by hostViewModel.hostSessions.collectAsStateWithLifecycle()
+    val isHostRefreshing by hostViewModel.isRefreshing.collectAsStateWithLifecycle()
+
     val sessionState by produceState<SessionBootstrapState>(
         initialValue = authRepository.currentUser?.let {
             SessionBootstrapState.Authenticated(it)
@@ -143,6 +168,9 @@ fun KontekstoNavHost(
 
         composable(Screen.Main.route) {
             MainScreen(
+                hostSessions = hostSessions,
+                isHostRefreshing = isHostRefreshing,
+                onHostRefresh = { hostViewModel.refreshSessions() },
                 onSignOut = {
                     if (navController.currentDestination?.route != Screen.Login.route) {
                         navController.navigate(Screen.Login.route) {
@@ -152,6 +180,71 @@ fun KontekstoNavHost(
                             launchSingleTop = true
                         }
                     }
+                },
+                onNavigateToCreateSession = {
+                    navController.navigate(Screen.CreateSession.route)
+                },
+                onNavigateToPresentQr = { session ->
+                    navController.navigate(Screen.PresentQr.createRoute(session.id))
+                },
+            )
+        }
+
+        composable(
+            route = Screen.PresentQr.route,
+            arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
+            val session = hostSessions.find { it.id == sessionId } ?: HostSession(
+                id = sessionId,
+                venue = "Tech Summit Hall B",
+                time = "10:00 AM",
+                talkCode = "TALK–415",
+                title = "Edge AI & Distributed Cloud Architecture: Scaling to Zero Latency",
+                speakerName = "Engr. Marco Valerio",
+                attendeesCount = 890,
+                isLive = true,
+            )
+
+            PresentQrScreen(
+                session = session,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+            )
+        }
+
+        composable(Screen.CreateSession.route) {
+            val context = LocalContext.current
+            val currentUser = (sessionState as? SessionBootstrapState.Authenticated)?.user
+                ?: authRepository.currentUser
+            val currentSpeakerName = currentUser?.displayName?.takeIf { it.isNotBlank() }
+                ?: currentUser?.email?.substringBefore("@")?.takeIf { it.isNotBlank() }
+                ?: ""
+
+            CreateSessionScreen(
+                initialSpeakerName = currentSpeakerName,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onCreateSessionSubmit = { title, talkCode, speaker, category, room, startTime, endTime, banner ->
+                    hostViewModel.createSession(
+                        title = title,
+                        speakerName = speaker,
+                        category = category,
+                        venue = room,
+                        startTime = startTime,
+                        endTime = endTime,
+                        bannerImageUrl = banner.imageUrl,
+                        talkCode = talkCode,
+                        onSuccess = {
+                            Toast.makeText(context, "Session created successfully!", Toast.LENGTH_SHORT).show()
+                            navController.popBackStack()
+                        },
+                        onError = { message ->
+                            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                        },
+                    )
                 },
             )
         }

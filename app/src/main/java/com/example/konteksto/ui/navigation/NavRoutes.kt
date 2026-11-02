@@ -6,6 +6,10 @@ import com.example.konteksto.R
 sealed class Screen(val route: String) {
     object Login : Screen("login")
     object Main : Screen("main")
+    object CreateSession : Screen("create_session")
+    object PresentQr : Screen("present_qr/{sessionId}") {
+        fun createRoute(sessionId: String) = "present_qr/$sessionId"
+    }
 }
 
 sealed class MainTab(
