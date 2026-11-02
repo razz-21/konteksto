@@ -26,7 +26,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.konteksto.R
-import com.example.konteksto.ui.theme.KontekstoBlue
 import com.example.konteksto.ui.theme.KontekstoTheme
 
 @Composable
@@ -85,7 +84,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                         text = stringResource(id = R.string.app_name),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = KontekstoBlue,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
             }
