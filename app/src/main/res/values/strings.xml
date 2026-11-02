@@ -13,4 +13,6 @@
     <string name="login_feature_3_title">Personal Concept Glossary</string>
     <string name="login_feature_3_description">Ask questions at your own pace and save key takeaways from any session.</string>
     <string name="login_continue_google">Continue with Google</string>
+    <string name="login_signing_in">Signing in…</string>
+    <string name="firebase_web_client_id" translatable="false">328928803643-0rlsa0e1nul8msn8q0901tmktgtis9ig.apps.googleusercontent.com</string>
 </resources>

@@ -17,28 +17,80 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.konteksto.R
 import com.example.konteksto.ui.theme.KontekstoTheme
+import kotlinx.coroutines.launch
+
+@Composable
+fun LoginRoute(
+    onSignInSuccess: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: LoginViewModel = viewModel(factory = LoginViewModel.provideFactory()),
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val currentUser by viewModel.authStateStream.collectAsStateWithLifecycle(
+        initialValue = viewModel.currentUser,
+    )
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(uiState, currentUser) {
+        if (uiState is LoginUiState.Success || currentUser != null) {
+            onSignInSuccess()
+        }
+    }
+
+    LoginScreen(
+        modifier = modifier,
+        isLoading = uiState is LoginUiState.Loading,
+        errorMessage = (uiState as? LoginUiState.Error)?.message,
+        onGoogleSignInClick = {
+            viewModel.setLoading()
+            coroutineScope.launch {
+                when (val result = GoogleAuthHelper.requestGoogleIdToken(context)) {
+                    is GoogleSignInResult.Success -> {
+                        viewModel.signInWithGoogleIdToken(result.idToken)
+                    }
+                    is GoogleSignInResult.Cancelled -> {
+                        viewModel.onSignInCancelled()
+                    }
+                    is GoogleSignInResult.Error -> {
+                        viewModel.onSignInError(result.message)
+                    }
+                }
+            }
+        },
+    )
+}
 
 @Composable
 fun LoginScreen(
     modifier: Modifier = Modifier,
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
     onGoogleSignInClick: () -> Unit = {},
 ) {
     val scrollState = rememberScrollState()
@@ -157,13 +209,35 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(32.dp))
             }
 
-            // Google Sign-In Button at Bottom
-            GoogleSignInButton(
-                onClick = onGoogleSignInClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-            )
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (!errorMessage.isNullOrBlank()) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp),
+                    ) {
+                        Text(
+                            text = errorMessage,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        )
+                    }
+                }
+
+                // Google Sign-In Button at Bottom
+                GoogleSignInButton(
+                    onClick = onGoogleSignInClick,
+                    isLoading = isLoading,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                )
+            }
         }
     }
 }
@@ -220,45 +294,63 @@ private fun FeatureItem(
 @Composable
 fun GoogleSignInButton(
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isLoading: Boolean = false,
 ) {
     Box(
         modifier = modifier
             .height(54.dp)
             .clip(RoundedCornerShape(14.dp))
             .background(Color(0xFF191C22))
-            .clickable(onClick = onClick),
+            .clickable(enabled = !isLoading, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(Color.White),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_google_logo),
-                    contentDescription = "Google Logo",
-                    modifier = Modifier.size(18.dp),
-                    tint = Color.Unspecified
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(22.dp),
+                    color = Color.White,
+                    strokeWidth = 2.5.dp,
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = stringResource(id = R.string.login_signing_in),
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp
+                    ),
+                    color = Color.White
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color.White),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_google_logo),
+                        contentDescription = "Google Logo",
+                        modifier = Modifier.size(18.dp),
+                        tint = Color.Unspecified
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Text(
+                    text = stringResource(id = R.string.login_continue_google),
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp
+                    ),
+                    color = Color.White
                 )
             }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Text(
-                text = stringResource(id = R.string.login_continue_google),
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp
-                ),
-                color = Color.White
-            )
         }
     }
 }

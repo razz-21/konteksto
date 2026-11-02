@@ -38,6 +38,7 @@ import com.example.konteksto.ui.theme.KontekstoTheme
 fun MainScreen(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
+    onSignOut: () -> Unit = {},
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -64,7 +65,7 @@ fun MainScreen(
                 GlossaryScreen()
             }
             composable(MainTab.Profile.route) {
-                ProfileScreen()
+                ProfileScreen(onSignOutClick = onSignOut)
             }
         }
     }
