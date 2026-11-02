@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- User Head Circle -->
+    <path
+        android:pathData="M 12,11 C 13.6569,11 15,9.65685 15,8 C 15,6.34315 13.6569,5 12,5 C 10.3431,5 9,6.34315 9,8 C 9,9.65685 10.3431,11 12,11 Z"
+        android:strokeColor="#1C1B1F"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <!-- User Body / Shoulders Arc -->
+    <path
+        android:pathData="M 6,19 C 6,16 9,14 12,14 C 15,14 18,16 18,19"
+        android:strokeColor="#1C1B1F"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
-import com.example.konteksto.ui.login.LoginScreen
+import com.example.konteksto.ui.navigation.KontekstoNavHost
 import com.example.konteksto.ui.theme.KontekstoTheme
 
 class MainActivity : ComponentActivity() {
@@ -18,10 +18,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             KontekstoTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    LoginScreen(modifier = Modifier.padding(innerPadding))
+                    KontekstoNavHost(modifier = Modifier.padding(innerPadding))
                 }
             }
         }
     }
 }
+
 
