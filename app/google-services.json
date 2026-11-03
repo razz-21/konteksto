@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "328928803643",
+    "project_id": "konteksto",
+    "storage_bucket": "konteksto.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:328928803643:android:842b569cbae6329776151e",
+        "android_client_info": {
+          "package_name": "com.example.konteksto"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "328928803643-37scistfq61gu6d50spn5oors2ss6210.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.konteksto",
+            "certificate_hash": "beb6d3d2a1c0034f921979af8588dae525516240"
+          }
+        },
+        {
+          "client_id": "328928803643-j2109l8hq863oqjkov7bjb6v8dl2gcdh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.konteksto",
+            "certificate_hash": "6483d3ee5ccca0b8da22547bb904a208a32cf03f"
+          }
+        },
+        {
+          "client_id": "328928803643-0rlsa0e1nul8msn8q0901tmktgtis9ig.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCprxmlFSQH4zTgsPP56enfN9fnKCOtc8k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "328928803643-0rlsa0e1nul8msn8q0901tmktgtis9ig.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
