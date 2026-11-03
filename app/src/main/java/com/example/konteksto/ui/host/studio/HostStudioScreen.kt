@@ -35,9 +35,11 @@ fun HostStudioScreen(
     onToggleAudioBroadcasting: () -> Unit = {},
     onAddTranscript: (String) -> Unit = {},
     onAddContextNote: (title: String, content: String) -> Unit = { _, _ -> },
-    onUploadPdfSubmitted: (uri: Uri, fileName: String, fileSizeMb: Double) -> Unit = { _, _, _ -> },
+    onUploadPdfSubmitted: (uri: Uri, fileName: String, fileSizeMb: Double, pageCount: Int, pdfBytes: ByteArray?) -> Unit = { _, _, _, _, _ -> },
+    onRemoveSlideDeckClicked: () -> Unit = {},
     onAnalyzeSlideDeckClicked: () -> Unit = {},
-    onDeleteSlideClicked: (slideId: String) -> Unit = {},
+    onEditSlideClick: (slideId: String) -> Unit = {},
+    onErrorDismissed: () -> Unit = {},
 ) {
     val scrollState = rememberScrollState()
 
@@ -102,6 +104,13 @@ fun HostStudioScreen(
                 onToggleLiveStatus(false)
             },
             onDismiss = { showEndConfirmDialog = false },
+        )
+    }
+
+    uiState?.errorMessage?.let { message ->
+        SlideDeckErrorDialog(
+            message = message,
+            onDismiss = onErrorDismissed,
         )
     }
 
@@ -199,18 +208,29 @@ fun HostStudioScreen(
                     contextNotes = contextNotes,
                     slideDeckInfo = slideDeckInfo,
                     analyzedSlides = analyzedSlides,
+                    isUploadingPdf = uiState?.isUploadingPdf ?: false,
+                    isAnalyzingPdf = uiState?.isAnalyzingPdf ?: false,
                     onAddNoteClick = { showAddContextDialog = true },
-                    onUploadPdfSubmitted = { uri, fileName, fileSizeMb ->
+                    onUploadPdfSubmitted = { uri, fileName, fileSizeMb, pageCount, pdfBytes ->
                         if (uiState != null) {
-                            onUploadPdfSubmitted(uri, fileName, fileSizeMb)
+                            onUploadPdfSubmitted(uri, fileName, fileSizeMb, pageCount, pdfBytes)
                         } else {
                             localSlideDeckInfo = SlideDeckInfo(
                                 fileName = fileName,
                                 fileSizeMb = fileSizeMb,
-                                pageCount = 1,
+                                pageCount = pageCount,
                                 uploadTime = "Uploaded Just now",
                                 isAnalyzed = false,
+                                pdfBytes = pdfBytes,
                             )
+                            localAnalyzedSlides = emptyList()
+                        }
+                    },
+                    onRemoveSlideDeckClick = {
+                        if (uiState != null) {
+                            onRemoveSlideDeckClicked()
+                        } else {
+                            localSlideDeckInfo = null
                             localAnalyzedSlides = emptyList()
                         }
                     },
@@ -219,28 +239,21 @@ fun HostStudioScreen(
                             onAnalyzeSlideDeckClicked()
                         } else {
                             val currentDeckName = localSlideDeckInfo?.fileName ?: "Presentation.pdf"
+                            val pageCount = localSlideDeckInfo?.pageCount ?: 13
                             localSlideDeckInfo = localSlideDeckInfo?.copy(isAnalyzed = true)
-                            localAnalyzedSlides = listOf(
+                            localAnalyzedSlides = (1..pageCount).map { i ->
                                 AnalyzedSlideItem(
-                                    id = "s1",
-                                    slideNumber = 1,
-                                    title = currentDeckName.substringBeforeLast("."),
-                                    diagramSummary = "PDF presentation slides parsed and indexed for grounded AI explanations.",
-                                    keyTakeaway = "Presentation deck grounds AI live terminology definitions in real time.",
-                                ),
-                            )
-                        }
-                    },
-                    onDeleteSlideClicked = { slideId ->
-                        if (uiState != null) {
-                            onDeleteSlideClicked(slideId)
-                        } else {
-                            localAnalyzedSlides = localAnalyzedSlides.filter { it.id != slideId }
-                            if (localAnalyzedSlides.isEmpty()) {
-                                localSlideDeckInfo = localSlideDeckInfo?.copy(isAnalyzed = false)
+                                    id = "s_$i",
+                                    slideNumber = i,
+                                    title = "${currentDeckName.substringBeforeLast(".")}: Slide $i",
+                                    summary = "Overview summary of topics and main structure presented on Slide $i.",
+                                    explanation = "In-depth explanation of Slide $i concepts, mechanics, and context for live session listeners.",
+                                    keyTakeaway = "Slide $i grounds AI live terminology definitions in real time.",
+                                )
                             }
                         }
                     },
+                    onEditSlideClick = onEditSlideClick,
                 )
             }
         }

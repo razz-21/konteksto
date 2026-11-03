@@ -17,10 +17,12 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -165,8 +167,7 @@ fun AddContextNoteDialog(
 }
 
 @Composable
-fun DeleteSlideConfirmDialog(
-    slideTitle: String,
+fun DiscardSlideChangesDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -174,34 +175,59 @@ fun DeleteSlideConfirmDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Delete Analyzed Slide?",
+                text = "Discard Changes?",
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
             )
         },
         text = {
             Text(
-                text = "Are you sure you want to delete the analysis for '$slideTitle'? This action cannot be undone.",
+                text = "Your changes to this slide haven't been saved.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         },
         confirmButton = {
             Button(
-                onClick = {
-                    onConfirm()
-                    onDismiss()
-                },
+                onClick = onConfirm,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.error,
                     contentColor = MaterialTheme.colorScheme.onError,
                 ),
             ) {
-                Text(text = "Delete")
+                Text(text = "Discard")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = stringResource(id = R.string.action_cancel))
+                Text(text = "Keep Editing")
+            }
+        },
+    )
+}
+
+@Composable
+fun SlideDeckErrorDialog(
+    message: String,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Something Went Wrong",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+            )
+        },
+        text = {
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text(text = "OK")
             }
         },
     )
@@ -288,9 +314,106 @@ fun UploadPdfProgressDialog(
                         trackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     )
                     Text(
-                        text = "Uploading & Analyzing PDF with AI...",
+                        text = "Uploading PDF Slide Deck...",
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        },
+        shape = MaterialTheme.shapes.medium,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    )
+}
+
+@Composable
+fun AnalyzePdfProgressDialog(
+    fileName: String,
+    onDismissRequest: () -> Unit = {},
+) {
+    var showDelayedNote by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        delay(6000)
+        showDelayedNote = true
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        confirmButton = {},
+        title = {
+            Text(
+                text = "Analyzing Slide Deck...",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp,
+                ),
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = MaterialTheme.shapes.medium,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_sparkle),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp),
+                    )
+                }
+
+                Text(
+                    text = fileName,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.5.sp,
+                    ),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                )
+
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(MaterialTheme.shapes.small),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                )
+
+                Text(
+                    text = "Gemini AI is analyzing each slide for summaries, explanations, and key takeaways...",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+
+                if (showDelayedNote) {
+                    Text(
+                        text = "Analyzing multi-page presentation decks can take extra time. Please hold on while Gemini processes every page...",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp,
+                            lineHeight = 15.sp,
+                            fontWeight = FontWeight.Medium,
+                        ),
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.Center,
                     )
                 }
             }

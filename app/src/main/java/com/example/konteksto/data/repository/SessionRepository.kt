@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.host.studio.TranscriptEntry
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -41,8 +42,18 @@ interface SessionRepository {
         uri: android.net.Uri,
         fileName: String,
         fileSizeMb: Double,
+        pageCount: Int = 1,
     ): Result<com.example.konteksto.ui.host.studio.SlideDeckInfo>
+    suspend fun downloadSlideDeckPdf(sessionId: String, fileName: String): Result<ByteArray>
+    suspend fun clearSlideDeck(sessionId: String, fileName: String?): Result<Unit>
+    suspend fun saveAnalyzedSlides(
+        sessionId: String,
+        analyzedSlides: List<com.example.konteksto.ui.host.studio.AnalyzedSlideItem>,
+    ): Result<Unit>
+    fun getAnalyzedSlidesStream(sessionId: String): Flow<List<com.example.konteksto.ui.host.studio.AnalyzedSlideItem>>
 }
+
+private const val MAX_SLIDE_DECK_BYTES = 50L * 1024 * 1024
 
 class FirebaseSessionRepository(
     private val context: Context? = null,
@@ -363,39 +374,101 @@ class FirebaseSessionRepository(
         uri: android.net.Uri,
         fileName: String,
         fileSizeMb: Double,
+        pageCount: Int,
     ): Result<com.example.konteksto.ui.host.studio.SlideDeckInfo> {
         val nowFormatted = java.text.SimpleDateFormat("a 'at' h:mm a", java.util.Locale.US).format(java.util.Date())
-        var downloadUrl = ""
-
-        try {
-            val bucketUrl = com.example.konteksto.BuildConfig.FIREBASE_STORAGE_BUCKET
-            val storage = if (bucketUrl.isNotBlank()) {
-                com.google.firebase.storage.FirebaseStorage.getInstance(bucketUrl)
-            } else {
-                com.google.firebase.storage.FirebaseStorage.getInstance()
-            }
-            val storageRef = storage.reference.child("sessions/$sessionId/slide_decks/$fileName")
+        val downloadUrl = try {
+            val storageRef = slideDeckStorageRef(sessionId, fileName)
             storageRef.putFile(uri).await()
-            downloadUrl = storageRef.downloadUrl.await().toString()
+            storageRef.downloadUrl.await().toString()
         } catch (e: Exception) {
             Log.e("FirebaseSessionRepo", "Firebase Storage upload failed: ${e.message}")
+            return Result.failure(e)
         }
 
         val deckInfo = com.example.konteksto.ui.host.studio.SlideDeckInfo(
             fileName = fileName,
             fileSizeMb = fileSizeMb,
-            pageCount = 1,
+            pageCount = pageCount,
             uploadTime = "Uploaded $nowFormatted",
-            isAnalyzed = true,
+            isAnalyzed = false,
         )
+
+        try {
+            val firestore = firestoreOrNull
+            if (firestore != null && sessionId.isNotBlank()) {
+                firestore.collection("sessions").document(sessionId)
+                    .update(
+                        mapOf(
+                            "slideDeckUrl" to downloadUrl,
+                            "slideDeckFileName" to fileName,
+                            "slideDeckSizeMb" to fileSizeMb,
+                            "slideDeckPageCount" to pageCount,
+                            "slideDeckUploadTime" to deckInfo.uploadTime,
+                            "slideDeckUploadedAt" to System.currentTimeMillis(),
+                            "isSlideDeckAnalyzed" to false,
+                        ),
+                    ).await()
+            }
+        } catch (e: Exception) {
+            Log.e("FirebaseSessionRepo", "Firestore slide deck metadata update failed: ${e.message}")
+            deleteSlideDeckFile(sessionId, fileName)
+            return Result.failure(e)
+        }
 
         val updatedLocal = localCreatedSessions.value.map { session ->
             if (session.id == sessionId) {
                 session.copy(
                     slideDeckFileName = fileName,
                     slideDeckSizeMb = fileSizeMb,
-                    slideDeckPageCount = 1,
+                    slideDeckPageCount = pageCount,
                     slideDeckUploadTime = deckInfo.uploadTime,
+                    isSlideDeckAnalyzed = false,
+                )
+            } else session
+        }
+        localCreatedSessions.value = updatedLocal
+        saveLocalSessions(updatedLocal)
+
+        return Result.success(deckInfo)
+    }
+
+    override suspend fun downloadSlideDeckPdf(sessionId: String, fileName: String): Result<ByteArray> {
+        return try {
+            Result.success(slideDeckStorageRef(sessionId, fileName).getBytes(MAX_SLIDE_DECK_BYTES).await())
+        } catch (e: Exception) {
+            Log.e("FirebaseSessionRepo", "Firebase Storage download failed: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    private fun slideDeckStorageRef(sessionId: String, fileName: String): com.google.firebase.storage.StorageReference {
+        val bucketUrl = com.example.konteksto.BuildConfig.FIREBASE_STORAGE_BUCKET
+        val storage = if (bucketUrl.isNotBlank()) {
+            com.google.firebase.storage.FirebaseStorage.getInstance(bucketUrl)
+        } else {
+            com.google.firebase.storage.FirebaseStorage.getInstance()
+        }
+        return storage.reference.child("sessions/$sessionId/slide_decks/$fileName")
+    }
+
+    private suspend fun deleteSlideDeckFile(sessionId: String, fileName: String) {
+        try {
+            slideDeckStorageRef(sessionId, fileName).delete().await()
+        } catch (e: Exception) {
+            Log.e("FirebaseSessionRepo", "Failed to delete slide deck file: ${e.message}")
+        }
+    }
+
+    override suspend fun clearSlideDeck(sessionId: String, fileName: String?): Result<Unit> {
+        val updatedLocal = localCreatedSessions.value.map { session ->
+            if (session.id == sessionId) {
+                session.copy(
+                    slideDeckFileName = null,
+                    slideDeckSizeMb = null,
+                    slideDeckPageCount = null,
+                    slideDeckUploadTime = null,
+                    isSlideDeckAnalyzed = false,
                 )
             } else session
         }
@@ -404,24 +477,139 @@ class FirebaseSessionRepository(
 
         try {
             val firestore = firestoreOrNull
-            if (firestore != null) {
+            if (firestore != null && sessionId.isNotBlank()) {
                 firestore.collection("sessions").document(sessionId)
                     .update(
                         mapOf(
-                            "slideDeckUrl" to downloadUrl,
-                            "slideDeckFileName" to fileName,
-                            "slideDeckSizeMb" to fileSizeMb,
-                            "slideDeckPageCount" to 1,
-                            "slideDeckUploadTime" to deckInfo.uploadTime,
-                            "slideDeckUploadedAt" to System.currentTimeMillis(),
+                            "slideDeckUrl" to FieldValue.delete(),
+                            "slideDeckFileName" to FieldValue.delete(),
+                            "slideDeckSizeMb" to FieldValue.delete(),
+                            "slideDeckPageCount" to FieldValue.delete(),
+                            "slideDeckUploadTime" to FieldValue.delete(),
+                            "slideDeckUploadedAt" to FieldValue.delete(),
                         ),
                     ).await()
             }
         } catch (e: Exception) {
-            Log.e("FirebaseSessionRepo", "Firestore slide deck metadata update failed: ${e.message}")
+            Log.e("FirebaseSessionRepo", "Failed to clear slide deck metadata: ${e.message}")
+            return Result.failure(e)
         }
 
-        return Result.success(deckInfo)
+        // Only delete the file once nothing points at it, so a failed clear leaves a working deck.
+        if (!fileName.isNullOrBlank()) {
+            deleteSlideDeckFile(sessionId, fileName)
+        }
+
+        return Result.success(Unit)
+    }
+
+    override suspend fun saveAnalyzedSlides(
+        sessionId: String,
+        analyzedSlides: List<com.example.konteksto.ui.host.studio.AnalyzedSlideItem>,
+    ): Result<Unit> {
+        val updatedLocal = localCreatedSessions.value.map { session ->
+            if (session.id == sessionId) {
+                session.copy(isSlideDeckAnalyzed = analyzedSlides.isNotEmpty())
+            } else session
+        }
+        localCreatedSessions.value = updatedLocal
+        saveLocalSessions(updatedLocal)
+
+        val slidesList = analyzedSlides.map { slide ->
+            mapOf(
+                "id" to slide.id,
+                "slideNumber" to slide.slideNumber,
+                "title" to slide.title,
+                "summary" to (slide.summary ?: ""),
+                "explanation" to (slide.explanation ?: ""),
+                "keyTakeaway" to (slide.keyTakeaway ?: ""),
+            )
+        }
+
+        try {
+            val firestore = firestoreOrNull
+            if (firestore != null && sessionId.isNotBlank()) {
+                firestore.collection("sessions").document(sessionId)
+                    .update(
+                        mapOf(
+                            "analyzedSlides" to slidesList,
+                            "isSlideDeckAnalyzed" to analyzedSlides.isNotEmpty(),
+                            "analyzedSlidesCount" to analyzedSlides.size,
+                            "analyzedAt" to System.currentTimeMillis(),
+                        ),
+                    ).await()
+
+                val slidesRef = firestore.collection("sessions").document(sessionId)
+                    .collection("analyzed_slides")
+                val keptIds = analyzedSlides.map { it.id }.toSet()
+                val existingSlides = slidesRef.get().await()
+
+                val batch = firestore.batch()
+                existingSlides.documents
+                    .filter { it.id !in keptIds }
+                    .forEach { batch.delete(it.reference) }
+                analyzedSlides.forEach { slide ->
+                    val docRef = slidesRef.document(slide.id)
+                    batch.set(
+                        docRef,
+                        mapOf(
+                            "id" to slide.id,
+                            "slideNumber" to slide.slideNumber,
+                            "title" to slide.title,
+                            "summary" to (slide.summary ?: ""),
+                            "explanation" to (slide.explanation ?: ""),
+                            "keyTakeaway" to (slide.keyTakeaway ?: ""),
+                            "analyzedAt" to System.currentTimeMillis(),
+                        ),
+                    )
+                }
+                batch.commit().await()
+                Log.d("FirebaseSessionRepo", "Saved ${analyzedSlides.size} analyzed slides to Firestore for session $sessionId")
+            }
+        } catch (e: Exception) {
+            Log.e("FirebaseSessionRepo", "Failed to save analyzed slides to Firestore: ${e.message}")
+            return Result.failure(e)
+        }
+
+        return Result.success(Unit)
+    }
+
+    override fun getAnalyzedSlidesStream(sessionId: String): Flow<List<com.example.konteksto.ui.host.studio.AnalyzedSlideItem>> = callbackFlow {
+        val firestore = firestoreOrNull
+        if (firestore == null || sessionId.isBlank()) {
+            trySend(emptyList())
+            awaitClose { }
+            return@callbackFlow
+        }
+
+        val listener = firestore.collection("sessions").document(sessionId)
+            .collection("analyzed_slides")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+                val slides = snapshot?.documents?.mapNotNull { doc ->
+                    val id = doc.getString("id") ?: doc.id
+                    val slideNumber = doc.getLong("slideNumber")?.toInt() ?: 1
+                    val title = doc.getString("title") ?: "Slide $slideNumber"
+                    val summary = doc.getString("summary")
+                    val explanation = doc.getString("explanation")
+                    val keyTakeaway = doc.getString("keyTakeaway")
+                    com.example.konteksto.ui.host.studio.AnalyzedSlideItem(
+                        id = id,
+                        slideNumber = slideNumber,
+                        title = title,
+                        summary = summary,
+                        explanation = explanation,
+                        keyTakeaway = keyTakeaway,
+                    )
+                }?.sortedBy { it.slideNumber } ?: emptyList()
+
+                trySend(slides)
+            }
+
+        awaitClose { listener.remove() }
     }
 
     private fun loadLocalSessions(): List<HostSession> {
@@ -467,6 +655,7 @@ class FirebaseSessionRepository(
         put("slideDeckSizeMb", slideDeckSizeMb ?: 0.0)
         put("slideDeckPageCount", slideDeckPageCount ?: 1)
         put("slideDeckUploadTime", slideDeckUploadTime ?: "")
+        put("isSlideDeckAnalyzed", isSlideDeckAnalyzed)
     }
 
     private fun JSONObject.toHostSessionFromJsonObject(): HostSession {
@@ -491,6 +680,7 @@ class FirebaseSessionRepository(
             slideDeckSizeMb = optDouble("slideDeckSizeMb").takeIf { !it.isNaN() && it > 0.0 },
             slideDeckPageCount = optInt("slideDeckPageCount", 1),
             slideDeckUploadTime = optString("slideDeckUploadTime").ifEmpty { null },
+            isSlideDeckAnalyzed = optBoolean("isSlideDeckAnalyzed", false),
         )
     }
 
@@ -517,6 +707,7 @@ class FirebaseSessionRepository(
         val deckSizeMb = getDouble("slideDeckSizeMb")
         val deckPageCount = getLong("slideDeckPageCount")?.toInt() ?: 1
         val deckUploadTime = getString("slideDeckUploadTime")
+        val deckAnalyzed = getBoolean("isSlideDeckAnalyzed") ?: false
 
         return HostSession(
             id = id,
@@ -537,6 +728,7 @@ class FirebaseSessionRepository(
             slideDeckSizeMb = deckSizeMb,
             slideDeckPageCount = deckPageCount,
             slideDeckUploadTime = deckUploadTime,
+            isSlideDeckAnalyzed = deckAnalyzed,
         )
     }
 }

@@ -13,6 +13,11 @@ class NavigationTest {
     }
 
     @Test
+    fun testEditSlideRoute() {
+        assertEquals("edit_slide/session_1/s_2", Screen.EditSlide.createRoute("session_1", "s_2"))
+    }
+
+    @Test
     fun testMainTabRoutesAndBadge() {
         assertEquals(4, MainTab.tabs.size)
         assertEquals("sessions", MainTab.Sessions.route)

@@ -19,4 +19,5 @@ data class HostSession(
     val slideDeckSizeMb: Double? = null,
     val slideDeckPageCount: Int? = null,
     val slideDeckUploadTime: String? = null,
+    val isSlideDeckAnalyzed: Boolean = false,
 )

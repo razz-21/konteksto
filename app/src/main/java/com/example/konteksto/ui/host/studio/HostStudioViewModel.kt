@@ -6,8 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.example.konteksto.data.repository.AuthRepository
 import com.example.konteksto.data.repository.FirebaseAuthRepository
 import com.example.konteksto.data.repository.FirebaseSessionRepository
+import com.example.konteksto.data.repository.GeminiSlideAnalyzer
 import com.example.konteksto.data.repository.SessionRepository
 import com.example.konteksto.domain.model.HostSession
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,14 +24,33 @@ data class HostStudioUiState(
     val contextNotes: List<ContextNoteItem> = emptyList(),
     val slideDeckInfo: SlideDeckInfo? = null,
     val analyzedSlides: List<AnalyzedSlideItem> = emptyList(),
+    val isUploadingPdf: Boolean = false,
+    val isAnalyzingPdf: Boolean = false,
     val isUpdatingLiveStatus: Boolean = false,
     val errorMessage: String? = null,
 )
+
+/**
+ * The in-memory deck holds the PDF bytes and the latest analysis state, neither of which a session
+ * update carries, so it is only replaced when the session points at a different file.
+ */
+internal fun resolveSlideDeck(currentDeck: SlideDeckInfo?, session: HostSession): SlideDeckInfo? {
+    val fileName = session.slideDeckFileName
+    if (fileName.isNullOrBlank() || currentDeck?.fileName == fileName) return currentDeck
+    return SlideDeckInfo(
+        fileName = fileName,
+        fileSizeMb = session.slideDeckSizeMb ?: 1.0,
+        pageCount = session.slideDeckPageCount ?: 1,
+        uploadTime = session.slideDeckUploadTime ?: "Uploaded Previously",
+        isAnalyzed = session.isSlideDeckAnalyzed,
+    )
+}
 
 class HostStudioViewModel(
     private val sessionId: String,
     private val sessionRepository: SessionRepository = FirebaseSessionRepository(),
     private val authRepository: AuthRepository = FirebaseAuthRepository(),
+    private val geminiSlideAnalyzer: GeminiSlideAnalyzer = GeminiSlideAnalyzer(),
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -48,9 +69,25 @@ class HostStudioViewModel(
     )
     val uiState: StateFlow<HostStudioUiState> = _uiState.asStateFlow()
 
+    private var removeSlideDeckJob: Job? = null
+
     init {
         observeSession()
         observeTranscripts()
+        observeAnalyzedSlides()
+    }
+
+    private fun observeAnalyzedSlides() {
+        viewModelScope.launch {
+            sessionRepository.getAnalyzedSlidesStream(sessionId).collect { remoteSlides ->
+                if (remoteSlides.isNotEmpty()) {
+                    _uiState.value = _uiState.value.copy(
+                        analyzedSlides = remoteSlides,
+                        slideDeckInfo = _uiState.value.slideDeckInfo?.copy(isAnalyzed = true),
+                    )
+                }
+            }
+        }
     }
 
     private fun observeSession() {
@@ -59,33 +96,10 @@ class HostStudioViewModel(
             sessionRepository.getHostSessionsStream(hostUid).collect { sessions ->
                 val matchingSession = sessions.find { it.id == sessionId }
                 if (matchingSession != null) {
-                    val restoredDeck = if (!matchingSession.slideDeckFileName.isNullOrBlank()) {
-                        SlideDeckInfo(
-                            fileName = matchingSession.slideDeckFileName,
-                            fileSizeMb = matchingSession.slideDeckSizeMb ?: 1.0,
-                            pageCount = matchingSession.slideDeckPageCount ?: 1,
-                            uploadTime = matchingSession.slideDeckUploadTime ?: "Uploaded Previously",
-                            isAnalyzed = true,
-                        )
-                    } else _uiState.value.slideDeckInfo
-
-                    val restoredSlides = if (restoredDeck != null && _uiState.value.analyzedSlides.isEmpty()) {
-                        listOf(
-                            AnalyzedSlideItem(
-                                id = "s_restored",
-                                slideNumber = 1,
-                                title = restoredDeck.fileName.substringBeforeLast("."),
-                                diagramSummary = "PDF presentation slides parsed and indexed for grounded AI explanations.",
-                                keyTakeaway = "Presentation deck grounds AI live terminology definitions in real time.",
-                            ),
-                        )
-                    } else _uiState.value.analyzedSlides
-
                     _uiState.value = _uiState.value.copy(
                         session = matchingSession,
                         isAudioBroadcasting = matchingSession.isLive,
-                        slideDeckInfo = restoredDeck,
-                        analyzedSlides = restoredSlides,
+                        slideDeckInfo = resolveSlideDeck(_uiState.value.slideDeckInfo, matchingSession),
                     )
                 }
             }
@@ -213,79 +227,124 @@ class HostStudioViewModel(
         )
     }
 
-    fun uploadSlideDeckPdf(uri: android.net.Uri, fileName: String, fileSizeMb: Double) {
+    fun uploadSlideDeckPdf(
+        uri: android.net.Uri,
+        fileName: String,
+        fileSizeMb: Double,
+        pageCount: Int = 1,
+        pdfBytes: ByteArray? = null,
+    ) {
+        val nowFormatted = java.text.SimpleDateFormat("a 'at' h:mm a", java.util.Locale.US).format(java.util.Date())
+        val deckInfo = SlideDeckInfo(
+            fileName = fileName,
+            fileSizeMb = fileSizeMb,
+            pageCount = pageCount,
+            uploadTime = "Uploaded $nowFormatted",
+            isAnalyzed = false,
+            pdfBytes = pdfBytes,
+        )
+        _uiState.value = _uiState.value.copy(
+            slideDeckInfo = deckInfo,
+            analyzedSlides = emptyList(),
+            isUploadingPdf = true,
+        )
         viewModelScope.launch {
+            // A pending removal deletes the stored file, which could be this same path.
+            removeSlideDeckJob?.join()
             sessionRepository.uploadSlideDeckPdf(
                 sessionId = sessionId,
                 uri = uri,
                 fileName = fileName,
                 fileSizeMb = fileSizeMb,
-            ).onSuccess { deckInfo ->
+                pageCount = pageCount,
+            ).onSuccess { repoDeck ->
                 _uiState.value = _uiState.value.copy(
-                    slideDeckInfo = deckInfo.copy(isAnalyzed = false),
-                    analyzedSlides = emptyList(),
+                    slideDeckInfo = repoDeck.copy(
+                        pageCount = pageCount,
+                        isAnalyzed = false,
+                        pdfBytes = pdfBytes,
+                    ),
+                    isUploadingPdf = false,
                 )
             }.onFailure {
-                setSlideDeckInfo(fileName, fileSizeMb)
+                _uiState.value = _uiState.value.copy(
+                    slideDeckInfo = null,
+                    isUploadingPdf = false,
+                    errorMessage = "Couldn't upload '$fileName'. Check your connection and try again.",
+                )
             }
         }
     }
 
     fun analyzeSlideDeck() {
         val currentDeck = _uiState.value.slideDeckInfo ?: return
-        val fileName = currentDeck.fileName
-        val generatedSlides = listOf(
-            AnalyzedSlideItem(
-                id = "s_${System.currentTimeMillis()}",
-                slideNumber = 1,
-                title = fileName.substringBeforeLast("."),
-                diagramSummary = "PDF presentation slides parsed and indexed for grounded AI explanations.",
-                keyTakeaway = "Presentation deck grounds AI live terminology definitions in real time.",
-            ),
-        )
-        _uiState.value = _uiState.value.copy(
-            slideDeckInfo = currentDeck.copy(isAnalyzed = true),
-            analyzedSlides = generatedSlides,
-        )
-    }
+        val currentSession = _uiState.value.session
+        _uiState.value = _uiState.value.copy(isAnalyzingPdf = true)
+        viewModelScope.launch {
+            val pdfBytes = currentDeck.pdfBytes?.takeIf { it.isNotEmpty() }
+                ?: sessionRepository.downloadSlideDeckPdf(sessionId, currentDeck.fileName).getOrElse {
+                    _uiState.value = _uiState.value.copy(
+                        isAnalyzingPdf = false,
+                        errorMessage = "Couldn't load '${currentDeck.fileName}', so it wasn't analyzed. " +
+                            "Check your connection and try again. If this keeps happening, remove the deck and upload it again.",
+                    )
+                    return@launch
+                }
+            val deckWithPdf = currentDeck.copy(pdfBytes = pdfBytes)
 
-    fun setSlideDeckInfo(fileName: String, fileSizeMb: Double, pageCount: Int = 1) {
-        val nowFormatted = java.text.SimpleDateFormat("a 'at' h:mm a", java.util.Locale.US).format(java.util.Date())
-        val newDeck = SlideDeckInfo(
-            fileName = fileName,
-            fileSizeMb = fileSizeMb,
-            pageCount = pageCount,
-            uploadTime = "Uploaded $nowFormatted",
-            isAnalyzed = true,
-        )
-        val defaultSlides = listOf(
-            AnalyzedSlideItem(
-                id = "s_${System.currentTimeMillis()}",
-                slideNumber = 1,
-                title = fileName.substringBeforeLast("."),
-                diagramSummary = "PDF presentation slides parsed and indexed for grounded AI explanations.",
-                keyTakeaway = "Presentation deck grounds AI live terminology definitions in real time.",
-            ),
-        )
-        _uiState.value = _uiState.value.copy(
-            slideDeckInfo = newDeck,
-            analyzedSlides = defaultSlides,
-        )
+            geminiSlideAnalyzer.analyzeSlideDeck(
+                slideDeckInfo = deckWithPdf,
+                sessionTitle = currentSession?.title ?: "",
+                category = currentSession?.category ?: "",
+            ).onSuccess { generatedSlides ->
+                _uiState.value = _uiState.value.copy(
+                    slideDeckInfo = deckWithPdf.copy(isAnalyzed = true),
+                    analyzedSlides = generatedSlides,
+                    isAnalyzingPdf = false,
+                )
+                sessionRepository.saveAnalyzedSlides(sessionId, generatedSlides)
+            }.onFailure {
+                _uiState.value = _uiState.value.copy(
+                    slideDeckInfo = deckWithPdf,
+                    isAnalyzingPdf = false,
+                    errorMessage = "Couldn't analyze '${currentDeck.fileName}', so nothing was saved. Please try again.",
+                )
+            }
+        }
     }
 
     fun removeSlideDeck() {
+        val fileName = _uiState.value.slideDeckInfo?.fileName
         _uiState.value = _uiState.value.copy(
             slideDeckInfo = null,
             analyzedSlides = emptyList(),
         )
+        removeSlideDeckJob = viewModelScope.launch {
+            sessionRepository.clearSlideDeck(sessionId, fileName).onFailure {
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = "Couldn't remove '$fileName'. Check your connection and try again.",
+                )
+                return@launch
+            }
+            sessionRepository.saveAnalyzedSlides(sessionId, emptyList())
+        }
     }
 
-    fun removeAnalyzedSlide(slideId: String) {
-        val updated = _uiState.value.analyzedSlides.filter { it.id != slideId }
-        _uiState.value = _uiState.value.copy(
-            analyzedSlides = updated,
-            slideDeckInfo = if (updated.isEmpty()) null else _uiState.value.slideDeckInfo,
-        )
+    fun updateAnalyzedSlide(editedSlide: AnalyzedSlideItem) {
+        val originalSlide = _uiState.value.analyzedSlides.find { it.id == editedSlide.id } ?: return
+        val updated = _uiState.value.analyzedSlides.map { if (it.id == editedSlide.id) editedSlide else it }
+        _uiState.value = _uiState.value.copy(analyzedSlides = updated)
+        viewModelScope.launch {
+            sessionRepository.saveAnalyzedSlides(sessionId, updated).onFailure {
+                _uiState.value = _uiState.value.copy(
+                    analyzedSlides = _uiState.value.analyzedSlides.map {
+                        if (it.id == originalSlide.id) originalSlide else it
+                    },
+                    errorMessage = "Couldn't save your changes to Slide ${originalSlide.slideNumber}. " +
+                        "Check your connection and try again.",
+                )
+            }
+        }
     }
 
     fun clearErrorMessage() {

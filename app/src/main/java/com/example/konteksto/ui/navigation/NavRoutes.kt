@@ -13,6 +13,9 @@ sealed class Screen(val route: String) {
     object HostStudio : Screen("host_studio/{sessionId}") {
         fun createRoute(sessionId: String) = "host_studio/$sessionId"
     }
+    object EditSlide : Screen("edit_slide/{sessionId}/{slideId}") {
+        fun createRoute(sessionId: String, slideId: String) = "edit_slide/$sessionId/$slideId"
+    }
 }
 
 sealed class MainTab(

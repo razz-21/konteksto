@@ -32,10 +32,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -58,14 +56,15 @@ fun HostStudioSlidesView(
     modifier: Modifier = Modifier,
     slideDeckInfo: SlideDeckInfo? = null,
     analyzedSlides: List<AnalyzedSlideItem> = emptyList(),
-    onUploadPdfSubmitted: (uri: Uri, fileName: String, fileSizeMb: Double) -> Unit = { _, _, _ -> },
+    isUploadingPdf: Boolean = false,
+    isAnalyzingPdf: Boolean = false,
+    onUploadPdfSubmitted: (uri: Uri, fileName: String, fileSizeMb: Double, pageCount: Int, pdfBytes: ByteArray?) -> Unit = { _, _, _, _, _ -> },
+    onRemoveSlideDeckClick: () -> Unit = {},
     onAnalyzeSlideDeckClick: () -> Unit = {},
-    onDeleteSlideClicked: (slideId: String) -> Unit = {},
+    onEditSlideClick: (slideId: String) -> Unit = {},
 ) {
     val context = LocalContext.current
     var subTabSelected by remember { mutableIntStateOf(0) } // 0: Deck & Analysis, 1: AI Guidance, 2: Glossary
-    var uploadingFileName by remember { mutableStateOf<String?>(null) }
-    var slideToDelete by remember { mutableStateOf<AnalyzedSlideItem?>(null) }
 
     val pdfPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
@@ -74,6 +73,8 @@ fun HostStudioSlidesView(
             val contentResolver = context.contentResolver
             var fileName = "Uploaded_Presentation.pdf"
             var fileSizeMb = 2.5
+            var pageCount = 1
+            var pdfBytes: ByteArray? = null
 
             try {
                 contentResolver.query(uri, null, null, null, null)?.use { cursor ->
@@ -90,34 +91,30 @@ fun HostStudioSlidesView(
                         }
                     }
                 }
+                contentResolver.openInputStream(uri)?.use { stream ->
+                    pdfBytes = stream.readBytes()
+                }
+                contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
+                    val renderer = android.graphics.pdf.PdfRenderer(pfd)
+                    pageCount = renderer.pageCount
+                    renderer.close()
+                }
             } catch (_: Exception) { }
 
-            uploadingFileName = fileName
-            onUploadPdfSubmitted(uri, fileName, fileSizeMb)
+            onUploadPdfSubmitted(uri, fileName, fileSizeMb, pageCount, pdfBytes)
         }
     }
 
-    LaunchedEffect(slideDeckInfo) {
-        if (slideDeckInfo != null) {
-            uploadingFileName = null
-        }
-    }
-
-    if (uploadingFileName != null) {
+    if (isUploadingPdf) {
         UploadPdfProgressDialog(
-            fileName = uploadingFileName ?: "Slide Deck.pdf",
-            onDismissRequest = { uploadingFileName = null },
+            fileName = slideDeckInfo?.fileName ?: "Slide Deck.pdf",
         )
     }
 
-    if (slideToDelete != null) {
-        DeleteSlideConfirmDialog(
-            slideTitle = slideToDelete?.title ?: "Slide",
-            onConfirm = {
-                slideToDelete?.let { onDeleteSlideClicked(it.id) }
-                slideToDelete = null
-            },
-            onDismiss = { slideToDelete = null },
+    if (isAnalyzingPdf) {
+        AnalyzePdfProgressDialog(
+            fileName = slideDeckInfo?.fileName ?: "Slide Deck.pdf",
+            onDismissRequest = {},
         )
     }
 
@@ -513,31 +510,34 @@ fun HostStudioSlidesView(
 
                             Spacer(modifier = Modifier.height(14.dp))
 
-                            // Action Buttons Row: Upload PDF Deck | Re-analyze / Analyze with AI
+                            // Action Buttons Row: Remove PDF Deck | Re-analyze / Analyze
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
                                 OutlinedButton(
-                                    onClick = { pdfPickerLauncher.launch("application/pdf") },
+                                    onClick = onRemoveSlideDeckClick,
                                     modifier = Modifier
                                         .weight(1f)
                                         .height(38.dp),
                                     shape = MaterialTheme.shapes.small,
                                     border = BorderStroke(
                                         1.dp,
-                                        MaterialTheme.colorScheme.outlineVariant,
+                                        MaterialTheme.colorScheme.error.copy(alpha = 0.4f),
+                                    ),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.error,
                                     ),
                                     contentPadding = PaddingValues(horizontal = 6.dp),
                                 ) {
                                     Icon(
-                                        painter = painterResource(id = R.drawable.ic_upload),
+                                        painter = painterResource(id = R.drawable.ic_delete),
                                         contentDescription = null,
                                         modifier = Modifier.size(14.dp),
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "Upload PDF Deck",
+                                        text = "Remove PDF Deck",
                                         style = MaterialTheme.typography.labelMedium.copy(
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 11.5.sp,
@@ -565,7 +565,7 @@ fun HostStudioSlidesView(
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = if (slideDeckInfo.isAnalyzed) "Re-analyze with AI" else "Analyze with AI",
+                                        text = if (slideDeckInfo.isAnalyzed) "Re-analyze" else "Analyze",
                                         style = MaterialTheme.typography.labelMedium.copy(
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 11.5.sp,
@@ -638,7 +638,7 @@ fun HostStudioSlidesView(
                                 Spacer(modifier = Modifier.height(4.dp))
 
                                 Text(
-                                    text = "Tap 'Analyze with AI' above to parse diagrams, key concepts, and takeaways from your uploaded PDF slide deck.",
+                                    text = "Tap 'Analyze' above to parse diagrams, key concepts, and takeaways from your uploaded PDF slide deck.",
                                     style = MaterialTheme.typography.bodySmall.copy(
                                         fontSize = 12.sp,
                                         lineHeight = 16.sp,
@@ -664,7 +664,7 @@ fun HostStudioSlidesView(
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "Analyze with AI",
+                                        text = "Analyze",
                                         style = MaterialTheme.typography.labelLarge.copy(
                                             fontWeight = FontWeight.Bold,
                                         ),
@@ -729,19 +729,19 @@ fun HostStudioSlidesView(
                                         }
 
                                         IconButton(
-                                            onClick = { slideToDelete = slide },
+                                            onClick = { onEditSlideClick(slide.id) },
                                             modifier = Modifier.size(24.dp),
                                         ) {
                                             Icon(
-                                                painter = painterResource(id = R.drawable.ic_delete),
-                                                contentDescription = "Delete slide analysis",
+                                                painter = painterResource(id = R.drawable.ic_edit),
+                                                contentDescription = "Edit slide analysis",
                                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.size(16.dp),
                                             )
                                         }
                                     }
 
-                                    if (!slide.diagramSummary.isNullOrBlank()) {
+                                    if (!slide.summary.isNullOrBlank()) {
                                         Spacer(modifier = Modifier.height(10.dp))
                                         Card(
                                             modifier = Modifier.fillMaxWidth(),
@@ -760,7 +760,7 @@ fun HostStudioSlidesView(
                                                     .padding(10.dp),
                                             ) {
                                                 Text(
-                                                    text = "DIAGRAM",
+                                                    text = "SUMMARY",
                                                     style = MaterialTheme.typography.labelSmall.copy(
                                                         fontWeight = FontWeight.Bold,
                                                         fontSize = 10.sp,
@@ -770,7 +770,47 @@ fun HostStudioSlidesView(
                                                 )
                                                 Spacer(modifier = Modifier.height(3.dp))
                                                 Text(
-                                                    text = slide.diagramSummary,
+                                                    text = slide.summary,
+                                                    style = MaterialTheme.typography.bodySmall.copy(
+                                                        fontSize = 12.sp,
+                                                        lineHeight = 16.sp,
+                                                    ),
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    if (!slide.explanation.isNullOrBlank()) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Card(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = MaterialTheme.shapes.small,
+                                            colors = CardDefaults.cardColors(
+                                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                            ),
+                                            border = BorderStroke(
+                                                1.dp,
+                                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                            ),
+                                        ) {
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(10.dp),
+                                            ) {
+                                                Text(
+                                                    text = "EXPLANATION",
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 10.sp,
+                                                        letterSpacing = 0.5.sp,
+                                                    ),
+                                                    color = MaterialTheme.colorScheme.secondary,
+                                                )
+                                                Spacer(modifier = Modifier.height(3.dp))
+                                                Text(
+                                                    text = slide.explanation,
                                                     style = MaterialTheme.typography.bodySmall.copy(
                                                         fontSize = 12.sp,
                                                         lineHeight = 16.sp,
@@ -800,7 +840,7 @@ fun HostStudioSlidesView(
                                                     .padding(10.dp),
                                             ) {
                                                 Text(
-                                                    text = "AI TAKEAWAY",
+                                                    text = "TAKEAWAY",
                                                     style = MaterialTheme.typography.labelSmall.copy(
                                                         fontWeight = FontWeight.Bold,
                                                         fontSize = 10.sp,

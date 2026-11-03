@@ -12,6 +12,7 @@ fun HostStudioRoute(
     initialSession: HostSession,
     onBackClick: () -> Unit,
     onPresentQrClick: (HostSession) -> Unit,
+    onEditSlideClick: (slideId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -29,9 +30,13 @@ fun HostStudioRoute(
         onToggleAudioBroadcasting = { viewModel.toggleAudioBroadcasting() },
         onAddTranscript = { text -> viewModel.addTranscriptEntry(text = text) },
         onAddContextNote = { title, content -> viewModel.addContextNote(title = title, content = content) },
-        onUploadPdfSubmitted = { uri, fileName, fileSizeMb -> viewModel.uploadSlideDeckPdf(uri, fileName, fileSizeMb) },
+        onUploadPdfSubmitted = { uri, fileName, fileSizeMb, pageCount, pdfBytes ->
+            viewModel.uploadSlideDeckPdf(uri, fileName, fileSizeMb, pageCount, pdfBytes)
+        },
+        onRemoveSlideDeckClicked = { viewModel.removeSlideDeck() },
         onAnalyzeSlideDeckClicked = { viewModel.analyzeSlideDeck() },
-        onDeleteSlideClicked = { slideId -> viewModel.removeAnalyzedSlide(slideId) },
+        onEditSlideClick = onEditSlideClick,
+        onErrorDismissed = { viewModel.clearErrorMessage() },
         modifier = modifier,
     )
 }
