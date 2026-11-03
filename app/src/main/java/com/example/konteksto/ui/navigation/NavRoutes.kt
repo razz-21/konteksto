@@ -16,6 +16,12 @@ sealed class Screen(val route: String) {
     object EditSlide : Screen("edit_slide/{sessionId}/{slideId}") {
         fun createRoute(sessionId: String, slideId: String) = "edit_slide/$sessionId/$slideId"
     }
+    object EditDomainTerm : Screen("edit_domain_term/{sessionId}/{termId}") {
+        fun createRoute(sessionId: String, termId: String) = "edit_domain_term/$sessionId/$termId"
+    }
+    object AddContextNote : Screen("add_context_note/{sessionId}") {
+        fun createRoute(sessionId: String) = "add_context_note/$sessionId"
+    }
     object EditContextNote : Screen("edit_context_note/{sessionId}/{noteId}") {
         fun createRoute(sessionId: String, noteId: String) = "edit_context_note/$sessionId/$noteId"
     }

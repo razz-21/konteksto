@@ -13,6 +13,8 @@ fun HostStudioRoute(
     onBackClick: () -> Unit,
     onPresentQrClick: (HostSession) -> Unit,
     onEditSlideClick: (slideId: String) -> Unit,
+    onEditDomainTermClick: (termId: String) -> Unit,
+    onAddContextNoteClick: () -> Unit,
     onEditContextNoteClick: (noteId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -30,7 +32,9 @@ fun HostStudioRoute(
         onTabSelected = { tab -> viewModel.setSelectedTab(tab) },
         onToggleAudioBroadcasting = { viewModel.toggleAudioBroadcasting() },
         onAddTranscript = { text -> viewModel.addTranscriptEntry(text = text) },
-        onAddContextNote = { title, content -> viewModel.addContextNote(title = title, content = content) },
+        onEditDomainTermClick = onEditDomainTermClick,
+        onDeleteDomainTermClick = { termId -> viewModel.deleteDomainTerm(termId) },
+        onAddContextNoteClick = onAddContextNoteClick,
         onUploadPdfSubmitted = { uri, fileName, fileSizeMb, pageCount, pdfBytes ->
             viewModel.uploadSlideDeckPdf(uri, fileName, fileSizeMb, pageCount, pdfBytes)
         },

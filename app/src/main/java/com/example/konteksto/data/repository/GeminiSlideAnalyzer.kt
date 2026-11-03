@@ -4,7 +4,10 @@ import android.util.Log
 import com.example.konteksto.BuildConfig
 import com.example.konteksto.ui.host.studio.AnalyzedSlideItem
 import com.example.konteksto.ui.host.studio.ContextNoteItem
+import com.example.konteksto.ui.host.studio.DomainTermItem
+import com.example.konteksto.ui.host.studio.SlideDeckAnalysis
 import com.example.konteksto.ui.host.studio.SlideDeckInfo
+import com.example.konteksto.ui.host.studio.cleanDomainTerms
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
 import com.google.firebase.Firebase
@@ -12,7 +15,7 @@ import com.google.firebase.vertexai.vertexAI
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
+import org.json.JSONObject
 
 private val HOST_NOTES_TAG = Regex("</?host_notes>", RegexOption.IGNORE_CASE)
 
@@ -46,7 +49,7 @@ class GeminiSlideAnalyzer(
         sessionTitle: String = "",
         category: String = "",
         contextNotes: List<ContextNoteItem> = emptyList(),
-    ): Result<List<AnalyzedSlideItem>> = withContext(Dispatchers.IO) {
+    ): Result<SlideDeckAnalysis> = withContext(Dispatchers.IO) {
         val fileName = slideDeckInfo.fileName
         val pageCount = slideDeckInfo.pageCount.coerceAtLeast(1)
         val pdfBytes = slideDeckInfo.pdfBytes
@@ -60,16 +63,28 @@ class GeminiSlideAnalyzer(
             CRITICAL INSTRUCTIONS:
             1. Analyze ALL $pageCount slides across this entire presentation slide deck from slide 1 to slide $pageCount.
             2. Extract key concepts, summaries, and explanations for EACH slide in the deck.
-            3. Return a JSON array with exactly $pageCount slide objects (one object per slide in the presentation deck).
+            3. Detect the domain terms an attendee new to this topic may not know.
+            4. Return a JSON object with exactly two keys: "slides" and "terms".
             
-            Each slide object in the array MUST contain:
+            "slides" MUST be an array with exactly $pageCount slide objects (one object per slide in the presentation deck). Each slide object MUST contain:
             - "slideNumber": integer representing the slide number (1, 2, 3, ..., up to $pageCount)
             - "title": concise slide title or topic explanation for this slide
             - "summary": clear summary of what is covered on this slide
             - "explanation": detailed explanation of the concepts, mechanisms, and content presented on this slide
             - "keyTakeaway": core actionable takeaway, key terminology, or definition for the live audience
             
-            Return ONLY raw valid JSON array, with no markdown formatting or additional text.
+            "terms" MUST be an array of the unfamiliar technical terms, abbreviations, acronyms, and jargon that appear in the deck. Each term object MUST contain:
+            - "term": the term as used in the deck. For an abbreviation or acronym, include its full form, for example "POP (Point of Presence)"
+            - "category": exactly one of "ABBREVIATION", "TECHNICAL TERM", or "JARGON"
+            - "description": one or two plain-language sentences explaining what the term means in the context of this talk
+            
+            Rules for "terms":
+            - Include at most 40 terms, choosing the ones attendees most need explained.
+            - List each term only once, and skip everyday words.
+            - If you are not confident what a term means in this talk, leave it out instead of guessing.
+            - If the deck has no such terms, return an empty array.
+            
+            Return ONLY a raw valid JSON object, with no markdown formatting or additional text.
         """.trimIndent() + buildContextNotesPrompt(contextNotes)
 
         val candidateModelNames = listOf(
@@ -137,12 +152,13 @@ class GeminiSlideAnalyzer(
                     .removeSuffix("```")
                     .trim()
 
-                val jsonArray = JSONArray(cleanedJson)
-                val results = mutableListOf<AnalyzedSlideItem>()
+                val analysisJson = JSONObject(cleanedJson)
+                val slidesJson = analysisJson.getJSONArray("slides")
+                val slides = mutableListOf<AnalyzedSlideItem>()
 
-                for (i in 0 until jsonArray.length()) {
-                    val obj = jsonArray.getJSONObject(i)
-                    results.add(
+                for (i in 0 until slidesJson.length()) {
+                    val obj = slidesJson.getJSONObject(i)
+                    slides.add(
                         AnalyzedSlideItem(
                             id = "s_${System.currentTimeMillis()}_$i",
                             slideNumber = obj.optInt("slideNumber", i + 1),
@@ -154,8 +170,19 @@ class GeminiSlideAnalyzer(
                     )
                 }
 
-                if (results.isNotEmpty()) {
-                    return@withContext Result.success(results)
+                val termsJson = analysisJson.optJSONArray("terms")
+                val terms = (0 until (termsJson?.length() ?: 0)).map { i ->
+                    val obj = termsJson!!.getJSONObject(i)
+                    DomainTermItem(
+                        id = "term_${System.currentTimeMillis()}_$i",
+                        term = obj.optString("term"),
+                        category = obj.optString("category").ifBlank { "TECHNICAL TERM" },
+                        description = obj.optString("description"),
+                    )
+                }
+
+                if (slides.isNotEmpty()) {
+                    return@withContext Result.success(SlideDeckAnalysis(slides, cleanDomainTerms(terms)))
                 }
             }
         } catch (e: Exception) {

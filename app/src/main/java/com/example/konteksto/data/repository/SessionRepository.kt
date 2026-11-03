@@ -46,6 +46,7 @@ interface SessionRepository {
     ): Result<com.example.konteksto.ui.host.studio.SlideDeckInfo>
     suspend fun downloadSlideDeckPdf(sessionId: String, fileName: String): Result<ByteArray>
     suspend fun clearSlideDeck(sessionId: String, fileName: String?): Result<Unit>
+    suspend fun saveAnalyzedContextNotesSignature(sessionId: String, signature: String): Result<Unit>
     suspend fun saveAnalyzedSlides(
         sessionId: String,
         analyzedSlides: List<com.example.konteksto.ui.host.studio.AnalyzedSlideItem>,
@@ -61,6 +62,16 @@ interface SessionRepository {
         note: com.example.konteksto.ui.host.studio.ContextNoteItem,
     ): Result<Unit>
     suspend fun deleteContextNote(sessionId: String, noteId: String): Result<Unit>
+    fun getDomainTermsStream(sessionId: String): Flow<List<com.example.konteksto.ui.host.studio.DomainTermItem>>
+    suspend fun saveDomainTerms(
+        sessionId: String,
+        terms: List<com.example.konteksto.ui.host.studio.DomainTermItem>,
+    ): Result<Unit>
+    suspend fun updateDomainTerm(
+        sessionId: String,
+        term: com.example.konteksto.ui.host.studio.DomainTermItem,
+    ): Result<Unit>
+    suspend fun deleteDomainTerm(sessionId: String, termId: String): Result<Unit>
 }
 
 private const val MAX_SLIDE_DECK_BYTES = 50L * 1024 * 1024
@@ -386,7 +397,7 @@ class FirebaseSessionRepository(
         fileSizeMb: Double,
         pageCount: Int,
     ): Result<com.example.konteksto.ui.host.studio.SlideDeckInfo> {
-        val nowFormatted = java.text.SimpleDateFormat("a 'at' h:mm a", java.util.Locale.US).format(java.util.Date())
+        val nowFormatted = java.text.SimpleDateFormat("'at' h:mm a", java.util.Locale.US).format(java.util.Date())
         val downloadUrl = try {
             val storageRef = slideDeckStorageRef(sessionId, fileName)
             storageRef.putFile(uri).await()
@@ -479,6 +490,7 @@ class FirebaseSessionRepository(
                     slideDeckPageCount = null,
                     slideDeckUploadTime = null,
                     isSlideDeckAnalyzed = false,
+                    analyzedContextNotesSignature = null,
                 )
             } else session
         }
@@ -497,6 +509,7 @@ class FirebaseSessionRepository(
                             "slideDeckPageCount" to FieldValue.delete(),
                             "slideDeckUploadTime" to FieldValue.delete(),
                             "slideDeckUploadedAt" to FieldValue.delete(),
+                            "analyzedContextNotesSignature" to FieldValue.delete(),
                         ),
                     ).await()
             }
@@ -508,6 +521,30 @@ class FirebaseSessionRepository(
         // Only delete the file once nothing points at it, so a failed clear leaves a working deck.
         if (!fileName.isNullOrBlank()) {
             deleteSlideDeckFile(sessionId, fileName)
+        }
+
+        return Result.success(Unit)
+    }
+
+    override suspend fun saveAnalyzedContextNotesSignature(sessionId: String, signature: String): Result<Unit> {
+        val updatedLocal = localCreatedSessions.value.map { session ->
+            if (session.id == sessionId) {
+                session.copy(analyzedContextNotesSignature = signature)
+            } else session
+        }
+        localCreatedSessions.value = updatedLocal
+        saveLocalSessions(updatedLocal)
+
+        try {
+            val firestore = firestoreOrNull
+            if (firestore != null && sessionId.isNotBlank()) {
+                firestore.collection("sessions").document(sessionId)
+                    .update("analyzedContextNotesSignature", signature)
+                    .await()
+            }
+        } catch (e: Exception) {
+            Log.e("FirebaseSessionRepo", "Failed to save analyzed context notes signature: ${e.message}")
+            return Result.failure(e)
         }
 
         return Result.success(Unit)
@@ -643,8 +680,6 @@ class FirebaseSessionRepository(
             return@callbackFlow
         }
 
-        trySend(localContextNotesMap.value[sessionId] ?: emptyList())
-
         val listenerRegistration = try {
             firestore.collection("sessions").document(sessionId)
                 .collection("context_notes")
@@ -762,6 +797,155 @@ class FirebaseSessionRepository(
         return Result.success(Unit)
     }
 
+    private val localDomainTermsMap =
+        MutableStateFlow<Map<String, List<com.example.konteksto.ui.host.studio.DomainTermItem>>>(emptyMap())
+
+    override fun getDomainTermsStream(sessionId: String): Flow<List<com.example.konteksto.ui.host.studio.DomainTermItem>> = callbackFlow {
+        if (sessionId.isBlank()) {
+            trySend(emptyList())
+            awaitClose { }
+            return@callbackFlow
+        }
+
+        val firestore = firestoreOrNull
+        if (firestore == null) {
+            val job = launch {
+                localDomainTermsMap.collect { map ->
+                    trySend(map[sessionId] ?: emptyList())
+                }
+            }
+            awaitClose { job.cancel() }
+            return@callbackFlow
+        }
+
+        trySend(localDomainTermsMap.value[sessionId] ?: emptyList())
+
+        val listenerRegistration = try {
+            firestore.collection("sessions").document(sessionId)
+                .collection("glossary")
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        trySend(localDomainTermsMap.value[sessionId] ?: emptyList())
+                        return@addSnapshotListener
+                    }
+
+                    val remoteTerms = snapshot?.documents?.mapNotNull { doc ->
+                        val term = doc.getString("term") ?: return@mapNotNull null
+                        val definition = doc.getString("definition") ?: return@mapNotNull null
+                        com.example.konteksto.ui.host.studio.DomainTermItem(
+                            id = doc.getString("termId") ?: doc.id,
+                            term = term,
+                            category = doc.getString("category") ?: "TECHNICAL TERM",
+                            description = definition,
+                        )
+                    }?.sortedBy { it.term.lowercase() } ?: emptyList()
+
+                    localDomainTermsMap.value = localDomainTermsMap.value + (sessionId to remoteTerms)
+                    trySend(remoteTerms)
+                }
+        } catch (_: Exception) {
+            null
+        }
+
+        awaitClose {
+            listenerRegistration?.remove()
+        }
+    }
+
+    override suspend fun saveDomainTerms(
+        sessionId: String,
+        terms: List<com.example.konteksto.ui.host.studio.DomainTermItem>,
+    ): Result<Unit> {
+        localDomainTermsMap.value = localDomainTermsMap.value + (sessionId to terms)
+
+        try {
+            val firestore = firestoreOrNull
+            if (firestore != null && sessionId.isNotBlank()) {
+                val glossaryRef = firestore.collection("sessions").document(sessionId)
+                    .collection("glossary")
+                val keptIds = terms.map { it.id }.toSet()
+                // Only replaces terms from slide analysis, leaving any added from other sources.
+                val existingTerms = glossaryRef.whereEqualTo("source", "slides").get().await()
+
+                val batch = firestore.batch()
+                existingTerms.documents
+                    .filter { it.id !in keptIds }
+                    .forEach { batch.delete(it.reference) }
+                terms.forEach { term ->
+                    batch.set(
+                        glossaryRef.document(term.id),
+                        mapOf(
+                            "termId" to term.id,
+                            "term" to term.term,
+                            "category" to term.category,
+                            "definition" to term.description,
+                            "source" to "slides",
+                            "timestamp" to System.currentTimeMillis(),
+                        ),
+                    )
+                }
+                batch.commit().await()
+            }
+        } catch (e: Exception) {
+            Log.e("FirebaseSessionRepo", "Failed to save domain terms to Firestore: ${e.message}")
+            return Result.failure(e)
+        }
+
+        return Result.success(Unit)
+    }
+
+    override suspend fun updateDomainTerm(
+        sessionId: String,
+        term: com.example.konteksto.ui.host.studio.DomainTermItem,
+    ): Result<Unit> {
+        val previousTerms = localDomainTermsMap.value[sessionId] ?: emptyList()
+        val updatedTerms = previousTerms.map { if (it.id == term.id) term else it }
+            .sortedBy { it.term.lowercase() }
+        localDomainTermsMap.value = localDomainTermsMap.value + (sessionId to updatedTerms)
+
+        try {
+            val firestore = firestoreOrNull
+            if (firestore != null && sessionId.isNotBlank()) {
+                firestore.collection("sessions").document(sessionId)
+                    .collection("glossary").document(term.id)
+                    .update(
+                        mapOf(
+                            "term" to term.term,
+                            "category" to term.category,
+                            "definition" to term.description,
+                        ),
+                    ).await()
+            }
+        } catch (e: Exception) {
+            Log.e("FirebaseSessionRepo", "Failed to update domain term in Firestore: ${e.message}")
+            localDomainTermsMap.value = localDomainTermsMap.value + (sessionId to previousTerms)
+            return Result.failure(e)
+        }
+
+        return Result.success(Unit)
+    }
+
+    override suspend fun deleteDomainTerm(sessionId: String, termId: String): Result<Unit> {
+        val previousTerms = localDomainTermsMap.value[sessionId] ?: emptyList()
+        val remainingTerms = previousTerms.filter { it.id != termId }
+        localDomainTermsMap.value = localDomainTermsMap.value + (sessionId to remainingTerms)
+
+        try {
+            val firestore = firestoreOrNull
+            if (firestore != null && sessionId.isNotBlank()) {
+                firestore.collection("sessions").document(sessionId)
+                    .collection("glossary").document(termId)
+                    .delete().await()
+            }
+        } catch (e: Exception) {
+            Log.e("FirebaseSessionRepo", "Failed to delete domain term from Firestore: ${e.message}")
+            localDomainTermsMap.value = localDomainTermsMap.value + (sessionId to previousTerms)
+            return Result.failure(e)
+        }
+
+        return Result.success(Unit)
+    }
+
     private fun loadLocalSessions(): List<HostSession> {
         val prefs = context?.getSharedPreferences("konteksto_sessions_prefs", Context.MODE_PRIVATE)
             ?: return emptyList()
@@ -806,6 +990,7 @@ class FirebaseSessionRepository(
         put("slideDeckPageCount", slideDeckPageCount ?: 1)
         put("slideDeckUploadTime", slideDeckUploadTime ?: "")
         put("isSlideDeckAnalyzed", isSlideDeckAnalyzed)
+        put("analyzedContextNotesSignature", analyzedContextNotesSignature)
     }
 
     private fun JSONObject.toHostSessionFromJsonObject(): HostSession {
@@ -831,6 +1016,7 @@ class FirebaseSessionRepository(
             slideDeckPageCount = optInt("slideDeckPageCount", 1),
             slideDeckUploadTime = optString("slideDeckUploadTime").ifEmpty { null },
             isSlideDeckAnalyzed = optBoolean("isSlideDeckAnalyzed", false),
+            analyzedContextNotesSignature = if (isNull("analyzedContextNotesSignature")) null else getString("analyzedContextNotesSignature"),
         )
     }
 
@@ -879,6 +1065,7 @@ class FirebaseSessionRepository(
             slideDeckPageCount = deckPageCount,
             slideDeckUploadTime = deckUploadTime,
             isSlideDeckAnalyzed = deckAnalyzed,
+            analyzedContextNotesSignature = getString("analyzedContextNotesSignature"),
         )
     }
 }

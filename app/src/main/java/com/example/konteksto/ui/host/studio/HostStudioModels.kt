@@ -8,6 +8,54 @@ data class TranscriptEntry(
     val isSystemEvent: Boolean = false,
 )
 
+data class DomainTermItem(
+    val id: String,
+    val term: String,
+    val category: String,
+    val description: String,
+)
+
+internal fun cleanDomainTerms(terms: List<DomainTermItem>): List<DomainTermItem> = terms
+    .map { it.copy(term = it.term.trim(), description = it.description.trim()) }
+    .filter { it.term.isNotBlank() && it.description.isNotBlank() }
+    .distinctBy { it.term.lowercase() }
+    .sortedBy { it.term.lowercase() }
+
+internal val DOMAIN_TERM_CATEGORIES = listOf("ABBREVIATION", "TECHNICAL TERM", "JARGON")
+
+internal fun DomainTermItem.withEdits(
+    term: String,
+    category: String,
+    description: String,
+): DomainTermItem = copy(
+    term = term.trim(),
+    category = category,
+    description = description.trim(),
+)
+
+internal fun List<DomainTermItem>.hasOtherTermNamed(termId: String, name: String): Boolean =
+    any { it.id != termId && it.term.trim().equals(name.trim(), ignoreCase = true) }
+
+internal fun slideDeckStatusLabel(deck: SlideDeckInfo?): String = when {
+    deck == null -> "No PDF"
+    deck.isAnalyzed -> "Grounded"
+    else -> "Not Analyzed"
+}
+
+data class SlideDeckAnalysis(
+    val slides: List<AnalyzedSlideItem>,
+    val terms: List<DomainTermItem>,
+)
+
+/** Identifies a set of notes, so an analysis can be compared with the notes the host has now. */
+internal fun contextNotesSignature(notes: List<ContextNoteItem>): String {
+    if (notes.isEmpty()) return ""
+    return notes.sortedBy { it.id }
+        .joinToString("\u0000") { "${it.id}|${it.category}|${it.title}|${it.content}" }
+        .hashCode()
+        .toString()
+}
+
 data class ContextNoteItem(
     val id: String,
     val category: String,

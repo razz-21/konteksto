@@ -6,8 +6,14 @@ import com.example.konteksto.data.repository.buildContextNotesPrompt
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.host.studio.AnalyzedSlideItem
 import com.example.konteksto.ui.host.studio.ContextNoteItem
+import com.example.konteksto.ui.host.studio.DomainTermItem
 import com.example.konteksto.ui.host.studio.SlideDeckInfo
+import com.example.konteksto.ui.host.studio.HostStudioUiState
+import com.example.konteksto.ui.host.studio.cleanDomainTerms
+import com.example.konteksto.ui.host.studio.contextNotesSignature
+import com.example.konteksto.ui.host.studio.hasOtherTermNamed
 import com.example.konteksto.ui.host.studio.resolveSlideDeck
+import com.example.konteksto.ui.host.studio.slideDeckStatusLabel
 import com.example.konteksto.ui.host.studio.withEdits
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -171,6 +177,133 @@ class SlideDeckStateTest {
 
         assertEquals(listOf("note_2"), repository.getContextNotesStream("session_1").first().map { it.id })
         assertEquals(listOf("note_1"), repository.getContextNotesStream("session_2").first().map { it.id })
+    }
+
+    private fun term(id: String, name: String, description: String = "Meaning") =
+        DomainTermItem(id = id, term = name, category = "JARGON", description = description)
+
+    @Test
+    fun testDomainTermsAreDedupedSortedAndCleaned() {
+        val cleaned = cleanDomainTerms(
+            listOf(
+                term("1", " Qubit ", " A quantum bit "),
+                term("2", "API"),
+                term("3", "qubit", "Duplicate with different casing"),
+                term("4", "   "),
+                term("5", "No description", "  "),
+            ),
+        )
+
+        assertEquals(listOf("API", "Qubit"), cleaned.map { it.term })
+        assertEquals("A quantum bit", cleaned[1].description)
+    }
+
+    @Test
+    fun testSavingDomainTermsReplacesOnlyThatSession() = runBlocking {
+        val repository = FirebaseSessionRepository(
+            context = null,
+            firestoreProvider = { throw IllegalStateException("No firestore in unit test") },
+        )
+        repository.saveDomainTerms("session_1", listOf(term("1", "Old")))
+        repository.saveDomainTerms("session_2", listOf(term("2", "Other")))
+
+        repository.saveDomainTerms("session_1", listOf(term("3", "New")))
+
+        assertEquals(listOf("New"), repository.getDomainTermsStream("session_1").first().map { it.term })
+        assertEquals(listOf("Other"), repository.getDomainTermsStream("session_2").first().map { it.term })
+
+        repository.saveDomainTerms("session_1", emptyList())
+        assertTrue(repository.getDomainTermsStream("session_1").first().isEmpty())
+    }
+
+    @Test
+    fun testDeckIsOnlyGroundedOnceAnalyzed() {
+        assertEquals("No PDF", slideDeckStatusLabel(null))
+        assertEquals("Not Analyzed", slideDeckStatusLabel(SlideDeckInfo(isAnalyzed = false)))
+        assertEquals("Grounded", slideDeckStatusLabel(SlideDeckInfo(isAnalyzed = true)))
+    }
+
+    @Test
+    fun testDomainTermEditsKeepIdAndAreTrimmed() {
+        val edited = term("1", "Old").withEdits(
+            term = " New ",
+            category = "ABBREVIATION",
+            description = " Clearer meaning ",
+        )
+
+        assertEquals("1", edited.id)
+        assertEquals("New", edited.term)
+        assertEquals("ABBREVIATION", edited.category)
+        assertEquals("Clearer meaning", edited.description)
+    }
+
+    @Test
+    fun testDuplicateTermCheckIgnoresTheTermBeingEdited() {
+        val terms = listOf(term("1", "API"), term("2", "Qubit"))
+
+        assertTrue(terms.hasOtherTermNamed("1", " qubit "))
+        assertFalse(terms.hasOtherTermNamed("1", "api"))
+        assertFalse(terms.hasOtherTermNamed("1", "SDK"))
+    }
+
+    @Test
+    fun testEditingAndDeletingDomainTermsUpdatesTheList() = runBlocking {
+        val repository = FirebaseSessionRepository(
+            context = null,
+            firestoreProvider = { throw IllegalStateException("No firestore in unit test") },
+        )
+        repository.saveDomainTerms("session_1", listOf(term("1", "API"), term("2", "Qubit")))
+
+        repository.updateDomainTerm("session_1", term("2", "Agent"))
+        assertEquals(listOf("Agent", "API"), repository.getDomainTermsStream("session_1").first().map { it.term })
+
+        repository.deleteDomainTerm("session_1", "1")
+        assertEquals(listOf("Agent"), repository.getDomainTermsStream("session_1").first().map { it.term })
+    }
+
+    private fun stateWithNotes(
+        notes: List<ContextNoteItem>,
+        analyzedSignature: String?,
+        isAnalyzed: Boolean = true,
+        notesLoaded: Boolean = true,
+    ) = HostStudioUiState(
+        session = session("deck.pdf", isAnalyzed).copy(analyzedContextNotesSignature = analyzedSignature),
+        slideDeckInfo = SlideDeckInfo(fileName = "deck.pdf", isAnalyzed = isAnalyzed),
+        contextNotes = notes,
+        areContextNotesLoaded = notesLoaded,
+    )
+
+    @Test
+    fun testSignatureIgnoresOrderButNotContent() {
+        val first = note()
+        val second = note(id = "note_2", title = "Audience")
+
+        assertEquals("", contextNotesSignature(emptyList()))
+        assertEquals(contextNotesSignature(listOf(first, second)), contextNotesSignature(listOf(second, first)))
+        assertFalse(contextNotesSignature(listOf(first)) == contextNotesSignature(listOf(note(content = "Edited"))))
+    }
+
+    @Test
+    fun testMessageShowsWhenNotesChangeAfterAnalysis() {
+        val analyzedSignature = contextNotesSignature(listOf(note()))
+
+        assertFalse(stateWithNotes(listOf(note()), analyzedSignature).hasUnappliedContextNotes)
+        // Added, edited, and deleted notes all differ from what was analyzed.
+        assertTrue(stateWithNotes(listOf(note(), note(id = "note_2")), analyzedSignature).hasUnappliedContextNotes)
+        assertTrue(stateWithNotes(listOf(note(content = "Edited")), analyzedSignature).hasUnappliedContextNotes)
+        assertTrue(stateWithNotes(emptyList(), analyzedSignature).hasUnappliedContextNotes)
+    }
+
+    @Test
+    fun testMessageHiddenUntilItApplies() {
+        // Notes still loading.
+        assertFalse(stateWithNotes(emptyList(), "123", notesLoaded = false).hasUnappliedContextNotes)
+        // The first analysis will include the notes anyway.
+        assertFalse(stateWithNotes(listOf(note()), null, isAnalyzed = false).hasUnappliedContextNotes)
+        // Analyzed before notes were tracked, with no notes to apply.
+        assertFalse(stateWithNotes(emptyList(), null).hasUnappliedContextNotes)
+        // Analyzed before notes were tracked, so these notes may not be included.
+        assertTrue(stateWithNotes(listOf(note()), null).hasUnappliedContextNotes)
     }
 
     @Test

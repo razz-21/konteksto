@@ -24,11 +24,19 @@ data class HostStudioUiState(
     val contextNotes: List<ContextNoteItem> = emptyList(),
     val slideDeckInfo: SlideDeckInfo? = null,
     val analyzedSlides: List<AnalyzedSlideItem> = emptyList(),
+    val domainTerms: List<DomainTermItem> = emptyList(),
     val isUploadingPdf: Boolean = false,
     val isAnalyzingPdf: Boolean = false,
     val isUpdatingLiveStatus: Boolean = false,
     val errorMessage: String? = null,
-)
+    val areContextNotesLoaded: Boolean = false,
+) {
+    /** True when the analyzed slides and terms were produced from different notes than the current ones. */
+    val hasUnappliedContextNotes: Boolean
+        get() = areContextNotesLoaded &&
+            slideDeckInfo?.isAnalyzed == true &&
+            session?.analyzedContextNotesSignature.orEmpty() != contextNotesSignature(contextNotes)
+}
 
 /**
  * The in-memory deck holds the PDF bytes and the latest analysis state, neither of which a session
@@ -67,12 +75,24 @@ class HostStudioViewModel(
         observeTranscripts()
         observeAnalyzedSlides()
         observeContextNotes()
+        observeDomainTerms()
+    }
+
+    private fun observeDomainTerms() {
+        viewModelScope.launch {
+            sessionRepository.getDomainTermsStream(sessionId).collect { remoteTerms ->
+                _uiState.value = _uiState.value.copy(domainTerms = remoteTerms)
+            }
+        }
     }
 
     private fun observeContextNotes() {
         viewModelScope.launch {
             sessionRepository.getContextNotesStream(sessionId).collect { remoteNotes ->
-                _uiState.value = _uiState.value.copy(contextNotes = remoteNotes)
+                _uiState.value = _uiState.value.copy(
+                    contextNotes = remoteNotes,
+                    areContextNotesLoaded = true,
+                )
             }
         }
     }
@@ -281,7 +301,7 @@ class HostStudioViewModel(
         pageCount: Int = 1,
         pdfBytes: ByteArray? = null,
     ) {
-        val nowFormatted = java.text.SimpleDateFormat("a 'at' h:mm a", java.util.Locale.US).format(java.util.Date())
+        val nowFormatted = java.text.SimpleDateFormat("'at' h:mm a", java.util.Locale.US).format(java.util.Date())
         val deckInfo = SlideDeckInfo(
             fileName = fileName,
             fileSizeMb = fileSizeMb,
@@ -338,19 +358,33 @@ class HostStudioViewModel(
                     return@launch
                 }
             val deckWithPdf = currentDeck.copy(pdfBytes = pdfBytes)
+            val notesUsed = _uiState.value.contextNotes
+            val notesSignature = contextNotesSignature(notesUsed)
 
             geminiSlideAnalyzer.analyzeSlideDeck(
                 slideDeckInfo = deckWithPdf,
                 sessionTitle = currentSession?.title ?: "",
                 category = currentSession?.category ?: "",
-                contextNotes = _uiState.value.contextNotes,
-            ).onSuccess { generatedSlides ->
+                contextNotes = notesUsed,
+            ).onSuccess { analysis ->
                 _uiState.value = _uiState.value.copy(
                     slideDeckInfo = deckWithPdf.copy(isAnalyzed = true),
-                    analyzedSlides = generatedSlides,
+                    analyzedSlides = analysis.slides,
+                    domainTerms = analysis.terms,
                     isAnalyzingPdf = false,
+                    session = _uiState.value.session?.copy(analyzedContextNotesSignature = notesSignature),
                 )
-                sessionRepository.saveAnalyzedSlides(sessionId, generatedSlides)
+                // Saved first so the session updates from the writes below already carry it.
+                val signatureSaved = sessionRepository
+                    .saveAnalyzedContextNotesSignature(sessionId, notesSignature).isSuccess
+                val slidesSaved = sessionRepository.saveAnalyzedSlides(sessionId, analysis.slides).isSuccess
+                val termsSaved = sessionRepository.saveDomainTerms(sessionId, analysis.terms).isSuccess
+                if (!signatureSaved || !slidesSaved || !termsSaved) {
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = "The analysis finished, but it couldn't be saved and may be lost when " +
+                            "you leave this screen. Check your connection and analyze again.",
+                    )
+                }
             }.onFailure {
                 _uiState.value = _uiState.value.copy(
                     slideDeckInfo = deckWithPdf,
@@ -366,6 +400,7 @@ class HostStudioViewModel(
         _uiState.value = _uiState.value.copy(
             slideDeckInfo = null,
             analyzedSlides = emptyList(),
+            domainTerms = emptyList(),
         )
         removeSlideDeckJob = viewModelScope.launch {
             sessionRepository.clearSlideDeck(sessionId, fileName).onFailure {
@@ -375,6 +410,47 @@ class HostStudioViewModel(
                 return@launch
             }
             sessionRepository.saveAnalyzedSlides(sessionId, emptyList())
+            sessionRepository.saveDomainTerms(sessionId, emptyList())
+        }
+    }
+
+    fun updateDomainTerm(editedTerm: DomainTermItem) {
+        val originalTerm = _uiState.value.domainTerms.find { it.id == editedTerm.id } ?: return
+        _uiState.value = _uiState.value.copy(
+            domainTerms = _uiState.value.domainTerms
+                .map { if (it.id == editedTerm.id) editedTerm else it }
+                .sortedBy { it.term.lowercase() },
+        )
+        viewModelScope.launch {
+            sessionRepository.updateDomainTerm(sessionId, editedTerm).onFailure {
+                _uiState.value = _uiState.value.copy(
+                    domainTerms = _uiState.value.domainTerms
+                        .map { if (it.id == originalTerm.id) originalTerm else it }
+                        .sortedBy { it.term.lowercase() },
+                    errorMessage = "Couldn't save your changes to '${originalTerm.term}'. " +
+                        "Check your connection and try again.",
+                )
+            }
+        }
+    }
+
+    fun deleteDomainTerm(termId: String) {
+        val deletedTerm = _uiState.value.domainTerms.find { it.id == termId } ?: return
+        _uiState.value = _uiState.value.copy(
+            domainTerms = _uiState.value.domainTerms.filter { it.id != termId },
+        )
+        viewModelScope.launch {
+            sessionRepository.deleteDomainTerm(sessionId, termId).onFailure {
+                val currentTerms = _uiState.value.domainTerms
+                _uiState.value = _uiState.value.copy(
+                    domainTerms = if (currentTerms.any { it.id == termId }) {
+                        currentTerms
+                    } else {
+                        (currentTerms + deletedTerm).sortedBy { it.term.lowercase() }
+                    },
+                    errorMessage = "Couldn't delete '${deletedTerm.term}'. Check your connection and try again.",
+                )
+            }
         }
     }
 

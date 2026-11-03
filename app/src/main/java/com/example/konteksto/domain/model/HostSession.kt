@@ -20,4 +20,5 @@ data class HostSession(
     val slideDeckPageCount: Int? = null,
     val slideDeckUploadTime: String? = null,
     val isSlideDeckAnalyzed: Boolean = false,
+    val analyzedContextNotesSignature: String? = null,
 )

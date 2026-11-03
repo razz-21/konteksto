@@ -17,6 +17,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -56,13 +59,17 @@ fun HostStudioSlidesView(
     onAddNoteClick: () -> Unit,
     modifier: Modifier = Modifier,
     slideDeckInfo: SlideDeckInfo? = null,
+    hasUnappliedContextNotes: Boolean = false,
     analyzedSlides: List<AnalyzedSlideItem> = emptyList(),
+    domainTerms: List<DomainTermItem> = emptyList(),
     isUploadingPdf: Boolean = false,
     isAnalyzingPdf: Boolean = false,
     onUploadPdfSubmitted: (uri: Uri, fileName: String, fileSizeMb: Double, pageCount: Int, pdfBytes: ByteArray?) -> Unit = { _, _, _, _, _ -> },
     onRemoveSlideDeckClick: () -> Unit = {},
     onAnalyzeSlideDeckClick: () -> Unit = {},
     onEditSlideClick: (slideId: String) -> Unit = {},
+    onEditDomainTermClick: (termId: String) -> Unit = {},
+    onDeleteDomainTermClick: (termId: String) -> Unit = {},
     onEditContextNoteClick: (noteId: String) -> Unit = {},
     onDeleteContextNoteClick: (noteId: String) -> Unit = {},
 ) {
@@ -70,6 +77,12 @@ fun HostStudioSlidesView(
     var subTabSelected by rememberSaveable { mutableIntStateOf(0) } // 0: Deck & Analysis, 1: AI Guidance, 2: Glossary
     var showReanalyzeDialog by rememberSaveable { mutableStateOf(false) }
     var noteIdToDelete by rememberSaveable { mutableStateOf<String?>(null) }
+    var termIdToDelete by rememberSaveable { mutableStateOf<String?>(null) }
+    val isGrounded = slideDeckInfo?.isAnalyzed == true
+    // Kept up here so each list holds its position when switching between sub-tabs.
+    val slidesListState = rememberLazyListState()
+    val notesListState = rememberLazyListState()
+    val termsListState = rememberLazyListState()
 
     val pdfPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
@@ -133,6 +146,17 @@ fun HostStudioSlidesView(
         )
     }
 
+    domainTerms.find { it.id == termIdToDelete }?.let { domainTerm ->
+        DeleteDomainTermDialog(
+            term = domainTerm.term,
+            onConfirm = {
+                termIdToDelete = null
+                onDeleteDomainTermClick(domainTerm.id)
+            },
+            onDismiss = { termIdToDelete = null },
+        )
+    }
+
     contextNotes.find { it.id == noteIdToDelete }?.let { note ->
         DeleteContextNoteDialog(
             noteTitle = note.title,
@@ -185,20 +209,20 @@ fun HostStudioSlidesView(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "${slideDeckInfo?.pageCount ?: 0} slides indexed · ${contextNotes.size + 3} domain terms",
+                        text = "${analyzedSlides.size} slides indexed · ${domainTerms.size} domain terms",
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
 
-            // Status Badge: Grounded / Ready
+            // Status Badge: Grounded / Not Analyzed / No PDF
             Surface(
                 shape = MaterialTheme.shapes.extraSmall,
-                color = if (slideDeckInfo != null) Color(0xFFE8F5E9) else MaterialTheme.colorScheme.surfaceContainerHigh,
+                color = if (isGrounded) Color(0xFFE8F5E9) else MaterialTheme.colorScheme.surfaceContainerHigh,
                 border = BorderStroke(
                     1.dp,
-                    if (slideDeckInfo != null) Color(0xFF81C784) else MaterialTheme.colorScheme.outlineVariant,
+                    if (isGrounded) Color(0xFF81C784) else MaterialTheme.colorScheme.outlineVariant,
                 ),
             ) {
                 Row(
@@ -209,18 +233,18 @@ fun HostStudioSlidesView(
                         modifier = Modifier
                             .size(6.dp)
                             .background(
-                                color = if (slideDeckInfo != null) Color(0xFF2E7D32) else MaterialTheme.colorScheme.outline,
+                                color = if (isGrounded) Color(0xFF2E7D32) else MaterialTheme.colorScheme.outline,
                                 shape = CircleShape,
                             ),
                     )
                     Spacer(modifier = Modifier.width(5.dp))
                     Text(
-                        text = if (slideDeckInfo != null) "Grounded" else "No PDF",
+                        text = slideDeckStatusLabel(slideDeckInfo),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.5.sp,
                         ),
-                        color = if (slideDeckInfo != null) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (isGrounded) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -342,7 +366,10 @@ fun HostStudioSlidesView(
 
         if (subTabSelected == 0) {
             // Sub-Tab 0: Slide Deck & Analysis
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
                 if (slideDeckInfo == null) {
                     // PDF Slide Deck Empty State Card
                     Card(
@@ -605,6 +632,41 @@ fun HostStudioSlidesView(
                                     )
                                 }
                             }
+
+                            if (hasUnappliedContextNotes) {
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = MaterialTheme.shapes.small,
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                                    ),
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.ic_sparkle),
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(14.dp),
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "Your context notes have changed. Re-analyze to include them in your slides and terms.",
+                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                fontSize = 11.5.sp,
+                                                lineHeight = 15.sp,
+                                            ),
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -619,8 +681,319 @@ fun HostStudioSlidesView(
                         color = MaterialTheme.colorScheme.onBackground,
                     )
 
-                    if (analyzedSlides.isEmpty()) {
-                        // Empty State for Analyzed Slides
+                    LazyColumn(
+                        state = slidesListState,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        if (analyzedSlides.isEmpty()) {
+                            // Empty State for Analyzed Slides
+                            item {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = MaterialTheme.shapes.medium,
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                    ),
+                                    border = BorderStroke(
+                                        width = 1.dp,
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                    ),
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(20.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(44.dp)
+                                                .background(
+                                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                                    shape = MaterialTheme.shapes.medium,
+                                                ),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.ic_sparkle),
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(24.dp),
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.height(10.dp))
+
+                                        Text(
+                                            text = "No Slides Analyzed Yet",
+                                            style = MaterialTheme.typography.titleMedium.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 14.5.sp,
+                                            ),
+                                            color = MaterialTheme.colorScheme.onBackground,
+                                            textAlign = TextAlign.Center,
+                                        )
+
+                                        Spacer(modifier = Modifier.height(4.dp))
+
+                                        Text(
+                                            text = "Tap 'Analyze' to parse diagrams, key concepts, takeaways, and domain terms from your uploaded PDF slide deck.",
+                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                fontSize = 12.sp,
+                                                lineHeight = 16.sp,
+                                            ),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Center,
+                                        )
+
+                                        Spacer(modifier = Modifier.height(14.dp))
+
+                                        Button(
+                                            onClick = onAnalyzeSlideDeckClick,
+                                            shape = MaterialTheme.shapes.small,
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary,
+                                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                            ),
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.ic_sparkle),
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "Analyze",
+                                                style = MaterialTheme.typography.labelLarge.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                ),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            // Analyzed Slides Cards List
+                            items(analyzedSlides, key = { it.id }) { slide ->
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = MaterialTheme.shapes.medium,
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                    ),
+                                    border = BorderStroke(
+                                        width = 1.dp,
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                    ),
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(14.dp),
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.weight(1f),
+                                            ) {
+                                                Surface(
+                                                    shape = MaterialTheme.shapes.extraSmall,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                ) {
+                                                    Text(
+                                                        text = "Slide ${slide.slideNumber}",
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 10.5.sp,
+                                                        ),
+                                                        color = MaterialTheme.colorScheme.onPrimary,
+                                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                                                    )
+                                                }
+
+                                                Spacer(modifier = Modifier.width(8.dp))
+
+                                                Text(
+                                                    text = slide.title,
+                                                    style = MaterialTheme.typography.titleMedium.copy(
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 14.sp,
+                                                    ),
+                                                    color = MaterialTheme.colorScheme.onBackground,
+                                                    maxLines = 1,
+                                                )
+                                            }
+
+                                            IconButton(
+                                                onClick = { onEditSlideClick(slide.id) },
+                                                modifier = Modifier.size(24.dp),
+                                            ) {
+                                                Icon(
+                                                    painter = painterResource(id = R.drawable.ic_edit),
+                                                    contentDescription = "Edit slide analysis",
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(16.dp),
+                                                )
+                                            }
+                                        }
+
+                                        if (!slide.summary.isNullOrBlank()) {
+                                            Spacer(modifier = Modifier.height(10.dp))
+                                            Card(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = MaterialTheme.shapes.small,
+                                                colors = CardDefaults.cardColors(
+                                                    containerColor = MaterialTheme.colorScheme.surface,
+                                                ),
+                                                border = BorderStroke(
+                                                    1.dp,
+                                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                                ),
+                                            ) {
+                                                Column(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(10.dp),
+                                                ) {
+                                                    Text(
+                                                        text = "SUMMARY",
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 10.sp,
+                                                            letterSpacing = 0.5.sp,
+                                                        ),
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                    )
+                                                    Spacer(modifier = Modifier.height(3.dp))
+                                                    Text(
+                                                        text = slide.summary,
+                                                        style = MaterialTheme.typography.bodySmall.copy(
+                                                            fontSize = 12.sp,
+                                                            lineHeight = 16.sp,
+                                                        ),
+                                                        color = MaterialTheme.colorScheme.onSurface,
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        if (!slide.explanation.isNullOrBlank()) {
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Card(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = MaterialTheme.shapes.small,
+                                                colors = CardDefaults.cardColors(
+                                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                                ),
+                                                border = BorderStroke(
+                                                    1.dp,
+                                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                                ),
+                                            ) {
+                                                Column(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(10.dp),
+                                                ) {
+                                                    Text(
+                                                        text = "EXPLANATION",
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 10.sp,
+                                                            letterSpacing = 0.5.sp,
+                                                        ),
+                                                        color = MaterialTheme.colorScheme.secondary,
+                                                    )
+                                                    Spacer(modifier = Modifier.height(3.dp))
+                                                    Text(
+                                                        text = slide.explanation,
+                                                        style = MaterialTheme.typography.bodySmall.copy(
+                                                            fontSize = 12.sp,
+                                                            lineHeight = 16.sp,
+                                                        ),
+                                                        color = MaterialTheme.colorScheme.onSurface,
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        if (!slide.keyTakeaway.isNullOrBlank()) {
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Card(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = MaterialTheme.shapes.small,
+                                                colors = CardDefaults.cardColors(
+                                                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                                                ),
+                                                border = BorderStroke(
+                                                    1.dp,
+                                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                                                ),
+                                            ) {
+                                                Column(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(10.dp),
+                                                ) {
+                                                    Text(
+                                                        text = "TAKEAWAY",
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 10.sp,
+                                                            letterSpacing = 0.5.sp,
+                                                        ),
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                    )
+                                                    Spacer(modifier = Modifier.height(3.dp))
+                                                    Text(
+                                                        text = slide.keyTakeaway,
+                                                        style = MaterialTheme.typography.bodySmall.copy(
+                                                            fontSize = 12.sp,
+                                                            lineHeight = 16.sp,
+                                                        ),
+                                                        color = MaterialTheme.colorScheme.onSurface,
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (subTabSelected == 1) {
+            // Sub-Tab 1: AI Guidance
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = "ATTACHED CONTEXT NOTES (${contextNotes.size})",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 12.sp,
+                        letterSpacing = 0.8.sp,
+                    ),
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+
+                LazyColumn(
+                    state = notesListState,
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(contextNotes, key = { it.id }) { note ->
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = MaterialTheme.shapes.medium,
@@ -635,377 +1008,87 @@ fun HostStudioSlidesView(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(20.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
+                                    .padding(14.dp),
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(44.dp)
-                                        .background(
-                                            color = MaterialTheme.colorScheme.primaryContainer,
-                                            shape = MaterialTheme.shapes.medium,
-                                        ),
-                                    contentAlignment = Alignment.Center,
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_sparkle),
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(24.dp),
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(10.dp))
-
-                                Text(
-                                    text = "No Slides Analyzed Yet",
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 14.5.sp,
-                                    ),
-                                    color = MaterialTheme.colorScheme.onBackground,
-                                    textAlign = TextAlign.Center,
-                                )
-
-                                Spacer(modifier = Modifier.height(4.dp))
-
-                                Text(
-                                    text = "Tap 'Analyze' above to parse diagrams, key concepts, and takeaways from your uploaded PDF slide deck.",
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontSize = 12.sp,
-                                        lineHeight = 16.sp,
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center,
-                                )
-
-                                Spacer(modifier = Modifier.height(14.dp))
-
-                                Button(
-                                    onClick = onAnalyzeSlideDeckClick,
-                                    shape = MaterialTheme.shapes.small,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                                    ),
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_sparkle),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "Analyze",
-                                        style = MaterialTheme.typography.labelLarge.copy(
-                                            fontWeight = FontWeight.Bold,
-                                        ),
-                                    )
-                                }
-                            }
-                        }
-                    } else {
-                        // Analyzed Slides Cards List
-                        analyzedSlides.forEach { slide ->
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = MaterialTheme.shapes.medium,
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                                ),
-                                border = BorderStroke(
-                                    width = 1.dp,
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                                ),
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(14.dp),
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.weight(1f),
-                                        ) {
-                                            Surface(
+                                    Box(
+                                        modifier = Modifier
+                                            .background(
+                                                color = MaterialTheme.colorScheme.primaryContainer,
                                                 shape = MaterialTheme.shapes.extraSmall,
-                                                color = MaterialTheme.colorScheme.primary,
-                                            ) {
-                                                Text(
-                                                    text = "Slide ${slide.slideNumber}",
-                                                    style = MaterialTheme.typography.labelSmall.copy(
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontSize = 10.5.sp,
-                                                    ),
-                                                    color = MaterialTheme.colorScheme.onPrimary,
-                                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                                                )
-                                            }
-
-                                            Spacer(modifier = Modifier.width(8.dp))
-
-                                            Text(
-                                                text = slide.title,
-                                                style = MaterialTheme.typography.titleMedium.copy(
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 14.sp,
-                                                ),
-                                                color = MaterialTheme.colorScheme.onBackground,
-                                                maxLines = 1,
                                             )
-                                        }
+                                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                                    ) {
+                                        Text(
+                                            text = note.category,
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 10.sp,
+                                            ),
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        )
+                                    }
 
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        Text(
+                                            text = note.timestamp,
+                                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
                                         IconButton(
-                                            onClick = { onEditSlideClick(slide.id) },
+                                            onClick = { onEditContextNoteClick(note.id) },
                                             modifier = Modifier.size(24.dp),
                                         ) {
                                             Icon(
                                                 painter = painterResource(id = R.drawable.ic_edit),
-                                                contentDescription = "Edit slide analysis",
+                                                contentDescription = "Edit context note",
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                        }
+                                        IconButton(
+                                            onClick = { noteIdToDelete = note.id },
+                                            modifier = Modifier.size(24.dp),
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.ic_delete),
+                                                contentDescription = "Delete context note",
                                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.size(16.dp),
                                             )
                                         }
                                     }
-
-                                    if (!slide.summary.isNullOrBlank()) {
-                                        Spacer(modifier = Modifier.height(10.dp))
-                                        Card(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            shape = MaterialTheme.shapes.small,
-                                            colors = CardDefaults.cardColors(
-                                                containerColor = MaterialTheme.colorScheme.surface,
-                                            ),
-                                            border = BorderStroke(
-                                                1.dp,
-                                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                                            ),
-                                        ) {
-                                            Column(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(10.dp),
-                                            ) {
-                                                Text(
-                                                    text = "SUMMARY",
-                                                    style = MaterialTheme.typography.labelSmall.copy(
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontSize = 10.sp,
-                                                        letterSpacing = 0.5.sp,
-                                                    ),
-                                                    color = MaterialTheme.colorScheme.primary,
-                                                )
-                                                Spacer(modifier = Modifier.height(3.dp))
-                                                Text(
-                                                    text = slide.summary,
-                                                    style = MaterialTheme.typography.bodySmall.copy(
-                                                        fontSize = 12.sp,
-                                                        lineHeight = 16.sp,
-                                                    ),
-                                                    color = MaterialTheme.colorScheme.onSurface,
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    if (!slide.explanation.isNullOrBlank()) {
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Card(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            shape = MaterialTheme.shapes.small,
-                                            colors = CardDefaults.cardColors(
-                                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                                            ),
-                                            border = BorderStroke(
-                                                1.dp,
-                                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                                            ),
-                                        ) {
-                                            Column(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(10.dp),
-                                            ) {
-                                                Text(
-                                                    text = "EXPLANATION",
-                                                    style = MaterialTheme.typography.labelSmall.copy(
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontSize = 10.sp,
-                                                        letterSpacing = 0.5.sp,
-                                                    ),
-                                                    color = MaterialTheme.colorScheme.secondary,
-                                                )
-                                                Spacer(modifier = Modifier.height(3.dp))
-                                                Text(
-                                                    text = slide.explanation,
-                                                    style = MaterialTheme.typography.bodySmall.copy(
-                                                        fontSize = 12.sp,
-                                                        lineHeight = 16.sp,
-                                                    ),
-                                                    color = MaterialTheme.colorScheme.onSurface,
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    if (!slide.keyTakeaway.isNullOrBlank()) {
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Card(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            shape = MaterialTheme.shapes.small,
-                                            colors = CardDefaults.cardColors(
-                                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-                                            ),
-                                            border = BorderStroke(
-                                                1.dp,
-                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                                            ),
-                                        ) {
-                                            Column(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(10.dp),
-                                            ) {
-                                                Text(
-                                                    text = "TAKEAWAY",
-                                                    style = MaterialTheme.typography.labelSmall.copy(
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontSize = 10.sp,
-                                                        letterSpacing = 0.5.sp,
-                                                    ),
-                                                    color = MaterialTheme.colorScheme.primary,
-                                                )
-                                                Spacer(modifier = Modifier.height(3.dp))
-                                                Text(
-                                                    text = slide.keyTakeaway,
-                                                    style = MaterialTheme.typography.bodySmall.copy(
-                                                        fontSize = 12.sp,
-                                                        lineHeight = 16.sp,
-                                                    ),
-                                                    color = MaterialTheme.colorScheme.onSurface,
-                                                )
-                                            }
-                                        }
-                                    }
                                 }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Text(
+                                    text = note.title,
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                    ),
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                )
+
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                Text(
+                                    text = note.content,
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontSize = 12.sp,
+                                        lineHeight = 16.sp,
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
-                        }
-                    }
-                }
-            }
-        } else if (subTabSelected == 1) {
-            // Sub-Tab 1: AI Guidance
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    text = "ATTACHED CONTEXT NOTES (${contextNotes.size})",
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 12.sp,
-                        letterSpacing = 0.8.sp,
-                    ),
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
-
-                contextNotes.forEach { note ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        ),
-                        border = BorderStroke(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                        ),
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(14.dp),
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .background(
-                                            color = MaterialTheme.colorScheme.primaryContainer,
-                                            shape = MaterialTheme.shapes.extraSmall,
-                                        )
-                                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                                ) {
-                                    Text(
-                                        text = note.category,
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 10.sp,
-                                        ),
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    )
-                                }
-
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    Text(
-                                        text = note.timestamp,
-                                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                    IconButton(
-                                        onClick = { onEditContextNoteClick(note.id) },
-                                        modifier = Modifier.size(24.dp),
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.ic_edit),
-                                            contentDescription = "Edit context note",
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(16.dp),
-                                        )
-                                    }
-                                    IconButton(
-                                        onClick = { noteIdToDelete = note.id },
-                                        modifier = Modifier.size(24.dp),
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.ic_delete),
-                                            contentDescription = "Delete context note",
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(16.dp),
-                                        )
-                                    }
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Text(
-                                text = note.title,
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                ),
-                                color = MaterialTheme.colorScheme.onBackground,
-                            )
-
-                            Spacer(modifier = Modifier.height(4.dp))
-
-                            Text(
-                                text = note.content,
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontSize = 12.sp,
-                                    lineHeight = 16.sp,
-                                ),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
                         }
                     }
                 }
@@ -1033,9 +1116,12 @@ fun HostStudioSlidesView(
             }
         } else {
             // Sub-Tab 2: Terms & Glossary
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 Text(
-                    text = "GROUNDED DOMAIN TERMS (3)",
+                    text = "GROUNDED DOMAIN TERMS (${domainTerms.size})",
                     style = MaterialTheme.typography.labelLarge.copy(
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 12.sp,
@@ -1044,62 +1130,115 @@ fun HostStudioSlidesView(
                     color = MaterialTheme.colorScheme.onBackground,
                 )
 
-                listOf(
-                    Triple("Micro-gateways", "EDGE NETWORK", "Low-power localized routing nodes placed near edge clients to process batch frames."),
-                    Triple("POP (Point of Presence)", "INFRASTRUCTURE", "Local edge data center access point reducing transit hop counts."),
-                    Triple("Edge Buffer Threshold", "LATENCY SPECS", "128kb batch size cap to maintain < 15ms frame processing overhead."),
-                ).forEach { (term, category, desc) ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                if (domainTerms.isEmpty()) {
+                    Text(
+                        text = if (analyzedSlides.isEmpty()) {
+                            "No terms yet. Analyze your slide deck to detect unfamiliar terms, abbreviations, and jargon."
+                        } else {
+                            "No terms saved for this deck. Re-analyze your slide deck to detect unfamiliar terms, abbreviations, and jargon."
+                        },
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 12.sp,
+                            lineHeight = 17.sp,
                         ),
-                        border = BorderStroke(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                        ),
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                LazyColumn(
+                    state = termsListState,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(domainTerms, key = { it.id }) { domainTerm ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.medium,
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            ),
+                            border = BorderStroke(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            ),
                         ) {
-                            Box(
+                            Column(
                                 modifier = Modifier
-                                    .background(
-                                        color = MaterialTheme.colorScheme.secondaryContainer,
-                                        shape = MaterialTheme.shapes.extraSmall,
-                                    )
-                                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
                             ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .background(
+                                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                                shape = MaterialTheme.shapes.extraSmall,
+                                            )
+                                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                                    ) {
+                                        Text(
+                                            text = domainTerm.category,
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 9.5.sp,
+                                            ),
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        )
+                                    }
+
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        IconButton(
+                                            onClick = { onEditDomainTermClick(domainTerm.id) },
+                                            modifier = Modifier.size(24.dp),
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.ic_edit),
+                                                contentDescription = "Edit domain term",
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                        }
+                                        IconButton(
+                                            onClick = { termIdToDelete = domainTerm.id },
+                                            modifier = Modifier.size(24.dp),
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.ic_delete),
+                                                contentDescription = "Delete domain term",
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = category,
-                                    style = MaterialTheme.typography.labelSmall.copy(
+                                    text = domainTerm.term,
+                                    style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 9.5.sp,
+                                        fontSize = 13.5.sp,
                                     ),
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                )
+                                Spacer(modifier = Modifier.height(3.dp))
+                                Text(
+                                    text = domainTerm.description,
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        fontSize = 12.sp,
+                                        lineHeight = 16.sp,
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = term,
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.5.sp,
-                                ),
-                                color = MaterialTheme.colorScheme.onBackground,
-                            )
-                            Spacer(modifier = Modifier.height(3.dp))
-                            Text(
-                                text = desc,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontSize = 12.sp,
-                                    lineHeight = 16.sp,
-                                ),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
                         }
                     }
                 }

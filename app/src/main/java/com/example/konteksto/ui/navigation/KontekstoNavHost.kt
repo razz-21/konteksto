@@ -32,7 +32,9 @@ import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.host.CreateSessionScreen
 import com.example.konteksto.ui.host.HostViewModel
 import com.example.konteksto.ui.host.PresentQrScreen
+import com.example.konteksto.ui.host.studio.AddContextNoteRoute
 import com.example.konteksto.ui.host.studio.EditContextNoteRoute
+import com.example.konteksto.ui.host.studio.EditDomainTermRoute
 import com.example.konteksto.ui.host.studio.EditSlideRoute
 import com.example.konteksto.ui.host.studio.HostStudioRoute
 import com.example.konteksto.ui.host.studio.HostStudioViewModel
@@ -264,6 +266,16 @@ fun KontekstoNavHost(
                         launchSingleTop = true
                     }
                 },
+                onEditDomainTermClick = { termId ->
+                    navController.navigate(Screen.EditDomainTerm.createRoute(sessionId, termId)) {
+                        launchSingleTop = true
+                    }
+                },
+                onAddContextNoteClick = {
+                    navController.navigate(Screen.AddContextNote.createRoute(sessionId)) {
+                        launchSingleTop = true
+                    }
+                },
                 onEditContextNoteClick = { noteId ->
                     navController.navigate(Screen.EditContextNote.createRoute(sessionId, noteId)) {
                         launchSingleTop = true
@@ -293,6 +305,51 @@ fun KontekstoNavHost(
                 slideId = slideId,
                 onBackClick = {
                     navController.popBackStack(Screen.EditSlide.route, inclusive = true)
+                },
+            )
+        }
+
+        composable(
+            route = Screen.EditDomainTerm.route,
+            arguments = listOf(
+                navArgument("sessionId") { type = NavType.StringType },
+                navArgument("termId") { type = NavType.StringType },
+            ),
+        ) { backStackEntry ->
+            val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
+            val termId = backStackEntry.arguments?.getString("termId") ?: ""
+
+            EditDomainTermRoute(
+                viewModel = sharedStudioViewModel(
+                    navController = navController,
+                    backStackEntry = backStackEntry,
+                    sessionId = sessionId,
+                    sessionRepository = sessionRepository,
+                    authRepository = authRepository,
+                ),
+                termId = termId,
+                onBackClick = {
+                    navController.popBackStack(Screen.EditDomainTerm.route, inclusive = true)
+                },
+            )
+        }
+
+        composable(
+            route = Screen.AddContextNote.route,
+            arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
+
+            AddContextNoteRoute(
+                viewModel = sharedStudioViewModel(
+                    navController = navController,
+                    backStackEntry = backStackEntry,
+                    sessionId = sessionId,
+                    sessionRepository = sessionRepository,
+                    authRepository = authRepository,
+                ),
+                onBackClick = {
+                    navController.popBackStack(Screen.AddContextNote.route, inclusive = true)
                 },
             )
         }

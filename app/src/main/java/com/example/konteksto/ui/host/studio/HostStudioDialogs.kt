@@ -13,7 +13,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -112,61 +111,6 @@ fun EndSessionConfirmDialog(
 }
 
 @Composable
-fun AddContextNoteDialog(
-    onAddNoteSubmit: (title: String, content: String) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var newContextTitle by remember { mutableStateOf("") }
-    var newContextContent by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "Add Context Note",
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            )
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
-                    value = newContextTitle,
-                    onValueChange = { newContextTitle = it },
-                    label = { Text("Title / Concept") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = newContextContent,
-                    onValueChange = { newContextContent = it },
-                    label = { Text("Details / Summary") },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 3,
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    if (newContextTitle.isNotBlank()) {
-                        onAddNoteSubmit(newContextTitle.trim(), newContextContent.trim())
-                        onDismiss()
-                    }
-                },
-                enabled = newContextTitle.isNotBlank(),
-            ) {
-                Text(text = "Add Note")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = stringResource(id = R.string.action_cancel))
-            }
-        },
-    )
-}
-
-@Composable
 fun DiscardChangesDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
@@ -247,6 +191,46 @@ fun DeleteContextNoteDialog(
 }
 
 @Composable
+fun DeleteDomainTermDialog(
+    term: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Delete Domain Term?",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+            )
+        },
+        text = {
+            Text(
+                text = "'$term' will be permanently deleted. It may be detected again if you re-analyze your slide deck.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError,
+                ),
+            ) {
+                Text(text = "Delete")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(id = R.string.action_cancel))
+            }
+        },
+    )
+}
+
+@Composable
 fun ReanalyzeSlideDeckDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
@@ -261,7 +245,7 @@ fun ReanalyzeSlideDeckDialog(
         },
         text = {
             Text(
-                text = "This replaces all analyzed slides, including any edits you've made. This can't be undone.",
+                text = "This replaces all analyzed slides and domain terms, including any edits you've made. This can't be undone.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
