@@ -4,11 +4,11 @@ import android.content.Context
 import android.util.Log
 import com.example.konteksto.domain.model.HostSession
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import org.json.JSONArray
 import org.json.JSONObject
@@ -44,36 +44,52 @@ class FirebaseSessionRepository(
         }
 
     override fun getHostSessionsStream(hostUid: String): Flow<List<HostSession>> = callbackFlow {
-        val firestore = firestoreOrNull
-        if (firestore == null) {
-            trySend(localCreatedSessions.value)
+        if (hostUid.isBlank()) {
+            trySend(emptyList())
             awaitClose { }
             return@callbackFlow
         }
 
-        // Send local cached sessions immediately for fast initial rendering
-        trySend(localCreatedSessions.value)
+        val firestore = firestoreOrNull
+        if (firestore == null) {
+            val localJob = launch {
+                localCreatedSessions.collect { sessions ->
+                    trySend(sessions.filter { it.hostUid == hostUid })
+                }
+            }
+            awaitClose { localJob.cancel() }
+            return@callbackFlow
+        }
+
+        // Send local cached sessions for this hostUid immediately for fast initial rendering
+        val initialFiltered = localCreatedSessions.value.filter { it.hostUid == hostUid }
+        trySend(initialFiltered)
 
         val listenerRegistration = try {
             firestore.collection("sessions")
-                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .whereEqualTo("hostUid", hostUid)
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) {
-                        trySend(localCreatedSessions.value)
+                        trySend(localCreatedSessions.value.filter { it.hostUid == hostUid })
                         return@addSnapshotListener
                     }
 
                     val remoteSessions = snapshot?.documents?.mapNotNull { doc ->
-                        doc.toHostSession()
-                    } ?: emptyList()
+                        val createdAt = doc.getLong("createdAt") ?: 0L
+                        val session = doc.toHostSession()
+                        if (session != null) createdAt to session else null
+                    }?.sortedByDescending { it.first }
+                    ?.map { it.second } ?: emptyList()
 
                     if (snapshot != null) {
-                        // Remote is SSOT: update local persistence with remote sessions
-                        localCreatedSessions.value = remoteSessions
-                        saveLocalSessions(remoteSessions)
+                        // Remote is SSOT for hostUid: update local persistence
+                        val otherUserSessions = localCreatedSessions.value.filter { it.hostUid != hostUid }
+                        val updatedLocal = otherUserSessions + remoteSessions
+                        localCreatedSessions.value = updatedLocal
+                        saveLocalSessions(updatedLocal)
                         trySend(remoteSessions)
                     } else {
-                        trySend(localCreatedSessions.value)
+                        trySend(localCreatedSessions.value.filter { it.hostUid == hostUid })
                     }
                 }
         } catch (_: Exception) {
@@ -88,31 +104,37 @@ class FirebaseSessionRepository(
     override fun getAllLiveSessionsStream(): Flow<List<HostSession>> = callbackFlow {
         val firestore = firestoreOrNull
         if (firestore == null) {
-            trySend(localCreatedSessions.value)
-            awaitClose { }
+            val localJob = launch {
+                localCreatedSessions.collect { sessions ->
+                    trySend(sessions.filter { it.isLive })
+                }
+            }
+            awaitClose { localJob.cancel() }
             return@callbackFlow
         }
 
-        trySend(localCreatedSessions.value)
+        trySend(localCreatedSessions.value.filter { it.isLive })
 
         val listenerRegistration = try {
             firestore.collection("sessions")
                 .whereIn("status", listOf("live", "LIVE"))
-                .orderBy("createdAt", Query.Direction.DESCENDING)
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) {
-                        trySend(localCreatedSessions.value)
+                        trySend(localCreatedSessions.value.filter { it.isLive })
                         return@addSnapshotListener
                     }
 
                     val remoteSessions = snapshot?.documents?.mapNotNull { doc ->
-                        doc.toHostSession()
-                    } ?: emptyList()
+                        val createdAt = doc.getLong("createdAt") ?: 0L
+                        val session = doc.toHostSession()
+                        if (session != null) createdAt to session else null
+                    }?.sortedByDescending { it.first }
+                    ?.map { it.second } ?: emptyList()
 
                     if (snapshot != null) {
                         trySend(remoteSessions)
                     } else {
-                        trySend(localCreatedSessions.value)
+                        trySend(localCreatedSessions.value.filter { it.isLive })
                     }
                 }
         } catch (_: Exception) {

@@ -77,7 +77,7 @@ fun PresentQrScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
+                        .height(48.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(onClick = onBackClick) {
@@ -85,32 +85,32 @@ fun PresentQrScreen(
                             painter = painterResource(id = R.drawable.ic_arrow_back),
                             contentDescription = "Back",
                             tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(22.dp),
+                            modifier = Modifier.size(20.dp),
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(2.dp))
 
                     Column {
                         Text(
                             text = stringResource(id = R.string.present_qr_title),
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp,
+                                fontSize = 15.sp,
                             ),
                             color = MaterialTheme.colorScheme.onBackground,
                         )
                         Text(
                             text = stringResource(id = R.string.present_qr_subtitle),
                             style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                             ),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 // Main Present QR Card
                 Card(
@@ -128,7 +128,7 @@ fun PresentQrScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp),
+                            .padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         // Join Code Banner Box
@@ -137,7 +137,7 @@ fun PresentQrScreen(
                                 .fillMaxWidth()
                                 .clip(MaterialTheme.shapes.small)
                                 .background(MaterialTheme.colorScheme.primaryContainer)
-                                .padding(vertical = 14.dp, horizontal = 16.dp),
+                                .padding(vertical = 10.dp, horizontal = 14.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -145,17 +145,17 @@ fun PresentQrScreen(
                                     text = stringResource(id = R.string.present_qr_join_code_label),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 11.sp,
+                                        fontSize = 10.sp,
                                         letterSpacing = 1.sp,
                                     ),
                                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                                 )
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = session.talkCode,
                                     style = MaterialTheme.typography.headlineLarge.copy(
                                         fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 30.sp,
+                                        fontSize = 24.sp,
                                         letterSpacing = 2.sp,
                                     ),
                                     color = MaterialTheme.colorScheme.primary,
@@ -163,15 +163,15 @@ fun PresentQrScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         // QR Code Image Container
                         Box(
                             modifier = Modifier
-                                .size(230.dp)
+                                .size(190.dp)
                                 .clip(MaterialTheme.shapes.medium)
                                 .background(Color.White)
-                                .padding(12.dp),
+                                .padding(10.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             AsyncImage(
@@ -182,57 +182,57 @@ fun PresentQrScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
                             text = stringResource(id = R.string.present_qr_scan_hint),
                             style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                             ),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
                         )
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
 
                         HorizontalDivider(
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                         )
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
                         // Talk Title
                         Text(
                             text = session.title,
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp,
-                                lineHeight = 24.sp,
+                                fontSize = 15.sp,
+                                lineHeight = 20.sp,
                             ),
                             color = MaterialTheme.colorScheme.onBackground,
                             textAlign = TextAlign.Center,
                         )
 
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
 
                         // Speaker Name
                         Text(
                             text = session.speakerName,
                             style = MaterialTheme.typography.bodyMedium.copy(
-                                fontSize = 14.sp,
+                                fontSize = 13.sp,
                             ),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
                         )
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
 
                         // Venue & Time
                         Text(
                             text = "${session.venue}  ·  ${session.time}",
                             style = MaterialTheme.typography.labelLarge.copy(
                                 fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp,
+                                fontSize = 12.sp,
                             ),
                             color = MaterialTheme.colorScheme.primary,
                             textAlign = TextAlign.Center,
@@ -241,18 +241,18 @@ fun PresentQrScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Bottom Action Buttons: Back & Download QR
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Button(
                     onClick = onBackClick,
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp),
+                        .height(42.dp),
                     shape = MaterialTheme.shapes.small,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -278,7 +278,7 @@ fun PresentQrScreen(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp),
+                        .height(42.dp),
                     shape = MaterialTheme.shapes.small,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
@@ -288,7 +288,7 @@ fun PresentQrScreen(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_download),
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onPrimary,
                     )
                     Spacer(modifier = Modifier.width(6.dp))

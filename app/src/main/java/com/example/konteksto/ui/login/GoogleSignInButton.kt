@@ -42,7 +42,7 @@ fun GoogleSignInButton(
             disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
             disabledContentColor = MaterialTheme.colorScheme.onPrimary,
         ),
-        modifier = modifier.height(54.dp),
+        modifier = modifier.height(44.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -50,23 +50,23 @@ fun GoogleSignInButton(
         ) {
             if (isLoading) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(20.dp),
                     color = MaterialTheme.colorScheme.onPrimary,
-                    strokeWidth = 2.5.dp,
+                    strokeWidth = 2.dp,
                 )
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = stringResource(id = R.string.login_signing_in),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 15.sp,
+                        fontSize = 13.sp,
                     ),
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
             } else {
                 Box(
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(24.dp)
                         .clip(MaterialTheme.shapes.extraSmall)
                         .background(MaterialTheme.colorScheme.surfaceContainerLowest),
                     contentAlignment = Alignment.Center,
@@ -74,18 +74,18 @@ fun GoogleSignInButton(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_google_logo),
                         contentDescription = "Google Logo",
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(16.dp),
                         tint = Color.Unspecified,
                     )
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(10.dp))
 
                 Text(
                     text = stringResource(id = R.string.login_continue_google),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 15.sp,
+                        fontSize = 13.sp,
                     ),
                     color = MaterialTheme.colorScheme.onPrimary,
                 )

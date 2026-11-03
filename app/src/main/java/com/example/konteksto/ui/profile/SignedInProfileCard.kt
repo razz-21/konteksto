@@ -73,19 +73,19 @@ fun SignedInProfileCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp),
+                .padding(14.dp),
         ) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 ProfileAvatar(profile = profile, initials = initials)
 
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(12.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = profile.name.ifBlank { "Konteksto User" },
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 21.sp,
+                            fontSize = 17.sp,
                         ),
                         color = MaterialTheme.colorScheme.onBackground,
                     )
@@ -100,16 +100,16 @@ fun SignedInProfileCard(
                         color = MaterialTheme.colorScheme.primary,
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_email),
                             contentDescription = "Email",
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(14.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = profile.email.ifBlank { "No email available" },
                             style = MaterialTheme.typography.bodySmall,
@@ -119,7 +119,7 @@ fun SignedInProfileCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Row(
                 modifier = Modifier
@@ -129,16 +129,16 @@ fun SignedInProfileCard(
                         color = MaterialTheme.colorScheme.outlineVariant,
                         shape = MaterialTheme.shapes.small,
                     )
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_business),
                     contentDescription = "Organization",
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.primary,
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = profile.organization.ifBlank { "No organization added yet" },
                     style = MaterialTheme.typography.bodyMedium,
@@ -150,7 +150,7 @@ fun SignedInProfileCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Row(modifier = Modifier.height(IntrinsicSize.Min)) {
                 Box(
@@ -160,7 +160,7 @@ fun SignedInProfileCard(
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
                 )
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(10.dp))
 
                 Text(
                     text = if (profile.bio.isNotBlank()) {
@@ -174,13 +174,13 @@ fun SignedInProfileCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Button(
                 onClick = onEditClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
+                    .height(42.dp),
                 shape = MaterialTheme.shapes.small,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -190,7 +190,7 @@ fun SignedInProfileCard(
                 Text(
                     text = "Edit Profile Details",
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp,
+                    fontSize = 13.sp,
                 )
             }
         }
@@ -202,7 +202,7 @@ private fun ProfileAvatar(
     profile: UserProfile,
     initials: String,
 ) {
-    Box(modifier = Modifier.size(84.dp)) {
+    Box(modifier = Modifier.size(68.dp)) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -224,7 +224,7 @@ private fun ProfileAvatar(
                     text = initials,
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 28.sp,
+                    fontSize = 22.sp,
                 )
             }
         }
@@ -232,8 +232,8 @@ private fun ProfileAvatar(
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .offset(x = 3.dp, y = 3.dp)
-                .size(24.dp)
+                .offset(x = 2.dp, y = 2.dp)
+                .size(20.dp)
                 .clip(CircleShape)
                 .background(Color(0xFF34C759))
                 .border(
@@ -246,7 +246,7 @@ private fun ProfileAvatar(
             Icon(
                 painter = painterResource(id = R.drawable.ic_verified_shield),
                 contentDescription = "Verified",
-                modifier = Modifier.size(14.dp),
+                modifier = Modifier.size(12.dp),
                 tint = Color.White,
             )
         }

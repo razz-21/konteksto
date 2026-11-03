@@ -29,7 +29,7 @@ fun GlossaryScreen(
                 text = "Glossary Screen",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    fontSize = 24.sp,
+                    fontSize = 20.sp,
                 ),
                 color = MaterialTheme.colorScheme.onBackground,
             )

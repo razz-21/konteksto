@@ -53,11 +53,11 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                 painter = painterResource(id = horizontalLogoRes),
                 contentDescription = stringResource(id = R.string.app_name),
                 modifier = Modifier
-                    .fillMaxWidth(0.7f)
-                    .height(60.dp),
+                    .fillMaxWidth(0.6f)
+                    .height(48.dp),
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // Logo Icon Display Card
             Card(
@@ -66,18 +66,18 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 ),
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(12.dp),
             ) {
                 Column(
                     modifier = Modifier
-                        .padding(32.dp),
+                        .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.ic_logo_icon),
                         contentDescription = "Konteksto Logo Icon",
                         modifier = Modifier
-                            .size(100.dp)
+                            .size(72.dp)
                             .clip(MaterialTheme.shapes.small),
                     )
 

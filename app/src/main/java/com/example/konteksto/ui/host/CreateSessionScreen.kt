@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,26 +67,30 @@ fun CreateSessionScreen(
     val scrollState = rememberScrollState()
     val context = LocalContext.current
 
-    var selectedBanner by remember {
-        mutableStateOf(ConferenceThemeBanner.DefaultCategories.first())
+    var selectedBannerId by rememberSaveable {
+        mutableStateOf(ConferenceThemeBanner.DefaultCategories.first().id)
     }
-    var sessionTitle by remember { mutableStateOf("") }
-    var talkCode by remember { mutableStateOf(generateAlphanumericCode()) }
-    var speakerName by remember(initialSpeakerName) { mutableStateOf(initialSpeakerName) }
-    var categoryTrack by remember { mutableStateOf(selectedBanner.categoryName) }
-    var roomStage by remember { mutableStateOf("") }
-    var startTime by remember { mutableStateOf("10:00 AM") }
-    var endTime by remember { mutableStateOf("") }
+    val selectedBanner = remember(selectedBannerId) {
+        ConferenceThemeBanner.DefaultCategories.find { it.id == selectedBannerId }
+            ?: ConferenceThemeBanner.DefaultCategories.first()
+    }
+    var sessionTitle by rememberSaveable { mutableStateOf("") }
+    var talkCode by rememberSaveable { mutableStateOf(generateAlphanumericCode()) }
+    var speakerName by rememberSaveable(initialSpeakerName) { mutableStateOf(initialSpeakerName) }
+    var categoryTrack by rememberSaveable { mutableStateOf(selectedBanner.categoryName) }
+    var roomStage by rememberSaveable { mutableStateOf("") }
+    var startTime by rememberSaveable { mutableStateOf("10:00 AM") }
+    var endTime by rememberSaveable { mutableStateOf("") }
 
-    var titleError by remember { mutableStateOf<String?>(null) }
-    var codeError by remember { mutableStateOf<String?>(null) }
-    var speakerError by remember { mutableStateOf<String?>(null) }
-    var categoryError by remember { mutableStateOf<String?>(null) }
-    var roomError by remember { mutableStateOf<String?>(null) }
-    var startTimeError by remember { mutableStateOf<String?>(null) }
+    var titleError by rememberSaveable { mutableStateOf<String?>(null) }
+    var codeError by rememberSaveable { mutableStateOf<String?>(null) }
+    var speakerError by rememberSaveable { mutableStateOf<String?>(null) }
+    var categoryError by rememberSaveable { mutableStateOf<String?>(null) }
+    var roomError by rememberSaveable { mutableStateOf<String?>(null) }
+    var startTimeError by rememberSaveable { mutableStateOf<String?>(null) }
 
-    var showStartTimePicker by remember { mutableStateOf(false) }
-    var showEndTimePicker by remember { mutableStateOf(false) }
+    var showStartTimePicker by rememberSaveable { mutableStateOf(false) }
+    var showEndTimePicker by rememberSaveable { mutableStateOf(false) }
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -183,7 +188,7 @@ fun CreateSessionScreen(
                 sessionTitle = sessionTitle,
                 banners = ConferenceThemeBanner.DefaultCategories,
                 onBannerSelect = { newBanner ->
-                    selectedBanner = newBanner
+                    selectedBannerId = newBanner.id
                     categoryTrack = newBanner.categoryName
                     categoryError = null
                 },
@@ -193,12 +198,6 @@ fun CreateSessionScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             // Field 1: Session Title (*)
-            FieldLabel(
-                iconRes = R.drawable.ic_text,
-                title = stringResource(id = R.string.field_session_title),
-                isRequired = true,
-            )
-            Spacer(modifier = Modifier.height(6.dp))
             OutlinedTextField(
                 value = sessionTitle,
                 onValueChange = {
@@ -206,6 +205,20 @@ fun CreateSessionScreen(
                     if (it.isNotBlank()) titleError = null
                 },
                 modifier = Modifier.fillMaxWidth(),
+                label = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = stringResource(id = R.string.field_session_title))
+                        Text(text = " *", color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_text),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                },
                 placeholder = {
                     Text(
                         text = stringResource(id = R.string.field_session_title_placeholder),
@@ -224,12 +237,6 @@ fun CreateSessionScreen(
             Spacer(modifier = Modifier.height(18.dp))
 
             // Field 2: Code (*) (6-character alphanumeric auto-filled)
-            FieldLabel(
-                iconRes = R.drawable.ic_qr_code,
-                title = stringResource(id = R.string.field_code),
-                isRequired = true,
-            )
-            Spacer(modifier = Modifier.height(6.dp))
             OutlinedTextField(
                 value = talkCode,
                 onValueChange = { input ->
@@ -239,6 +246,20 @@ fun CreateSessionScreen(
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
+                label = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = stringResource(id = R.string.field_code))
+                        Text(text = " *", color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_qr_code),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                },
                 placeholder = {
                     Text(
                         text = stringResource(id = R.string.field_code_placeholder),
@@ -267,12 +288,6 @@ fun CreateSessionScreen(
             Spacer(modifier = Modifier.height(18.dp))
 
             // Field 3: Speaker Name (*)
-            FieldLabel(
-                iconRes = R.drawable.ic_speaker,
-                title = stringResource(id = R.string.field_speaker_name),
-                isRequired = true,
-            )
-            Spacer(modifier = Modifier.height(6.dp))
             OutlinedTextField(
                 value = speakerName,
                 onValueChange = {
@@ -280,6 +295,20 @@ fun CreateSessionScreen(
                     if (it.isNotBlank()) speakerError = null
                 },
                 modifier = Modifier.fillMaxWidth(),
+                label = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = stringResource(id = R.string.field_speaker_name))
+                        Text(text = " *", color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_speaker),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                },
                 placeholder = {
                     Text(
                         text = stringResource(id = R.string.field_speaker_name_placeholder),
@@ -298,12 +327,6 @@ fun CreateSessionScreen(
             Spacer(modifier = Modifier.height(18.dp))
 
             // Field 4: Category / Track (*)
-            FieldLabel(
-                iconRes = R.drawable.ic_tag,
-                title = stringResource(id = R.string.field_category_track),
-                isRequired = true,
-            )
-            Spacer(modifier = Modifier.height(6.dp))
             OutlinedTextField(
                 value = categoryTrack,
                 onValueChange = {
@@ -311,6 +334,20 @@ fun CreateSessionScreen(
                     if (it.isNotBlank()) categoryError = null
                 },
                 modifier = Modifier.fillMaxWidth(),
+                label = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = stringResource(id = R.string.field_category_track))
+                        Text(text = " *", color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_tag),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                },
                 placeholder = {
                     Text(
                         text = stringResource(id = R.string.field_category_track_placeholder),
@@ -335,12 +372,6 @@ fun CreateSessionScreen(
             Spacer(modifier = Modifier.height(18.dp))
 
             // Field 5: Room / Stage (*)
-            FieldLabel(
-                iconRes = R.drawable.ic_location,
-                title = stringResource(id = R.string.field_room_stage),
-                isRequired = true,
-            )
-            Spacer(modifier = Modifier.height(6.dp))
             OutlinedTextField(
                 value = roomStage,
                 onValueChange = {
@@ -348,6 +379,20 @@ fun CreateSessionScreen(
                     if (it.isNotBlank()) roomError = null
                 },
                 modifier = Modifier.fillMaxWidth(),
+                label = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = stringResource(id = R.string.field_room_stage))
+                        Text(text = " *", color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_location),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                },
                 placeholder = {
                     Text(
                         text = stringResource(id = R.string.field_room_stage_placeholder),
@@ -366,12 +411,6 @@ fun CreateSessionScreen(
             Spacer(modifier = Modifier.height(18.dp))
 
             // Field 6: Start Time (*)
-            FieldLabel(
-                iconRes = R.drawable.ic_clock,
-                title = stringResource(id = R.string.field_start_time),
-                isRequired = true,
-            )
-            Spacer(modifier = Modifier.height(6.dp))
             Box(
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -380,6 +419,20 @@ fun CreateSessionScreen(
                     onValueChange = {},
                     readOnly = true,
                     modifier = Modifier.fillMaxWidth(),
+                    label = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = stringResource(id = R.string.field_start_time))
+                            Text(text = " *", color = MaterialTheme.colorScheme.error)
+                        }
+                    },
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_clock),
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    },
                     placeholder = {
                         Text(
                             text = stringResource(id = R.string.field_start_time_placeholder),
@@ -414,12 +467,6 @@ fun CreateSessionScreen(
             Spacer(modifier = Modifier.height(18.dp))
 
             // Field 7: End Time (Optional - isRequired = false)
-            FieldLabel(
-                iconRes = R.drawable.ic_clock,
-                title = stringResource(id = R.string.field_end_time),
-                isRequired = false,
-            )
-            Spacer(modifier = Modifier.height(6.dp))
             Box(
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -428,6 +475,17 @@ fun CreateSessionScreen(
                     onValueChange = {},
                     readOnly = true,
                     modifier = Modifier.fillMaxWidth(),
+                    label = {
+                        Text(text = stringResource(id = R.string.field_end_time))
+                    },
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_clock),
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    },
                     placeholder = {
                         Text(
                             text = stringResource(id = R.string.field_end_time_placeholder),
@@ -455,18 +513,18 @@ fun CreateSessionScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Bottom Action Buttons: Cancel & + Create Session
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Button(
                     onClick = onBackClick,
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp),
+                        .height(42.dp),
                     shape = MaterialTheme.shapes.small,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -485,7 +543,7 @@ fun CreateSessionScreen(
                     onClick = { validateAndSubmit() },
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp),
+                        .height(42.dp),
                     shape = MaterialTheme.shapes.small,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
@@ -495,7 +553,7 @@ fun CreateSessionScreen(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_add),
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onPrimary,
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -528,45 +586,6 @@ private fun formatTime(hour: Int, minute: Int): String {
         else -> hour
     }
     return String.format(Locale.getDefault(), "%02d:%02d %s", hour12, minute, if (isPm) "PM" else "AM")
-}
-
-@Composable
-private fun FieldLabel(
-    iconRes: Int,
-    title: String,
-    modifier: Modifier = Modifier,
-    isRequired: Boolean = true,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier,
-    ) {
-        Icon(
-            painter = painterResource(id = iconRes),
-            contentDescription = null,
-            modifier = Modifier.size(18.dp),
-            tint = MaterialTheme.colorScheme.primary,
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-            ),
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-        if (isRequired) {
-            Text(
-                text = " *",
-                style = MaterialTheme.typography.titleSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                ),
-                color = MaterialTheme.colorScheme.error,
-            )
-        }
-    }
 }
 
 @Preview(showBackground = true)

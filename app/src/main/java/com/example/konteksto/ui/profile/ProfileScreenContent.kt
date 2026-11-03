@@ -118,10 +118,10 @@ fun ProfileScreenContent(
                 .padding(horizontal = 20.dp, vertical = 24.dp),
         ) {
             Text(
-                text = "Profile & Settings", // changed
+                text = "Profile & Settings",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    fontSize = 26.sp,
+                    fontSize = 20.sp,
                 ),
                 color = MaterialTheme.colorScheme.onBackground,
             )
@@ -194,13 +194,13 @@ fun ProfileScreenContent(
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
+                        .height(44.dp),
                 ) {
                     Text(
                         text = "Sign Out",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 15.sp,
+                            fontSize = 13.sp,
                         ),
                     )
                 }
