@@ -31,6 +31,8 @@ import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.host.CreateSessionScreen
 import com.example.konteksto.ui.host.HostViewModel
 import com.example.konteksto.ui.host.PresentQrScreen
+import com.example.konteksto.ui.host.studio.HostStudioRoute
+import com.example.konteksto.ui.host.studio.HostStudioViewModel
 import com.example.konteksto.ui.login.LoginRoute
 import com.example.konteksto.ui.main.MainScreen
 
@@ -191,6 +193,9 @@ fun KontekstoNavHost(
                 onNavigateToPresentQr = { session ->
                     navController.navigate(Screen.PresentQr.createRoute(session.id))
                 },
+                onNavigateToHostStudio = { session ->
+                    navController.navigate(Screen.HostStudio.createRoute(session.id))
+                },
             )
         }
 
@@ -214,6 +219,42 @@ fun KontekstoNavHost(
                 session = session,
                 onBackClick = {
                     navController.popBackStack()
+                },
+            )
+        }
+
+        composable(
+            route = Screen.HostStudio.route,
+            arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
+            val studioViewModel: HostStudioViewModel = viewModel(
+                key = sessionId,
+                factory = HostStudioViewModel.provideFactory(
+                    sessionId = sessionId,
+                    sessionRepository = sessionRepository,
+                    authRepository = authRepository,
+                ),
+            )
+            val fallbackSession = hostSessions.find { it.id == sessionId } ?: HostSession(
+                id = sessionId,
+                venue = "Tech Summit Hall B",
+                time = "10:00 AM",
+                talkCode = "TALK–415",
+                title = "Edge AI & Distributed Cloud Architecture: Scaling to Zero Latency",
+                speakerName = "Engr. Marco Valerio",
+                attendeesCount = 890,
+                isLive = true,
+            )
+
+            HostStudioRoute(
+                viewModel = studioViewModel,
+                initialSession = fallbackSession,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onPresentQrClick = { targetSession ->
+                    navController.navigate(Screen.PresentQr.createRoute(targetSession.id))
                 },
             )
         }

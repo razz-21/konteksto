@@ -27,6 +27,7 @@ interface SessionRepository {
         talkCode: String = "",
         hostUid: String,
     ): Result<String>
+    suspend fun updateSessionLiveStatus(sessionId: String, isLive: Boolean): Result<Unit>
 }
 
 class FirebaseSessionRepository(
@@ -215,6 +216,35 @@ class FirebaseSessionRepository(
         }
 
         return Result.success(sessionId)
+    }
+
+    override suspend fun updateSessionLiveStatus(sessionId: String, isLive: Boolean): Result<Unit> {
+        val newStatus = if (isLive) "live" else "ended"
+        val updatedList = localCreatedSessions.value.map { session ->
+            if (session.id == sessionId) {
+                session.copy(isLive = isLive, status = newStatus)
+            } else {
+                session
+            }
+        }
+        localCreatedSessions.value = updatedList
+        saveLocalSessions(updatedList)
+
+        try {
+            val firestore = firestoreOrNull
+            if (firestore != null) {
+                firestore.collection("sessions").document(sessionId)
+                    .update(
+                        mapOf(
+                            "isLive" to isLive,
+                            "status" to newStatus,
+                        ),
+                    ).await()
+            }
+        } catch (e: Exception) {
+            Log.e("FirebaseSessionRepo", "Failed to update session live status: ${e.message}")
+        }
+        return Result.success(Unit)
     }
 
     private fun loadLocalSessions(): List<HostSession> {
