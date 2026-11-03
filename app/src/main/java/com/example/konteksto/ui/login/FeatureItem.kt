@@ -26,17 +26,17 @@ fun FeatureItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 18.dp),
+            .padding(vertical = 12.dp),
         verticalAlignment = Alignment.Top,
     ) {
         Text(
             text = number,
             style = MaterialTheme.typography.titleMedium.copy(
                 fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
+                fontSize = 12.sp,
             ),
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.width(32.dp),
+            modifier = Modifier.width(28.dp),
         )
 
         Column(
@@ -46,18 +46,18 @@ fun FeatureItem(
                 text = title,
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
+                    fontSize = 13.sp,
                 ),
                 color = MaterialTheme.colorScheme.onBackground,
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(2.dp))
 
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodyMedium.copy(
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
                 ),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

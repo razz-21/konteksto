@@ -35,7 +35,7 @@ fun KontekstoTopBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(48.dp),
+            .height(44.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -46,17 +46,17 @@ fun KontekstoTopBar(
                 painter = painterResource(id = R.drawable.ic_logo_icon),
                 contentDescription = stringResource(id = R.string.app_name),
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(30.dp)
                     .clip(MaterialTheme.shapes.small),
             )
 
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
             Text(
                 text = stringResource(id = R.string.app_name),
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
+                    fontSize = 16.sp,
                 ),
                 color = MaterialTheme.colorScheme.onBackground,
             )

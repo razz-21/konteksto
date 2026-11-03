@@ -36,7 +36,7 @@ fun CreateSessionTopBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp),
+            .height(48.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -51,25 +51,25 @@ fun CreateSessionTopBar(
                     painter = painterResource(id = R.drawable.ic_arrow_back),
                     contentDescription = "Back",
                     tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(20.dp),
                 )
             }
 
-            Spacer(modifier = Modifier.width(4.dp))
+            Spacer(modifier = Modifier.width(2.dp))
 
             Column {
                 Text(
                     text = stringResource(id = R.string.create_session_title),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
+                        fontSize = 15.sp,
                     ),
                     color = MaterialTheme.colorScheme.onBackground,
                 )
                 Text(
                     text = stringResource(id = R.string.create_session_subtitle),
                     style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                     ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -85,15 +85,15 @@ fun CreateSessionTopBar(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             ),
-            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_check),
                 contentDescription = null,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(15.dp),
                 tint = MaterialTheme.colorScheme.onPrimary,
             )
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(5.dp))
             Text(
                 text = stringResource(id = R.string.create_session_action),
                 style = MaterialTheme.typography.labelLarge.copy(

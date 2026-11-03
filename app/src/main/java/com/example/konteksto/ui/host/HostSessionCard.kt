@@ -56,7 +56,7 @@ fun HostSessionCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .padding(16.dp),
         ) {
             // Header Row: Venue & Time + Talk Code Tag
             Row(
@@ -72,7 +72,7 @@ fun HostSessionCard(
                         text = session.venue,
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                         ),
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -99,13 +99,13 @@ fun HostSessionCard(
                             color = MaterialTheme.colorScheme.primaryContainer,
                             shape = MaterialTheme.shapes.extraSmall,
                         )
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                        .padding(horizontal = 7.dp, vertical = 3.dp),
                 ) {
                     Text(
                         text = session.talkCode,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             letterSpacing = 0.5.sp,
                         ),
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -113,20 +113,20 @@ fun HostSessionCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Talk Title
             Text(
                 text = session.title,
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    lineHeight = 24.sp,
+                    fontSize = 15.sp,
+                    lineHeight = 20.sp,
                 ),
                 color = MaterialTheme.colorScheme.onBackground,
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             // Speaker Name
             Text(
@@ -135,7 +135,7 @@ fun HostSessionCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Stats & Live Status Row
             Row(
@@ -150,7 +150,7 @@ fun HostSessionCard(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_people),
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.primary,
                     )
 
@@ -181,14 +181,14 @@ fun HostSessionCard(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(8.dp)
+                                .size(7.dp)
                                 .background(
                                     color = liveColor,
                                     shape = CircleShape,
                                 ),
                         )
 
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(5.dp))
 
                         Text(
                             text = stringResource(id = R.string.host_live_on_air),
@@ -201,19 +201,19 @@ fun HostSessionCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Bottom Action Buttons Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 // Present QR Button
                 Button(
                     onClick = { onPresentQrClick(session) },
                     modifier = Modifier
                         .weight(1f)
-                        .height(46.dp),
+                        .height(40.dp),
                     shape = MaterialTheme.shapes.small,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -224,10 +224,10 @@ fun HostSessionCard(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_qr_code),
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = stringResource(id = R.string.host_present_qr),
                         style = MaterialTheme.typography.labelLarge.copy(
@@ -242,7 +242,7 @@ fun HostSessionCard(
                     onClick = { onLiveRoomClick(session) },
                     modifier = Modifier
                         .weight(1f)
-                        .height(46.dp),
+                        .height(40.dp),
                     shape = MaterialTheme.shapes.small,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
@@ -253,10 +253,10 @@ fun HostSessionCard(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_live_broadcast),
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onPrimary,
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = stringResource(id = R.string.host_live_room),
                         style = MaterialTheme.typography.labelLarge.copy(

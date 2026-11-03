@@ -508,18 +508,18 @@ fun CreateSessionScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Bottom Action Buttons: Cancel & + Create Session
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Button(
                     onClick = onBackClick,
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp),
+                        .height(42.dp),
                     shape = MaterialTheme.shapes.small,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -538,7 +538,7 @@ fun CreateSessionScreen(
                     onClick = { validateAndSubmit() },
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp),
+                        .height(42.dp),
                     shape = MaterialTheme.shapes.small,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
@@ -548,7 +548,7 @@ fun CreateSessionScreen(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_add),
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onPrimary,
                     )
                     Spacer(modifier = Modifier.width(6.dp))

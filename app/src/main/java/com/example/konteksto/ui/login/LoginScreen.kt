@@ -67,57 +67,57 @@ fun LoginScreen(
                         painter = painterResource(id = R.drawable.ic_logo_icon),
                         contentDescription = stringResource(id = R.string.app_name),
                         modifier = Modifier
-                            .size(44.dp)
+                            .size(36.dp)
                             .clip(MaterialTheme.shapes.small),
                     )
 
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
 
                     Column {
                         Text(
                             text = stringResource(id = R.string.app_name),
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 20.sp,
+                                fontSize = 17.sp,
                             ),
                             color = MaterialTheme.colorScheme.onBackground,
                         )
                         Text(
                             text = stringResource(id = R.string.login_subtitle),
                             style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 13.sp,
+                                fontSize = 12.sp,
                             ),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(44.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
                 // Hero Headline
                 Text(
                     text = stringResource(id = R.string.login_hero_title),
                     style = MaterialTheme.typography.headlineLarge.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 32.sp,
-                        lineHeight = 38.sp,
+                        fontSize = 24.sp,
+                        lineHeight = 30.sp,
                     ),
                     color = MaterialTheme.colorScheme.onBackground,
                 )
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Hero Subheadline
                 Text(
                     text = stringResource(id = R.string.login_hero_subheadline),
                     style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 15.sp,
-                        lineHeight = 22.sp,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp,
                     ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Feature List
                 HorizontalDivider(

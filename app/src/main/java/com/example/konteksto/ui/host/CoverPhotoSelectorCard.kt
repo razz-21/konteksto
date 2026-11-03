@@ -89,7 +89,7 @@ fun CoverPhotoSelectorCard(
                         text = stringResource(id = R.string.cover_photo_header),
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
+                            fontSize = 13.sp,
                         ),
                         color = MaterialTheme.colorScheme.onBackground,
                     )
@@ -97,7 +97,7 @@ fun CoverPhotoSelectorCard(
                         text = " *",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
+                            fontSize = 13.sp,
                         ),
                         color = MaterialTheme.colorScheme.error,
                     )
@@ -110,15 +110,15 @@ fun CoverPhotoSelectorCard(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                     ),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_upload),
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(14.dp),
                         tint = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = stringResource(id = R.string.cover_photo_upload),
                         style = MaterialTheme.typography.labelMedium.copy(
@@ -129,13 +129,13 @@ fun CoverPhotoSelectorCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Main Large Preview Banner Box
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(170.dp)
+                    .height(140.dp)
                     .clip(MaterialTheme.shapes.small)
                     .background(MaterialTheme.colorScheme.primaryContainer),
             ) {
@@ -156,7 +156,7 @@ fun CoverPhotoSelectorCard(
                                     Color.Transparent,
                                     Color.Black.copy(alpha = 0.75f),
                                 ),
-                                startY = 60f,
+                                startY = 40f,
                             ),
                         ),
                 )
@@ -165,7 +165,7 @@ fun CoverPhotoSelectorCard(
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .padding(14.dp),
+                        .padding(12.dp),
                 ) {
                     Box(
                         modifier = Modifier
@@ -173,26 +173,26 @@ fun CoverPhotoSelectorCard(
                                 color = MaterialTheme.colorScheme.primary,
                                 shape = MaterialTheme.shapes.extraSmall,
                             )
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                            .padding(horizontal = 6.dp, vertical = 3.dp),
                     ) {
                         Text(
                             text = selectedBanner.categoryName.uppercase(),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
+                                fontSize = 10.sp,
                                 letterSpacing = 0.5.sp,
                             ),
                             color = MaterialTheme.colorScheme.onPrimary,
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
                         text = sessionTitle.ifBlank { stringResource(id = R.string.preview_title_default) },
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 17.sp,
+                            fontSize = 14.sp,
                         ),
                         color = Color.White,
                         maxLines = 2,
@@ -201,32 +201,32 @@ fun CoverPhotoSelectorCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Sub-header: Pick a conference theme banner
             Text(
                 text = stringResource(id = R.string.cover_photo_pick_theme),
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp,
+                    fontSize = 12.sp,
                 ),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Horizontal Scrolling Banner Selector
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(banners, key = { it.id }) { banner ->
                     val isSelected = banner.id == selectedBanner.id
 
                     Box(
                         modifier = Modifier
-                            .width(135.dp)
-                            .height(80.dp)
+                            .width(115.dp)
+                            .height(68.dp)
                             .clip(MaterialTheme.shapes.small)
                             .then(
                                 if (isSelected) {
@@ -265,14 +265,14 @@ fun CoverPhotoSelectorCard(
                             text = banner.categoryName,
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
+                                fontSize = 10.sp,
                             ),
                             color = Color.White,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier
                                 .align(Alignment.BottomStart)
-                                .padding(8.dp),
+                                .padding(6.dp),
                         )
 
                         // Selected Checkmark Badge on Top Right

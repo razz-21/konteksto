@@ -95,13 +95,13 @@ fun HostSessionsScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 36.dp, horizontal = 24.dp),
+                                .padding(vertical = 24.dp, horizontal = 18.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center,
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(64.dp)
+                                    .size(52.dp)
                                     .background(
                                         color = MaterialTheme.colorScheme.primaryContainer,
                                         shape = MaterialTheme.shapes.medium,
@@ -111,30 +111,30 @@ fun HostSessionsScreen(
                                 Icon(
                                     painter = painterResource(id = R.drawable.ic_nav_host),
                                     contentDescription = null,
-                                    modifier = Modifier.size(32.dp),
+                                    modifier = Modifier.size(26.dp),
                                     tint = MaterialTheme.colorScheme.primary,
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
 
                             Text(
                                 text = stringResource(id = R.string.host_empty_title),
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp,
+                                    fontSize = 15.sp,
                                 ),
                                 color = MaterialTheme.colorScheme.onBackground,
                                 textAlign = TextAlign.Center,
                             )
 
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
 
                             Text(
                                 text = stringResource(id = R.string.host_empty_subtitle),
                                 style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontSize = 14.sp,
-                                    lineHeight = 20.sp,
+                                    fontSize = 12.sp,
+                                    lineHeight = 16.sp,
                                 ),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center,

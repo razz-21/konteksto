@@ -140,11 +140,11 @@ fun EditProfileScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 24.dp, horizontal = 16.dp),
+                        .padding(vertical = 16.dp, horizontal = 16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     // Avatar Preview
-                    Box(modifier = Modifier.size(110.dp)) {
+                    Box(modifier = Modifier.size(84.dp)) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -162,7 +162,7 @@ fun EditProfileScreen(
                                 text = initials,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 36.sp,
+                                fontSize = 26.sp,
                             )
                         }
 
@@ -170,8 +170,8 @@ fun EditProfileScreen(
                         Box(
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
-                                .offset(x = 4.dp, y = 4.dp)
-                                .size(28.dp)
+                                .offset(x = 3.dp, y = 3.dp)
+                                .size(22.dp)
                                 .clip(CircleShape)
                                 .background(Color(0xFF34C759))
                                 .border(
@@ -184,13 +184,13 @@ fun EditProfileScreen(
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_verified_shield),
                                 contentDescription = "Verified",
-                                modifier = Modifier.size(16.dp),
+                                modifier = Modifier.size(13.dp),
                                 tint = Color.White,
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
                         text = "Profile Avatar Theme",
@@ -199,7 +199,7 @@ fun EditProfileScreen(
                         ),
                     )
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
 
                     Text(
                         text = "Select gradient badge color",
@@ -207,11 +207,11 @@ fun EditProfileScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
 
-                    Spacer(modifier = Modifier.height(18.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     // Gradient Color Options Row
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         AvatarGradients.forEachIndexed { index, colors ->
@@ -219,7 +219,7 @@ fun EditProfileScreen(
 
                             Box(
                                 modifier = Modifier
-                                    .size(44.dp)
+                                    .size(36.dp)
                                     .then(
                                         if (isSelected) {
                                             Modifier.border(
@@ -389,19 +389,19 @@ fun EditProfileScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Bottom Action Buttons: Back / Cancel & Save Changes
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Button(
                     onClick = onBackClick,
                     enabled = !isSaving,
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp),
+                        .height(42.dp),
                     shape = MaterialTheme.shapes.small,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -429,7 +429,7 @@ fun EditProfileScreen(
                     enabled = !isSaving,
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp),
+                        .height(42.dp),
                     shape = MaterialTheme.shapes.small,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,

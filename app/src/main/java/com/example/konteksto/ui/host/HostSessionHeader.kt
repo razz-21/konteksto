@@ -27,7 +27,7 @@ fun HostSessionHeader(
             text = stringResource(id = R.string.host_sessions_title),
             style = MaterialTheme.typography.titleLarge.copy(
                 fontWeight = FontWeight.Bold,
-                fontSize = 22.sp,
+                fontSize = 18.sp,
             ),
             color = MaterialTheme.colorScheme.onBackground,
         )
