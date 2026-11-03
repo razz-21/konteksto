@@ -29,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -91,7 +92,7 @@ fun EditProfileScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp),
         ) {
-            // Top Bar: Back button, Title & Subtitle, Save Button
+            // Top Bar: Back button & Title / Subtitle
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -122,44 +123,6 @@ fun EditProfileScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                }
-
-                Button(
-                    onClick = {
-                        onSaveClick(
-                            profile.name,
-                            role,
-                            organization,
-                            bio,
-                            selectedGradientIndex,
-                        )
-                    },
-                    enabled = !isSaving,
-                    shape = MaterialTheme.shapes.small,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
-                ) {
-                    if (isSaving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
-                    } else {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_check),
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Save",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                        )
-                    }
                 }
             }
 
@@ -290,14 +253,41 @@ fun EditProfileScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
+            val disabledTextFieldColors = OutlinedTextFieldDefaults.colors(
+                disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
+                disabledBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            )
+
+            val activeTextFieldColors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+                unfocusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+            )
+
             // Form Fields
             OutlinedTextField(
                 value = profile.name,
                 onValueChange = {},
                 label = { Text("Full Name") },
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_speaker),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                },
                 singleLine = true,
-                readOnly = true,
+                enabled = false,
                 shape = MaterialTheme.shapes.small,
+                colors = disabledTextFieldColors,
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -307,9 +297,17 @@ fun EditProfileScreen(
                 value = profile.email,
                 onValueChange = {},
                 label = { Text("Email") },
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_email),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                },
                 singleLine = true,
-                readOnly = true,
+                enabled = false,
                 shape = MaterialTheme.shapes.small,
+                colors = disabledTextFieldColors,
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -319,9 +317,17 @@ fun EditProfileScreen(
                 value = role,
                 onValueChange = { role = it },
                 label = { Text("Role / Title") },
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_tag),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                },
                 singleLine = true,
                 enabled = !isSaving,
                 shape = MaterialTheme.shapes.small,
+                colors = activeTextFieldColors,
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -331,9 +337,17 @@ fun EditProfileScreen(
                 value = organization,
                 onValueChange = { organization = it },
                 label = { Text("Organization") },
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_business),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                },
                 singleLine = true,
                 enabled = !isSaving,
                 shape = MaterialTheme.shapes.small,
+                colors = activeTextFieldColors,
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -343,10 +357,18 @@ fun EditProfileScreen(
                 value = bio,
                 onValueChange = { bio = it },
                 label = { Text("Bio") },
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_text),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                },
                 minLines = 3,
                 maxLines = 6,
                 enabled = !isSaving,
                 shape = MaterialTheme.shapes.small,
+                colors = activeTextFieldColors,
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -368,6 +390,76 @@ fun EditProfileScreen(
             }
 
             Spacer(modifier = Modifier.height(28.dp))
+
+            // Bottom Action Buttons: Back / Cancel & Save Changes
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Button(
+                    onClick = onBackClick,
+                    enabled = !isSaving,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    shape = MaterialTheme.shapes.small,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
+                ) {
+                    Text(
+                        text = "Cancel",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                        ),
+                    )
+                }
+
+                Button(
+                    onClick = {
+                        onSaveClick(
+                            profile.name,
+                            role,
+                            organization,
+                            bio,
+                            selectedGradientIndex,
+                        )
+                    },
+                    enabled = !isSaving,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    shape = MaterialTheme.shapes.small,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                ) {
+                    if (isSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_check),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Save Changes",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                            ),
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
