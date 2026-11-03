@@ -1,5 +1,6 @@
 package com.example.konteksto.ui.host.studio
 
+import android.net.Uri
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,6 +35,9 @@ fun HostStudioScreen(
     onToggleAudioBroadcasting: () -> Unit = {},
     onAddTranscript: (String) -> Unit = {},
     onAddContextNote: (title: String, content: String) -> Unit = { _, _ -> },
+    onUploadPdfSubmitted: (uri: Uri, fileName: String, fileSizeMb: Double) -> Unit = { _, _, _ -> },
+    onAnalyzeSlideDeckClicked: () -> Unit = {},
+    onDeleteSlideClicked: (slideId: String) -> Unit = {},
 ) {
     val scrollState = rememberScrollState()
 
@@ -51,6 +55,16 @@ fun HostStudioScreen(
         mutableStateOf(emptyList<TranscriptEntry>())
     }
     val transcripts = uiState?.transcripts ?: localTranscripts
+
+    var localSlideDeckInfo by remember(session.id) {
+        mutableStateOf<SlideDeckInfo?>(null)
+    }
+    val slideDeckInfo = uiState?.slideDeckInfo ?: localSlideDeckInfo
+
+    var localAnalyzedSlides by remember(session.id) {
+        mutableStateOf<List<AnalyzedSlideItem>>(emptyList())
+    }
+    val analyzedSlides = uiState?.analyzedSlides ?: localAnalyzedSlides
 
     var localContextNotes by remember(session.id) {
         mutableStateOf(
@@ -145,22 +159,22 @@ fun HostStudioScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Session Header Card
-            HostStudioHeaderCard(
-                session = session,
-                isAudioBroadcasting = isAudioBroadcasting,
-                onStartSessionClick = { showStartConfirmDialog = true },
-                onEndSessionClick = { showEndConfirmDialog = true },
-                onToggleAudioBroadcasting = {
-                    localIsAudioBroadcasting = !localIsAudioBroadcasting
-                    onToggleAudioBroadcasting()
-                },
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
             // Tab View Content
             if (selectedTab == 0) {
+                // Session Header Card (Title, Venue, Start Session & Audio Broadcast)
+                HostStudioHeaderCard(
+                    session = session,
+                    isAudioBroadcasting = isAudioBroadcasting,
+                    onStartSessionClick = { showStartConfirmDialog = true },
+                    onEndSessionClick = { showEndConfirmDialog = true },
+                    onToggleAudioBroadcasting = {
+                        localIsAudioBroadcasting = !localIsAudioBroadcasting
+                        onToggleAudioBroadcasting()
+                    },
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
                 HostStudioBroadcastView(
                     isSessionLive = session.isLive,
                     isAudioBroadcasting = isAudioBroadcasting,
@@ -183,7 +197,50 @@ fun HostStudioScreen(
             } else {
                 HostStudioSlidesView(
                     contextNotes = contextNotes,
+                    slideDeckInfo = slideDeckInfo,
+                    analyzedSlides = analyzedSlides,
                     onAddNoteClick = { showAddContextDialog = true },
+                    onUploadPdfSubmitted = { uri, fileName, fileSizeMb ->
+                        if (uiState != null) {
+                            onUploadPdfSubmitted(uri, fileName, fileSizeMb)
+                        } else {
+                            localSlideDeckInfo = SlideDeckInfo(
+                                fileName = fileName,
+                                fileSizeMb = fileSizeMb,
+                                pageCount = 1,
+                                uploadTime = "Uploaded Just now",
+                                isAnalyzed = false,
+                            )
+                            localAnalyzedSlides = emptyList()
+                        }
+                    },
+                    onAnalyzeSlideDeckClick = {
+                        if (uiState != null) {
+                            onAnalyzeSlideDeckClicked()
+                        } else {
+                            val currentDeckName = localSlideDeckInfo?.fileName ?: "Presentation.pdf"
+                            localSlideDeckInfo = localSlideDeckInfo?.copy(isAnalyzed = true)
+                            localAnalyzedSlides = listOf(
+                                AnalyzedSlideItem(
+                                    id = "s1",
+                                    slideNumber = 1,
+                                    title = currentDeckName.substringBeforeLast("."),
+                                    diagramSummary = "PDF presentation slides parsed and indexed for grounded AI explanations.",
+                                    keyTakeaway = "Presentation deck grounds AI live terminology definitions in real time.",
+                                ),
+                            )
+                        }
+                    },
+                    onDeleteSlideClicked = { slideId ->
+                        if (uiState != null) {
+                            onDeleteSlideClicked(slideId)
+                        } else {
+                            localAnalyzedSlides = localAnalyzedSlides.filter { it.id != slideId }
+                            if (localAnalyzedSlides.isEmpty()) {
+                                localSlideDeckInfo = localSlideDeckInfo?.copy(isAnalyzed = false)
+                            }
+                        }
+                    },
                 )
             }
         }

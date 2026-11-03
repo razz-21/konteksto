@@ -29,6 +29,9 @@ fun HostStudioRoute(
         onToggleAudioBroadcasting = { viewModel.toggleAudioBroadcasting() },
         onAddTranscript = { text -> viewModel.addTranscriptEntry(text = text) },
         onAddContextNote = { title, content -> viewModel.addContextNote(title = title, content = content) },
+        onUploadPdfSubmitted = { uri, fileName, fileSizeMb -> viewModel.uploadSlideDeckPdf(uri, fileName, fileSizeMb) },
+        onAnalyzeSlideDeckClicked = { viewModel.analyzeSlideDeck() },
+        onDeleteSlideClicked = { slideId -> viewModel.removeAnalyzedSlide(slideId) },
         modifier = modifier,
     )
 }

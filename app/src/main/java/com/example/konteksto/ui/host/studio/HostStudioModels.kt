@@ -15,3 +15,19 @@ data class ContextNoteItem(
     val content: String,
     val timestamp: String,
 )
+
+data class AnalyzedSlideItem(
+    val id: String,
+    val slideNumber: Int,
+    val title: String,
+    val diagramSummary: String? = null,
+    val keyTakeaway: String? = null,
+)
+
+data class SlideDeckInfo(
+    val fileName: String = "Neural_Architectures_Key.pdf",
+    val fileSizeMb: Double = 14.2,
+    val pageCount: Int = 1,
+    val uploadTime: String = "Uploaded Today, 08:45 AM",
+    val isAnalyzed: Boolean = true,
+)

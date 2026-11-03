@@ -15,4 +15,8 @@ data class HostSession(
     val startTime: String? = null,
     val endTime: String? = null,
     val status: String = "not_live",
+    val slideDeckFileName: String? = null,
+    val slideDeckSizeMb: Double? = null,
+    val slideDeckPageCount: Int? = null,
+    val slideDeckUploadTime: String? = null,
 )
