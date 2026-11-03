@@ -22,7 +22,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,7 +43,7 @@ import com.example.konteksto.domain.model.UserProfile
 
 @Composable
 fun SignedInProfileCard(
-    profile: UserProfile, // changed: uses Firestore profile
+    profile: UserProfile,
     modifier: Modifier = Modifier,
     onEditClick: () -> Unit = {},
 ) {
@@ -118,18 +117,6 @@ fun SignedInProfileCard(
                         )
                     }
                 }
-
-                IconButton(
-                    onClick = onEditClick,
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_edit),
-                        contentDescription = "Edit profile",
-                        modifier = Modifier.size(22.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
             }
 
             Spacer(modifier = Modifier.height(18.dp))
@@ -200,12 +187,6 @@ fun SignedInProfileCard(
                     contentColor = MaterialTheme.colorScheme.primary,
                 ),
             ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_edit),
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Edit Profile Details",
                     fontWeight = FontWeight.SemiBold,
@@ -227,12 +208,7 @@ private fun ProfileAvatar(
                 .fillMaxSize()
                 .clip(MaterialTheme.shapes.small)
                 .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            Color(0xFF5468FF),
-                            Color(0xFF1F7AE0),
-                        ),
-                    ),
+                    Brush.linearGradient(profile.avatarGradientColors),
                 ),
             contentAlignment = Alignment.Center,
         ) {
@@ -257,9 +233,9 @@ private fun ProfileAvatar(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .offset(x = 3.dp, y = 3.dp)
-                .size(26.dp)
+                .size(24.dp)
                 .clip(CircleShape)
-                .background(Color(0xFF46A758))
+                .background(Color(0xFF34C759))
                 .border(
                     width = 2.dp,
                     color = MaterialTheme.colorScheme.surfaceContainerLowest,
@@ -268,9 +244,9 @@ private fun ProfileAvatar(
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                painter = painterResource(id = R.drawable.ic_check),
+                painter = painterResource(id = R.drawable.ic_verified_shield),
                 contentDescription = "Verified",
-                modifier = Modifier.size(15.dp),
+                modifier = Modifier.size(14.dp),
                 tint = Color.White,
             )
         }

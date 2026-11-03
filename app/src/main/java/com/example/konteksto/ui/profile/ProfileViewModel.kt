@@ -22,8 +22,8 @@ data class ProfileUiState(
 )
 
 class ProfileViewModel(
-    private val authRepository: AuthRepository = FirebaseAuthRepository(), // added
-    private val userProfileRepository: UserProfileRepository = FirebaseUserProfileRepository(), // added
+    private val authRepository: AuthRepository = FirebaseAuthRepository(),
+    private val userProfileRepository: UserProfileRepository = FirebaseUserProfileRepository(),
 ) : ViewModel() {
 
     val currentUser: AuthUser?
@@ -34,26 +34,26 @@ class ProfileViewModel(
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
-    private val _profile = MutableStateFlow<UserProfile?>(null) // added
-    val profile: StateFlow<UserProfile?> = _profile.asStateFlow() // added
+    private val _profile = MutableStateFlow<UserProfile?>(null)
+    val profile: StateFlow<UserProfile?> = _profile.asStateFlow()
 
-    // Listen to the signed-in user, then listen to that user's Firestore document. // added
-    init { // added
-        viewModelScope.launch { // added
-            authStateStream.collectLatest { user -> // added
-                if (user == null) { // added
-                    _profile.value = null // added
-                } else { // added
-                    userProfileRepository.getProfileStream(user.uid).collect { savedProfile -> // added
-                        _profile.value = mergeProfile(user, savedProfile) // added
+    // Listen to the signed-in user, then listen to that user's Firestore document.
+    init {
+        viewModelScope.launch {
+            authStateStream.collectLatest { user ->
+                if (user == null) {
+                    _profile.value = null
+                } else {
+                    userProfileRepository.getProfileStream(user.uid).collect { savedProfile ->
+                        _profile.value = mergeProfile(user, savedProfile)
                     }
                 }
             }
         }
     }
 
-    // Firestore is the main source, with Firebase Auth as a fallback. // added
-    private fun mergeProfile(user: AuthUser, savedProfile: UserProfile?): UserProfile { // added
+    // Firestore is the main source, with Firebase Auth as a fallback.
+    private fun mergeProfile(user: AuthUser, savedProfile: UserProfile?): UserProfile {
         val authProfile = UserProfile.fromAuthUser(user)
         if (savedProfile == null) return authProfile
 
@@ -61,6 +61,7 @@ class ProfileViewModel(
             name = savedProfile.name.ifBlank { authProfile.name },
             email = authProfile.email.ifBlank { savedProfile.email },
             photoUrl = savedProfile.photoUrl ?: authProfile.photoUrl,
+            avatarColorIndex = savedProfile.avatarColorIndex,
         )
     }
 
@@ -101,12 +102,13 @@ class ProfileViewModel(
         _uiState.value = ProfileUiState(isLoading = false, errorMessage = message)
     }
 
-    // Saves the Edit Profile fields to Firestore. // added
-    fun saveProfile( // added
+    // Saves the Edit Profile fields and avatar color to Firestore.
+    fun saveProfile(
         name: String,
         role: String,
         organization: String,
         bio: String,
+        avatarColorIndex: Int = 3,
         onComplete: (Boolean) -> Unit,
     ) {
         val user = currentUser
@@ -129,6 +131,7 @@ class ProfileViewModel(
                 organization = organization.trim(),
                 bio = bio.trim(),
                 photoUrl = user.photoUrl,
+                avatarColorIndex = avatarColorIndex,
             )
 
             userProfileRepository.saveProfile(updatedProfile)
@@ -156,11 +159,11 @@ class ProfileViewModel(
     companion object {
         fun provideFactory(
             authRepository: AuthRepository = FirebaseAuthRepository(),
-            userProfileRepository: UserProfileRepository = FirebaseUserProfileRepository(), // added
+            userProfileRepository: UserProfileRepository = FirebaseUserProfileRepository(),
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return ProfileViewModel(authRepository, userProfileRepository) as T // changed
+                return ProfileViewModel(authRepository, userProfileRepository) as T
             }
         }
     }

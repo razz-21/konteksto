@@ -1,18 +1,29 @@
 package com.example.konteksto.ui.profile
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -23,30 +34,49 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.domain.model.AvatarGradients
 import com.example.konteksto.domain.model.UserProfile
 
 @Composable
 fun EditProfileScreen(
     profile: UserProfile,
     onBackClick: () -> Unit,
-    onSaveClick: (name: String, role: String, organization: String, bio: String) -> Unit,
+    onSaveClick: (name: String, role: String, organization: String, bio: String, avatarColorIndex: Int) -> Unit,
     modifier: Modifier = Modifier,
     isSaving: Boolean = false,
     errorMessage: String? = null,
 ) {
-    var name by rememberSaveable(profile.uid) { mutableStateOf(profile.name) }
     var role by rememberSaveable(profile.uid) { mutableStateOf(profile.role) }
     var organization by rememberSaveable(profile.uid) { mutableStateOf(profile.organization) }
     var bio by rememberSaveable(profile.uid) { mutableStateOf(profile.bio) }
+    var selectedGradientIndex by rememberSaveable(profile.uid) { mutableStateOf(profile.avatarColorIndex) }
+
+    val initials = remember(profile.name, profile.email) {
+        val source = profile.name.takeIf { it.isNotBlank() }
+            ?: profile.email.takeIf { it.isNotBlank() }
+            ?: "K"
+
+        source
+            .trim()
+            .split(" ")
+            .filter { it.isNotBlank() }
+            .take(2)
+            .joinToString("") { it.first().uppercase() }
+            .ifEmpty { "K" }
+    }
 
     BackHandler { onBackClick() }
 
@@ -61,6 +91,7 @@ fun EditProfileScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp),
         ) {
+            // Top Bar: Back button, Title & Subtitle, Save Button
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -79,30 +110,205 @@ fun EditProfileScreen(
 
                 Spacer(modifier = Modifier.width(4.dp))
 
-                Text(
-                    text = "Edit Profile",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Edit Profile",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                        ),
+                    )
+                    Text(
+                        text = "Conference Attendee ID",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                Button(
+                    onClick = {
+                        onSaveClick(
+                            profile.name,
+                            role,
+                            organization,
+                            bio,
+                            selectedGradientIndex,
+                        )
+                    },
+                    enabled = !isSaving,
+                    shape = MaterialTheme.shapes.small,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
                     ),
-                )
+                ) {
+                    if (isSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_check),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Save",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text(
-                text = "Update your attendee details.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            // Profile Avatar Theme Customization Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.small,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 24.dp, horizontal = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    // Avatar Preview
+                    Box(modifier = Modifier.size(110.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(MaterialTheme.shapes.medium)
+                                .background(
+                                    Brush.linearGradient(
+                                        AvatarGradients.getOrElse(selectedGradientIndex) {
+                                            AvatarGradients[0]
+                                        },
+                                    ),
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = initials,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 36.sp,
+                            )
+                        }
+
+                        // Verified shield badge
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .offset(x = 4.dp, y = 4.dp)
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF34C759))
+                                .border(
+                                    width = 2.dp,
+                                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                                    shape = CircleShape,
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_verified_shield),
+                                contentDescription = "Verified",
+                                modifier = Modifier.size(16.dp),
+                                tint = Color.White,
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Profile Avatar Theme",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                        ),
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = "Select gradient badge color",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    // Gradient Color Options Row
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        AvatarGradients.forEachIndexed { index, colors ->
+                            val isSelected = selectedGradientIndex == index
+
+                            Box(
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .then(
+                                        if (isSelected) {
+                                            Modifier.border(
+                                                width = 2.dp,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                shape = MaterialTheme.shapes.small,
+                                            )
+                                        } else {
+                                            Modifier
+                                        },
+                                    )
+                                    .padding(if (isSelected) 3.dp else 0.dp)
+                                    .clip(MaterialTheme.shapes.small)
+                                    .background(Brush.linearGradient(colors))
+                                    .clickable { selectedGradientIndex = index },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                if (isSelected) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_check),
+                                        contentDescription = "Selected",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Form Fields
+            OutlinedTextField(
+                value = profile.name,
+                onValueChange = {},
+                label = { Text("Full Name") },
+                singleLine = true,
+                readOnly = true,
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier.fillMaxWidth(),
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Full name") },
+                value = profile.email,
+                onValueChange = {},
+                label = { Text("Email") },
                 singleLine = true,
-                enabled = !isSaving,
+                readOnly = true,
                 shape = MaterialTheme.shapes.small,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -127,18 +333,6 @@ fun EditProfileScreen(
                 label = { Text("Organization") },
                 singleLine = true,
                 enabled = !isSaving,
-                shape = MaterialTheme.shapes.small,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            OutlinedTextField(
-                value = profile.email,
-                onValueChange = {},
-                label = { Text("Email") },
-                singleLine = true,
-                readOnly = true,
                 shape = MaterialTheme.shapes.small,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -173,32 +367,7 @@ fun EditProfileScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
-                onClick = { onSaveClick(name, role, organization, bio) },
-                enabled = name.isNotBlank() && !isSaving,
-                shape = MaterialTheme.shapes.small,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-            ) {
-                if (isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
-                } else {
-                    Text(
-                        text = "Save Changes",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 15.sp,
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(28.dp))
         }
     }
 }
