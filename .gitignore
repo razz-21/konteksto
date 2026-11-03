@@ -1,6 +1,5 @@
 *.iml
 .gradle
-/local.properties
 /.idea/caches
 /.idea/libraries
 /.idea/modules.xml
@@ -12,7 +11,13 @@
 /captures
 .externalNativeBuild
 .cxx
+
+# Local Properties & Environment Secret Files
 local.properties
+/local.properties
+*.env
+.env
+.env.*
 
 # Firebase / Google Services configuration
 google-services.json

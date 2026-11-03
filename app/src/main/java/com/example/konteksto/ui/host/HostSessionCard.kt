@@ -320,7 +320,7 @@ fun HostSessionCard(
                     )
                 }
 
-                // Live Room Button
+                // Enter Room Button
                 Button(
                     onClick = { onLiveRoomClick(session) },
                     modifier = Modifier

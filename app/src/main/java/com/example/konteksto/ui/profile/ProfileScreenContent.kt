@@ -115,7 +115,7 @@ fun ProfileScreenContent(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 20.dp, vertical = 24.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
             Text(
                 text = "Profile & Settings",
@@ -126,7 +126,7 @@ fun ProfileScreenContent(
                 color = MaterialTheme.colorScheme.onBackground,
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             Text(
                 text = "Manage your attendee identity and app preferences",
@@ -134,7 +134,7 @@ fun ProfileScreenContent(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Use Firestore profile, then fall back to Firebase Auth.
             val shownProfile = profile ?: currentUser?.let { UserProfile.fromAuthUser(it) }

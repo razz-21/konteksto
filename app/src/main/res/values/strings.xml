@@ -20,7 +20,7 @@
     <string name="host_joined_format">%1$d joined</string>
     <string name="host_live_on_air">Live On Air</string>
     <string name="host_present_qr">Present QR</string>
-    <string name="host_live_room">Live Room</string>
+    <string name="host_live_room">Enter Room</string>
     <string name="host_empty_title">No Host Sessions Yet</string>
     <string name="host_empty_subtitle">You haven\'t created any live sessions. Tap \'+ New Session\' at the top to start hosting.</string>
     <string name="host_create_first_session">Create Your First Session</string>
@@ -58,5 +58,20 @@
     <string name="time_picker_start_title">Select Start Time</string>
     <string name="time_picker_end_title">Select End Time</string>
     <string name="preview_title_default">Session Title Preview</string>
+    <string name="host_studio_title">Host Session Studio</string>
+    <string name="host_studio_start_session">Start Session</string>
+    <string name="host_studio_end_session">End Session</string>
+    <string name="host_studio_start_confirm_title">Start Session?</string>
+    <string name="host_studio_start_confirm_msg">Are you sure you want to start live broadcasting for this session? Attendees will begin receiving live audio streaming and context updates.</string>
+    <string name="host_studio_end_confirm_title">End Session?</string>
+    <string name="host_studio_end_confirm_msg">Are you sure you want to end this live session? Live audio broadcasting and real-time transcript updates will stop.</string>
+    <string name="host_studio_tab_broadcast">Broadcast &amp; Audio</string>
+    <string name="host_studio_tab_slides">Slides &amp; Context</string>
+    <string name="host_studio_live_transcript">LIVE TRANSCRIPT</string>
+    <string name="host_studio_audio_live">Audio Live · Broadcasting</string>
+    <string name="host_studio_audio_start">Start Audio Broadcast</string>
+    <string name="host_studio_entries_format">%1$d entries</string>
+    <string name="host_studio_audience_format">%1$d audience</string>
+    <string name="host_studio_mic_permission_required">Microphone permission is required to stream audio live.</string>
     <string name="firebase_web_client_id" translatable="false">328928803643-0rlsa0e1nul8msn8q0901tmktgtis9ig.apps.googleusercontent.com</string>
 </resources>
