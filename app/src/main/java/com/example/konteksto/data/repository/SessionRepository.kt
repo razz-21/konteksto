@@ -51,6 +51,16 @@ interface SessionRepository {
         analyzedSlides: List<com.example.konteksto.ui.host.studio.AnalyzedSlideItem>,
     ): Result<Unit>
     fun getAnalyzedSlidesStream(sessionId: String): Flow<List<com.example.konteksto.ui.host.studio.AnalyzedSlideItem>>
+    fun getContextNotesStream(sessionId: String): Flow<List<com.example.konteksto.ui.host.studio.ContextNoteItem>>
+    suspend fun addContextNote(
+        sessionId: String,
+        note: com.example.konteksto.ui.host.studio.ContextNoteItem,
+    ): Result<Unit>
+    suspend fun updateContextNote(
+        sessionId: String,
+        note: com.example.konteksto.ui.host.studio.ContextNoteItem,
+    ): Result<Unit>
+    suspend fun deleteContextNote(sessionId: String, noteId: String): Result<Unit>
 }
 
 private const val MAX_SLIDE_DECK_BYTES = 50L * 1024 * 1024
@@ -610,6 +620,146 @@ class FirebaseSessionRepository(
             }
 
         awaitClose { listener.remove() }
+    }
+
+    private val localContextNotesMap =
+        MutableStateFlow<Map<String, List<com.example.konteksto.ui.host.studio.ContextNoteItem>>>(emptyMap())
+
+    override fun getContextNotesStream(sessionId: String): Flow<List<com.example.konteksto.ui.host.studio.ContextNoteItem>> = callbackFlow {
+        if (sessionId.isBlank()) {
+            trySend(emptyList())
+            awaitClose { }
+            return@callbackFlow
+        }
+
+        val firestore = firestoreOrNull
+        if (firestore == null) {
+            val job = launch {
+                localContextNotesMap.collect { map ->
+                    trySend(map[sessionId] ?: emptyList())
+                }
+            }
+            awaitClose { job.cancel() }
+            return@callbackFlow
+        }
+
+        trySend(localContextNotesMap.value[sessionId] ?: emptyList())
+
+        val listenerRegistration = try {
+            firestore.collection("sessions").document(sessionId)
+                .collection("context_notes")
+                .orderBy("createdAt")
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        trySend(localContextNotesMap.value[sessionId] ?: emptyList())
+                        return@addSnapshotListener
+                    }
+
+                    val remoteNotes = snapshot?.documents?.mapNotNull { doc ->
+                        val title = doc.getString("title") ?: return@mapNotNull null
+                        com.example.konteksto.ui.host.studio.ContextNoteItem(
+                            id = doc.getString("id") ?: doc.id,
+                            category = doc.getString("category") ?: "BACKGROUND NOTE",
+                            title = title,
+                            content = doc.getString("content") ?: "",
+                            timestamp = doc.getString("timestamp") ?: "",
+                        )
+                    } ?: emptyList()
+
+                    localContextNotesMap.value = localContextNotesMap.value + (sessionId to remoteNotes)
+                    trySend(remoteNotes)
+                }
+        } catch (_: Exception) {
+            null
+        }
+
+        awaitClose {
+            listenerRegistration?.remove()
+        }
+    }
+
+    override suspend fun addContextNote(
+        sessionId: String,
+        note: com.example.konteksto.ui.host.studio.ContextNoteItem,
+    ): Result<Unit> {
+        val currentNotes = localContextNotesMap.value[sessionId] ?: emptyList()
+        localContextNotesMap.value = localContextNotesMap.value + (sessionId to currentNotes + note)
+
+        try {
+            val firestore = firestoreOrNull
+            if (firestore != null && sessionId.isNotBlank()) {
+                firestore.collection("sessions").document(sessionId)
+                    .collection("context_notes").document(note.id)
+                    .set(
+                        mapOf(
+                            "id" to note.id,
+                            "category" to note.category,
+                            "title" to note.title,
+                            "content" to note.content,
+                            "timestamp" to note.timestamp,
+                            "createdAt" to System.currentTimeMillis(),
+                        ),
+                    ).await()
+            }
+        } catch (e: Exception) {
+            Log.e("FirebaseSessionRepo", "Failed to save context note to Firestore: ${e.message}")
+            val remainingNotes = (localContextNotesMap.value[sessionId] ?: emptyList()).filter { it.id != note.id }
+            localContextNotesMap.value = localContextNotesMap.value + (sessionId to remainingNotes)
+            return Result.failure(e)
+        }
+
+        return Result.success(Unit)
+    }
+
+    override suspend fun updateContextNote(
+        sessionId: String,
+        note: com.example.konteksto.ui.host.studio.ContextNoteItem,
+    ): Result<Unit> {
+        val previousNotes = localContextNotesMap.value[sessionId] ?: emptyList()
+        val updatedNotes = previousNotes.map { if (it.id == note.id) note else it }
+        localContextNotesMap.value = localContextNotesMap.value + (sessionId to updatedNotes)
+
+        try {
+            val firestore = firestoreOrNull
+            if (firestore != null && sessionId.isNotBlank()) {
+                // Leaves createdAt untouched so the note keeps its place in the list.
+                firestore.collection("sessions").document(sessionId)
+                    .collection("context_notes").document(note.id)
+                    .update(
+                        mapOf(
+                            "title" to note.title,
+                            "content" to note.content,
+                        ),
+                    ).await()
+            }
+        } catch (e: Exception) {
+            Log.e("FirebaseSessionRepo", "Failed to update context note in Firestore: ${e.message}")
+            localContextNotesMap.value = localContextNotesMap.value + (sessionId to previousNotes)
+            return Result.failure(e)
+        }
+
+        return Result.success(Unit)
+    }
+
+    override suspend fun deleteContextNote(sessionId: String, noteId: String): Result<Unit> {
+        val previousNotes = localContextNotesMap.value[sessionId] ?: emptyList()
+        val remainingNotes = previousNotes.filter { it.id != noteId }
+        localContextNotesMap.value = localContextNotesMap.value + (sessionId to remainingNotes)
+
+        try {
+            val firestore = firestoreOrNull
+            if (firestore != null && sessionId.isNotBlank()) {
+                firestore.collection("sessions").document(sessionId)
+                    .collection("context_notes").document(noteId)
+                    .delete().await()
+            }
+        } catch (e: Exception) {
+            Log.e("FirebaseSessionRepo", "Failed to delete context note from Firestore: ${e.message}")
+            localContextNotesMap.value = localContextNotesMap.value + (sessionId to previousNotes)
+            return Result.failure(e)
+        }
+
+        return Result.success(Unit)
     }
 
     private fun loadLocalSessions(): List<HostSession> {

@@ -16,6 +16,11 @@ data class ContextNoteItem(
     val timestamp: String,
 )
 
+internal fun ContextNoteItem.withEdits(title: String, content: String): ContextNoteItem = copy(
+    title = title.trim(),
+    content = content.trim(),
+)
+
 data class AnalyzedSlideItem(
     val id: String,
     val slideNumber: Int,

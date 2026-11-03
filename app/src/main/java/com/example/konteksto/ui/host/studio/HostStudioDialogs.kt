@@ -167,7 +167,7 @@ fun AddContextNoteDialog(
 }
 
 @Composable
-fun DiscardSlideChangesDialog(
+fun DiscardChangesDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -181,7 +181,7 @@ fun DiscardSlideChangesDialog(
         },
         text = {
             Text(
-                text = "Your changes to this slide haven't been saved.",
+                text = "Your changes haven't been saved.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -200,6 +200,80 @@ fun DiscardSlideChangesDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text(text = "Keep Editing")
+            }
+        },
+    )
+}
+
+@Composable
+fun DeleteContextNoteDialog(
+    noteTitle: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Delete Context Note?",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+            )
+        },
+        text = {
+            Text(
+                text = "'$noteTitle' will be permanently deleted, and future slide analysis won't use it. " +
+                    "Slides you've already analyzed won't change.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError,
+                ),
+            ) {
+                Text(text = "Delete")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(id = R.string.action_cancel))
+            }
+        },
+    )
+}
+
+@Composable
+fun ReanalyzeSlideDeckDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Re-analyze Slide Deck?",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+            )
+        },
+        text = {
+            Text(
+                text = "This replaces all analyzed slides, including any edits you've made. This can't be undone.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+        confirmButton = {
+            Button(onClick = onConfirm) {
+                Text(text = "Re-analyze")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(id = R.string.action_cancel))
             }
         },
     )

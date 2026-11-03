@@ -13,6 +13,7 @@ fun HostStudioRoute(
     onBackClick: () -> Unit,
     onPresentQrClick: (HostSession) -> Unit,
     onEditSlideClick: (slideId: String) -> Unit,
+    onEditContextNoteClick: (noteId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -36,6 +37,8 @@ fun HostStudioRoute(
         onRemoveSlideDeckClicked = { viewModel.removeSlideDeck() },
         onAnalyzeSlideDeckClicked = { viewModel.analyzeSlideDeck() },
         onEditSlideClick = onEditSlideClick,
+        onEditContextNoteClick = onEditContextNoteClick,
+        onDeleteContextNoteClick = { noteId -> viewModel.deleteContextNote(noteId) },
         onErrorDismissed = { viewModel.clearErrorMessage() },
         modifier = modifier,
     )

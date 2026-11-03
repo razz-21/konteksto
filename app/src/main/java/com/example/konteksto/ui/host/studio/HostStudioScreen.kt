@@ -39,6 +39,8 @@ fun HostStudioScreen(
     onRemoveSlideDeckClicked: () -> Unit = {},
     onAnalyzeSlideDeckClicked: () -> Unit = {},
     onEditSlideClick: (slideId: String) -> Unit = {},
+    onEditContextNoteClick: (noteId: String) -> Unit = {},
+    onDeleteContextNoteClick: (noteId: String) -> Unit = {},
     onErrorDismissed: () -> Unit = {},
 ) {
     val scrollState = rememberScrollState()
@@ -69,17 +71,7 @@ fun HostStudioScreen(
     val analyzedSlides = uiState?.analyzedSlides ?: localAnalyzedSlides
 
     var localContextNotes by remember(session.id) {
-        mutableStateOf(
-            listOf(
-                ContextNoteItem(
-                    id = "c1",
-                    category = "ARCHITECTURE DIAGRAM",
-                    title = "Latency Benchmark & Edge Buffer Thresholds",
-                    content = "US-West edge latency threshold target < 15ms. Local frame processing buffer set to 128kb batch size.",
-                    timestamp = "10:02 AM",
-                ),
-            ),
-        )
+        mutableStateOf(emptyList<ContextNoteItem>())
     }
     val contextNotes = uiState?.contextNotes ?: localContextNotes
 
@@ -254,6 +246,14 @@ fun HostStudioScreen(
                         }
                     },
                     onEditSlideClick = onEditSlideClick,
+                    onEditContextNoteClick = onEditContextNoteClick,
+                    onDeleteContextNoteClick = { noteId ->
+                        if (uiState != null) {
+                            onDeleteContextNoteClick(noteId)
+                        } else {
+                            localContextNotes = localContextNotes.filter { it.id != noteId }
+                        }
+                    },
                 )
             }
         }

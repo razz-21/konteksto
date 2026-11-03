@@ -15,6 +15,10 @@ class NavigationTest {
     @Test
     fun testEditSlideRoute() {
         assertEquals("edit_slide/session_1/s_2", Screen.EditSlide.createRoute("session_1", "s_2"))
+        assertEquals(
+            "edit_context_note/session_1/note_2",
+            Screen.EditContextNote.createRoute("session_1", "note_2"),
+        )
     }
 
     @Test

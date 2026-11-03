@@ -14,6 +14,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -31,6 +32,7 @@ import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.host.CreateSessionScreen
 import com.example.konteksto.ui.host.HostViewModel
 import com.example.konteksto.ui.host.PresentQrScreen
+import com.example.konteksto.ui.host.studio.EditContextNoteRoute
 import com.example.konteksto.ui.host.studio.EditSlideRoute
 import com.example.konteksto.ui.host.studio.HostStudioRoute
 import com.example.konteksto.ui.host.studio.HostStudioViewModel
@@ -262,6 +264,11 @@ fun KontekstoNavHost(
                         launchSingleTop = true
                     }
                 },
+                onEditContextNoteClick = { noteId ->
+                    navController.navigate(Screen.EditContextNote.createRoute(sessionId, noteId)) {
+                        launchSingleTop = true
+                    }
+                },
             )
         }
 
@@ -274,25 +281,43 @@ fun KontekstoNavHost(
         ) { backStackEntry ->
             val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
             val slideId = backStackEntry.arguments?.getString("slideId") ?: ""
-            // Shares the studio's ViewModel so edits appear on the slide list straight away.
-            val studioEntry = remember(backStackEntry) {
-                navController.getBackStackEntry(Screen.HostStudio.route)
-            }
-            val studioViewModel: HostStudioViewModel = viewModel(
-                viewModelStoreOwner = studioEntry,
-                key = sessionId,
-                factory = HostStudioViewModel.provideFactory(
+
+            EditSlideRoute(
+                viewModel = sharedStudioViewModel(
+                    navController = navController,
+                    backStackEntry = backStackEntry,
                     sessionId = sessionId,
                     sessionRepository = sessionRepository,
                     authRepository = authRepository,
                 ),
-            )
-
-            EditSlideRoute(
-                viewModel = studioViewModel,
                 slideId = slideId,
                 onBackClick = {
                     navController.popBackStack(Screen.EditSlide.route, inclusive = true)
+                },
+            )
+        }
+
+        composable(
+            route = Screen.EditContextNote.route,
+            arguments = listOf(
+                navArgument("sessionId") { type = NavType.StringType },
+                navArgument("noteId") { type = NavType.StringType },
+            ),
+        ) { backStackEntry ->
+            val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
+            val noteId = backStackEntry.arguments?.getString("noteId") ?: ""
+
+            EditContextNoteRoute(
+                viewModel = sharedStudioViewModel(
+                    navController = navController,
+                    backStackEntry = backStackEntry,
+                    sessionId = sessionId,
+                    sessionRepository = sessionRepository,
+                    authRepository = authRepository,
+                ),
+                noteId = noteId,
+                onBackClick = {
+                    navController.popBackStack(Screen.EditContextNote.route, inclusive = true)
                 },
             )
         }
@@ -332,4 +357,27 @@ fun KontekstoNavHost(
             )
         }
     }
+}
+
+/** Edit screens share the studio's ViewModel so saved changes appear in its lists straight away. */
+@Composable
+private fun sharedStudioViewModel(
+    navController: NavHostController,
+    backStackEntry: NavBackStackEntry,
+    sessionId: String,
+    sessionRepository: SessionRepository,
+    authRepository: AuthRepository,
+): HostStudioViewModel {
+    val studioEntry = remember(backStackEntry) {
+        navController.getBackStackEntry(Screen.HostStudio.route)
+    }
+    return viewModel(
+        viewModelStoreOwner = studioEntry,
+        key = sessionId,
+        factory = HostStudioViewModel.provideFactory(
+            sessionId = sessionId,
+            sessionRepository = sessionRepository,
+            authRepository = authRepository,
+        ),
+    )
 }

@@ -34,7 +34,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,9 +63,13 @@ fun HostStudioSlidesView(
     onRemoveSlideDeckClick: () -> Unit = {},
     onAnalyzeSlideDeckClick: () -> Unit = {},
     onEditSlideClick: (slideId: String) -> Unit = {},
+    onEditContextNoteClick: (noteId: String) -> Unit = {},
+    onDeleteContextNoteClick: (noteId: String) -> Unit = {},
 ) {
     val context = LocalContext.current
-    var subTabSelected by remember { mutableIntStateOf(0) } // 0: Deck & Analysis, 1: AI Guidance, 2: Glossary
+    var subTabSelected by rememberSaveable { mutableIntStateOf(0) } // 0: Deck & Analysis, 1: AI Guidance, 2: Glossary
+    var showReanalyzeDialog by rememberSaveable { mutableStateOf(false) }
+    var noteIdToDelete by rememberSaveable { mutableStateOf<String?>(null) }
 
     val pdfPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
@@ -115,6 +120,27 @@ fun HostStudioSlidesView(
         AnalyzePdfProgressDialog(
             fileName = slideDeckInfo?.fileName ?: "Slide Deck.pdf",
             onDismissRequest = {},
+        )
+    }
+
+    if (showReanalyzeDialog) {
+        ReanalyzeSlideDeckDialog(
+            onConfirm = {
+                showReanalyzeDialog = false
+                onAnalyzeSlideDeckClick()
+            },
+            onDismiss = { showReanalyzeDialog = false },
+        )
+    }
+
+    contextNotes.find { it.id == noteIdToDelete }?.let { note ->
+        DeleteContextNoteDialog(
+            noteTitle = note.title,
+            onConfirm = {
+                noteIdToDelete = null
+                onDeleteContextNoteClick(note.id)
+            },
+            onDismiss = { noteIdToDelete = null },
         )
     }
 
@@ -546,7 +572,13 @@ fun HostStudioSlidesView(
                                 }
 
                                 Button(
-                                    onClick = onAnalyzeSlideDeckClick,
+                                    onClick = {
+                                        if (analyzedSlides.isNotEmpty()) {
+                                            showReanalyzeDialog = true
+                                        } else {
+                                            onAnalyzeSlideDeckClick()
+                                        }
+                                    },
                                     modifier = Modifier
                                         .weight(1f)
                                         .height(38.dp),
@@ -919,11 +951,38 @@ fun HostStudioSlidesView(
                                     )
                                 }
 
-                                Text(
-                                    text = note.timestamp,
-                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Text(
+                                        text = note.timestamp,
+                                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    IconButton(
+                                        onClick = { onEditContextNoteClick(note.id) },
+                                        modifier = Modifier.size(24.dp),
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.ic_edit),
+                                            contentDescription = "Edit context note",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(16.dp),
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = { noteIdToDelete = note.id },
+                                        modifier = Modifier.size(24.dp),
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.ic_delete),
+                                            contentDescription = "Delete context note",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(16.dp),
+                                        )
+                                    }
+                                }
                             }
 
                             Spacer(modifier = Modifier.height(8.dp))

@@ -56,15 +56,6 @@ class HostStudioViewModel(
     private val _uiState = MutableStateFlow(
         HostStudioUiState(
             transcripts = emptyList(),
-            contextNotes = listOf(
-                ContextNoteItem(
-                    id = "c1",
-                    category = "ARCHITECTURE DIAGRAM",
-                    title = "Latency Benchmark & Edge Buffer Thresholds",
-                    content = "US-West edge latency threshold target < 15ms. Local frame processing buffer set to 128kb batch size.",
-                    timestamp = "10:02 AM",
-                ),
-            ),
         ),
     )
     val uiState: StateFlow<HostStudioUiState> = _uiState.asStateFlow()
@@ -75,6 +66,15 @@ class HostStudioViewModel(
         observeSession()
         observeTranscripts()
         observeAnalyzedSlides()
+        observeContextNotes()
+    }
+
+    private fun observeContextNotes() {
+        viewModelScope.launch {
+            sessionRepository.getContextNotesStream(sessionId).collect { remoteNotes ->
+                _uiState.value = _uiState.value.copy(contextNotes = remoteNotes)
+            }
+        }
     }
 
     private fun observeAnalyzedSlides() {
@@ -216,15 +216,62 @@ class HostStudioViewModel(
     fun addContextNote(title: String, content: String, category: String = "BACKGROUND NOTE") {
         if (title.isBlank()) return
         val newItem = ContextNoteItem(
-            id = System.currentTimeMillis().toString(),
+            id = "note_${System.currentTimeMillis()}",
             category = category,
             title = title.trim(),
             content = content.trim(),
-            timestamp = "Just now",
+            timestamp = java.text.SimpleDateFormat("h:mm a", java.util.Locale.US).format(java.util.Date()),
         )
         _uiState.value = _uiState.value.copy(
             contextNotes = _uiState.value.contextNotes + newItem,
         )
+        viewModelScope.launch {
+            sessionRepository.addContextNote(sessionId, newItem).onFailure {
+                _uiState.value = _uiState.value.copy(
+                    contextNotes = _uiState.value.contextNotes.filter { it.id != newItem.id },
+                    errorMessage = "Couldn't save the note '${newItem.title}'. Check your connection and try again.",
+                )
+            }
+        }
+    }
+
+    fun updateContextNote(editedNote: ContextNoteItem) {
+        val originalNote = _uiState.value.contextNotes.find { it.id == editedNote.id } ?: return
+        _uiState.value = _uiState.value.copy(
+            contextNotes = _uiState.value.contextNotes.map { if (it.id == editedNote.id) editedNote else it },
+        )
+        viewModelScope.launch {
+            sessionRepository.updateContextNote(sessionId, editedNote).onFailure {
+                _uiState.value = _uiState.value.copy(
+                    contextNotes = _uiState.value.contextNotes.map {
+                        if (it.id == originalNote.id) originalNote else it
+                    },
+                    errorMessage = "Couldn't save your changes to '${originalNote.title}'. " +
+                        "Check your connection and try again.",
+                )
+            }
+        }
+    }
+
+    fun deleteContextNote(noteId: String) {
+        val notes = _uiState.value.contextNotes
+        val index = notes.indexOfFirst { it.id == noteId }
+        if (index == -1) return
+        val deletedNote = notes[index]
+        _uiState.value = _uiState.value.copy(contextNotes = notes.filter { it.id != noteId })
+        viewModelScope.launch {
+            sessionRepository.deleteContextNote(sessionId, noteId).onFailure {
+                val currentNotes = _uiState.value.contextNotes
+                _uiState.value = _uiState.value.copy(
+                    contextNotes = if (currentNotes.any { it.id == noteId }) {
+                        currentNotes
+                    } else {
+                        currentNotes.toMutableList().apply { add(index.coerceAtMost(size), deletedNote) }
+                    },
+                    errorMessage = "Couldn't delete '${deletedNote.title}'. Check your connection and try again.",
+                )
+            }
+        }
     }
 
     fun uploadSlideDeckPdf(
@@ -296,6 +343,7 @@ class HostStudioViewModel(
                 slideDeckInfo = deckWithPdf,
                 sessionTitle = currentSession?.title ?: "",
                 category = currentSession?.category ?: "",
+                contextNotes = _uiState.value.contextNotes,
             ).onSuccess { generatedSlides ->
                 _uiState.value = _uiState.value.copy(
                     slideDeckInfo = deckWithPdf.copy(isAnalyzed = true),
