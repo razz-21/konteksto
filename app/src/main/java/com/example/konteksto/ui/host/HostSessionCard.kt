@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -22,15 +23,22 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.konteksto.R
+import com.example.konteksto.domain.model.ConferenceThemeBanner
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.theme.KontekstoTheme
 
@@ -41,6 +49,14 @@ fun HostSessionCard(
     onLiveRoomClick: (HostSession) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val bannerUrl = remember(session.bannerImageUrl, session.category) {
+        session.bannerImageUrl?.ifBlank { null }
+            ?: ConferenceThemeBanner.DefaultCategories.find {
+                it.categoryName.equals(session.category, ignoreCase = true)
+            }?.imageUrl
+            ?: ConferenceThemeBanner.DefaultCategories.first().imageUrl
+    }
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
@@ -54,10 +70,69 @@ fun HostSessionCard(
         ),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
         ) {
+            // Top Cover Image Banner
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(115.dp)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+            ) {
+                AsyncImage(
+                    model = bannerUrl,
+                    contentDescription = session.category ?: session.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+
+                // Subtle gradient overlay at bottom
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.55f),
+                                ),
+                                startY = 30f,
+                            ),
+                        ),
+                )
+
+                // Category Badge Overlay
+                if (!session.category.isNullOrBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(10.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = MaterialTheme.shapes.extraSmall,
+                            )
+                            .padding(horizontal = 7.dp, vertical = 3.dp),
+                    ) {
+                        Text(
+                            text = session.category.uppercase(),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp,
+                                letterSpacing = 0.5.sp,
+                            ),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            maxLines = 1,
+                        )
+                    }
+                }
+            }
+
+            // Card Details Content
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+            ) {
             // Header Row: Venue & Time + Talk Code Tag
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -75,19 +150,26 @@ fun HostSessionCard(
                             fontSize = 12.sp,
                         ),
                         color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
                     )
 
-                    Text(
-                        text = "  ·  ",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    if (session.time.isNotBlank()) {
+                        Text(
+                            text = "  ·  ",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
 
-                    Text(
-                        text = session.time,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                        Text(
+                            text = session.time,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.width(8.dp))
@@ -109,6 +191,7 @@ fun HostSessionCard(
                             letterSpacing = 0.5.sp,
                         ),
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        maxLines = 1,
                     )
                 }
             }
@@ -269,19 +352,20 @@ fun HostSessionCard(
         }
     }
 }
+}
 
 @Preview(showBackground = true)
 @Composable
 fun HostSessionCardLightPreview() {
     val sampleSession = HostSession(
         id = "1",
-        venue = "Tech Summit Hall B",
+        venue = "WAC Building 203 – West Academic Sector",
         time = "10:00 AM",
-        talkCode = "TALK–415",
-        title = "Edge AI & Distributed Cloud Architecture: Scaling to Zero Latency",
-        speakerName = "Engr. Marco Valerio",
-        attendeesCount = 890,
-        isLive = true,
+        talkCode = "7EJCD2",
+        title = "Literacy in AI Era",
+        speakerName = "Zhar",
+        attendeesCount = 0,
+        isLive = false,
     )
     KontekstoTheme(darkTheme = false) {
         HostSessionCard(
