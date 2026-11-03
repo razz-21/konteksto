@@ -3,6 +3,7 @@ package com.example.konteksto.data.repository
 import android.content.Context
 import android.util.Log
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.ui.host.studio.TranscriptEntry
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -28,6 +29,13 @@ interface SessionRepository {
         hostUid: String,
     ): Result<String>
     suspend fun updateSessionLiveStatus(sessionId: String, isLive: Boolean): Result<Unit>
+    fun getTranscriptsStream(sessionId: String): Flow<List<TranscriptEntry>>
+    suspend fun addTranscriptEntry(
+        sessionId: String,
+        speakerName: String,
+        text: String,
+        isSystemEvent: Boolean = false,
+    ): Result<TranscriptEntry>
 }
 
 class FirebaseSessionRepository(
@@ -245,6 +253,103 @@ class FirebaseSessionRepository(
             Log.e("FirebaseSessionRepo", "Failed to update session live status: ${e.message}")
         }
         return Result.success(Unit)
+    }
+
+    private val localTranscriptsMap = MutableStateFlow<Map<String, List<TranscriptEntry>>>(emptyMap())
+
+    override fun getTranscriptsStream(sessionId: String): Flow<List<TranscriptEntry>> = callbackFlow {
+        if (sessionId.isBlank()) {
+            trySend(emptyList())
+            awaitClose { }
+            return@callbackFlow
+        }
+
+        val firestore = firestoreOrNull
+        if (firestore == null) {
+            val job = launch {
+                localTranscriptsMap.collect { map ->
+                    trySend(map[sessionId] ?: emptyList())
+                }
+            }
+            awaitClose { job.cancel() }
+            return@callbackFlow
+        }
+
+        val initialLocal = localTranscriptsMap.value[sessionId] ?: emptyList()
+        trySend(initialLocal)
+
+        val listenerRegistration = try {
+            firestore.collection("sessions").document(sessionId)
+                .collection("transcripts")
+                .orderBy("createdAt")
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        trySend(localTranscriptsMap.value[sessionId] ?: emptyList())
+                        return@addSnapshotListener
+                    }
+
+                    val remoteTranscripts = snapshot?.documents?.mapNotNull { doc ->
+                        val id = doc.getString("id") ?: doc.id
+                        val speaker = doc.getString("speakerName") ?: "Speaker"
+                        val time = doc.getString("timestamp") ?: ""
+                        val text = doc.getString("text") ?: ""
+                        val isSystem = doc.getBoolean("isSystemEvent") ?: speaker.equals("SYSTEM", ignoreCase = true)
+                        if (text.isNotBlank()) TranscriptEntry(id, speaker, time, text, isSystem) else null
+                    } ?: emptyList()
+
+                    val updatedMap = localTranscriptsMap.value + (sessionId to remoteTranscripts)
+                    localTranscriptsMap.value = updatedMap
+                    trySend(remoteTranscripts)
+                }
+        } catch (_: Exception) {
+            null
+        }
+
+        awaitClose {
+            listenerRegistration?.remove()
+        }
+    }
+
+    override suspend fun addTranscriptEntry(
+        sessionId: String,
+        speakerName: String,
+        text: String,
+        isSystemEvent: Boolean,
+    ): Result<TranscriptEntry> {
+        val transcriptId = "tr_${System.currentTimeMillis()}"
+        val nowFormatted = java.text.SimpleDateFormat("h:mm a", java.util.Locale.US).format(java.util.Date())
+        val entry = TranscriptEntry(
+            id = transcriptId,
+            speakerName = speakerName.ifBlank { "Speaker" },
+            timestamp = nowFormatted,
+            text = text.trim(),
+            isSystemEvent = isSystemEvent || speakerName.equals("SYSTEM", ignoreCase = true),
+        )
+
+        val currentList = localTranscriptsMap.value[sessionId] ?: emptyList()
+        val updatedList = currentList + entry
+        localTranscriptsMap.value = localTranscriptsMap.value + (sessionId to updatedList)
+
+        try {
+            val firestore = firestoreOrNull
+            if (firestore != null) {
+                val docRef = firestore.collection("sessions").document(sessionId)
+                    .collection("transcripts").document(transcriptId)
+                val data = hashMapOf<String, Any?>(
+                    "id" to transcriptId,
+                    "speakerName" to entry.speakerName,
+                    "timestamp" to entry.timestamp,
+                    "text" to entry.text,
+                    "isSystemEvent" to entry.isSystemEvent,
+                    "createdAt" to System.currentTimeMillis(),
+                )
+                docRef.set(data).await()
+            }
+        } catch (e: Exception) {
+            Log.e("FirebaseSessionRepo", "Failed to add transcript to Firestore: ${e.message}")
+        }
+
+        return Result.success(entry)
     }
 
     private fun loadLocalSessions(): List<HostSession> {

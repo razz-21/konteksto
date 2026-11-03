@@ -11,7 +11,9 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -51,6 +53,8 @@ import com.example.konteksto.domain.model.HostSession
 fun HostStudioHeaderCard(
     session: HostSession,
     isAudioBroadcasting: Boolean,
+    onStartSessionClick: () -> Unit,
+    onEndSessionClick: () -> Unit,
     onToggleAudioBroadcasting: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -216,6 +220,66 @@ fun HostStudioHeaderCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Start / End Session Button (placed directly above Start Audio Broadcast)
+            if (!session.isLive) {
+                Button(
+                    onClick = onStartSessionClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp),
+                    shape = MaterialTheme.shapes.small,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_live_broadcast),
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(id = R.string.host_studio_start_session),
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                        ),
+                    )
+                }
+            } else {
+                Button(
+                    onClick = onEndSessionClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp),
+                    shape = MaterialTheme.shapes.small,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError,
+                    ),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.onError,
+                                shape = MaterialTheme.shapes.extraSmall,
+                            ),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(id = R.string.host_studio_end_session),
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                        ),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
             // Audio Live / Broadcasting Banner Button
             Button(
                 onClick = {
@@ -238,9 +302,10 @@ fun HostStudioHeaderCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                 ) {
+                    // Equalizer / Audio Waveform Icon on the left
                     Icon(
-                        painter = painterResource(id = R.drawable.ic_live_broadcast),
-                        contentDescription = null,
+                        painter = painterResource(id = R.drawable.ic_audio_waveform),
+                        contentDescription = "Audio Waveform",
                         modifier = Modifier
                             .size(18.dp)
                             .graphicsLayer {
@@ -260,19 +325,6 @@ fun HostStudioHeaderCard(
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
                         ),
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // Equalizer / Audio Waveform Icon
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_audio_waveform),
-                        contentDescription = "Audio Waveform",
-                        modifier = Modifier
-                            .size(18.dp)
-                            .graphicsLayer {
-                                alpha = if (isAudioBroadcasting) audioIconAlpha else 0.6f
-                            },
                     )
                 }
             }

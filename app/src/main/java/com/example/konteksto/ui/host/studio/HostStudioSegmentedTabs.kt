@@ -5,21 +5,21 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HostStudioSegmentedTabs(
     selectedTab: Int,
@@ -34,35 +35,30 @@ fun HostStudioSegmentedTabs(
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                shape = MaterialTheme.shapes.medium,
+    PrimaryTabRow(
+        selectedTabIndex = selectedTab,
+        modifier = modifier.fillMaxWidth(),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        contentColor = MaterialTheme.colorScheme.primary,
+        indicator = {
+            TabRowDefaults.PrimaryIndicator(
+                modifier = Modifier.tabIndicatorOffset(selectedTab),
+                color = MaterialTheme.colorScheme.primary,
             )
-            .padding(4.dp),
+        },
     ) {
-        Row(modifier = Modifier.fillMaxWidth()) {
-            // Tab 0: Broadcast & Audio
-            Surface(
-                onClick = { onTabSelected(0) },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(38.dp),
-                shape = MaterialTheme.shapes.small,
-                color = if (selectedTab == 0) MaterialTheme.colorScheme.surface else Color.Transparent,
-                shadowElevation = if (selectedTab == 0) 1.dp else 0.dp,
-            ) {
+        // Tab 0: Broadcast & Audio
+        Tab(
+            selected = selectedTab == 0,
+            onClick = { onTabSelected(0) },
+            text = {
                 Row(
-                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.Center,
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_live_broadcast),
                         contentDescription = null,
-                        tint = if (selectedTab == 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp),
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -70,32 +66,26 @@ fun HostStudioSegmentedTabs(
                         text = stringResource(id = R.string.host_studio_tab_broadcast),
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Medium,
-                            fontSize = 13.sp,
                         ),
-                        color = if (selectedTab == 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-            }
+            },
+            selectedContentColor = MaterialTheme.colorScheme.primary,
+            unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
 
-            // Tab 1: Slides & Context
-            Surface(
-                onClick = { onTabSelected(1) },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(38.dp),
-                shape = MaterialTheme.shapes.small,
-                color = if (selectedTab == 1) MaterialTheme.colorScheme.surface else Color.Transparent,
-                shadowElevation = if (selectedTab == 1) 1.dp else 0.dp,
-            ) {
+        // Tab 1: Slides & Context
+        Tab(
+            selected = selectedTab == 1,
+            onClick = { onTabSelected(1) },
+            text = {
                 Row(
-                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.Center,
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_text),
                         contentDescription = null,
-                        tint = if (selectedTab == 1) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp),
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -103,12 +93,9 @@ fun HostStudioSegmentedTabs(
                         text = stringResource(id = R.string.host_studio_tab_slides),
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Medium,
-                            fontSize = 13.sp,
                         ),
-                        color = if (selectedTab == 1) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    // Badge Counter
                     Box(
                         modifier = Modifier
                             .background(
@@ -127,7 +114,9 @@ fun HostStudioSegmentedTabs(
                         )
                     }
                 }
-            }
-        }
+            },
+            selectedContentColor = MaterialTheme.colorScheme.primary,
+            unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }

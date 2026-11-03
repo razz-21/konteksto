@@ -5,6 +5,7 @@ data class TranscriptEntry(
     val speakerName: String,
     val timestamp: String,
     val text: String,
+    val isSystemEvent: Boolean = false,
 )
 
 data class ContextNoteItem(

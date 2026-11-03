@@ -48,22 +48,7 @@ fun HostStudioScreen(
     val isAudioBroadcasting = uiState?.isAudioBroadcasting ?: localIsAudioBroadcasting
 
     var localTranscripts by remember(session.id) {
-        mutableStateOf(
-            listOf(
-                TranscriptEntry(
-                    id = "1",
-                    speakerName = session.speakerName.ifBlank { "Engr. Marco Valerio" },
-                    timestamp = "10:05 AM",
-                    text = "Notice our diagram on screen. If your seminar app has to hit a server in US-West for every spoken word, your users experience 400ms lag. In live talks, that breaks the flow.",
-                ),
-                TranscriptEntry(
-                    id = "2",
-                    speakerName = session.speakerName.ifBlank { "Engr. Marco Valerio" },
-                    timestamp = "12:43 PM",
-                    text = "Notice how memory consumption scales with batch size during continuous live streaming.",
-                ),
-            ),
-        )
+        mutableStateOf(emptyList<TranscriptEntry>())
     }
     val transcripts = uiState?.transcripts ?: localTranscripts
 
@@ -137,18 +122,16 @@ fun HostStudioScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 20.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
             // Top Bar
             HostStudioTopBar(
                 session = session,
                 onBackClick = onBackClick,
                 onPresentQrClick = onPresentQrClick,
-                onStartSessionClick = { showStartConfirmDialog = true },
-                onEndSessionClick = { showEndConfirmDialog = true },
             )
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Segmented Tabs Row
             HostStudioSegmentedTabs(
@@ -160,25 +143,29 @@ fun HostStudioScreen(
                 },
             )
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Session Header Card
             HostStudioHeaderCard(
                 session = session,
                 isAudioBroadcasting = isAudioBroadcasting,
+                onStartSessionClick = { showStartConfirmDialog = true },
+                onEndSessionClick = { showEndConfirmDialog = true },
                 onToggleAudioBroadcasting = {
                     localIsAudioBroadcasting = !localIsAudioBroadcasting
                     onToggleAudioBroadcasting()
                 },
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Tab View Content
             if (selectedTab == 0) {
                 HostStudioBroadcastView(
                     isSessionLive = session.isLive,
+                    isAudioBroadcasting = isAudioBroadcasting,
                     transcripts = transcripts,
+                    partialTranscript = uiState?.partialTranscript ?: "",
                     onAddTranscript = { text ->
                         if (uiState != null) {
                             onAddTranscript(text)

@@ -18,6 +18,7 @@ data class HostStudioUiState(
     val isAudioBroadcasting: Boolean = false,
     val selectedTab: Int = 0, // 0: Broadcast & Audio, 1: Slides & Context
     val transcripts: List<TranscriptEntry> = emptyList(),
+    val partialTranscript: String = "",
     val contextNotes: List<ContextNoteItem> = emptyList(),
     val isUpdatingLiveStatus: Boolean = false,
     val errorMessage: String? = null,
@@ -31,20 +32,7 @@ class HostStudioViewModel(
 
     private val _uiState = MutableStateFlow(
         HostStudioUiState(
-            transcripts = listOf(
-                TranscriptEntry(
-                    id = "1",
-                    speakerName = "Engr. Marco Valerio",
-                    timestamp = "10:05 AM",
-                    text = "Notice our diagram on screen. If your seminar app has to hit a server in US-West for every spoken word, your users experience 400ms lag. In live talks, that breaks the flow.",
-                ),
-                TranscriptEntry(
-                    id = "2",
-                    speakerName = "Engr. Marco Valerio",
-                    timestamp = "12:43 PM",
-                    text = "Notice how memory consumption scales with batch size during continuous live streaming.",
-                ),
-            ),
+            transcripts = emptyList(),
             contextNotes = listOf(
                 ContextNoteItem(
                     id = "c1",
@@ -60,6 +48,7 @@ class HostStudioViewModel(
 
     init {
         observeSession()
+        observeTranscripts()
     }
 
     private fun observeSession() {
@@ -77,14 +66,27 @@ class HostStudioViewModel(
         }
     }
 
+    private fun observeTranscripts() {
+        viewModelScope.launch {
+            sessionRepository.getTranscriptsStream(sessionId).collect { remoteTranscripts ->
+                _uiState.value = _uiState.value.copy(
+                    transcripts = remoteTranscripts,
+                )
+            }
+        }
+    }
+
     fun setSelectedTab(tabIndex: Int) {
         _uiState.value = _uiState.value.copy(selectedTab = tabIndex)
     }
 
     fun toggleAudioBroadcasting() {
+        val newStatus = !_uiState.value.isAudioBroadcasting
         _uiState.value = _uiState.value.copy(
-            isAudioBroadcasting = !_uiState.value.isAudioBroadcasting,
+            isAudioBroadcasting = newStatus,
         )
+        val eventMsg = if (newStatus) "Audio broadcast enabled" else "Audio broadcast ended"
+        addTranscriptEntry(speakerName = "SYSTEM", text = eventMsg, isSystemEvent = true)
     }
 
     fun toggleSessionLiveStatus(
@@ -111,6 +113,8 @@ class HostStudioViewModel(
                         isAudioBroadcasting = isLive,
                         session = currentSession.copy(isLive = isLive),
                     )
+                    val eventMsg = if (isLive) "Session started" else "Session ended"
+                    addTranscriptEntry(speakerName = "SYSTEM", text = eventMsg, isSystemEvent = true)
                     onSuccess()
                 }
                 .onFailure { throwable ->
@@ -124,20 +128,49 @@ class HostStudioViewModel(
         }
     }
 
-    fun addTranscriptEntry(speakerName: String = "", text: String) {
+    fun updatePartialTranscript(text: String) {
+        _uiState.value = _uiState.value.copy(partialTranscript = text)
+    }
+
+    fun addTranscriptEntry(speakerName: String = "", text: String, isSystemEvent: Boolean = false) {
         if (text.isBlank()) return
-        val currentSpeaker = speakerName.ifBlank {
-            _uiState.value.session?.speakerName?.takeIf { it.isNotBlank() } ?: "Host"
+        val currentSpeaker = if (isSystemEvent || speakerName.equals("SYSTEM", ignoreCase = true)) {
+            "SYSTEM"
+        } else {
+            speakerName.ifBlank {
+                _uiState.value.session?.speakerName?.takeIf { it.isNotBlank() } ?: "Host"
+            }
         }
-        val newEntry = TranscriptEntry(
-            id = System.currentTimeMillis().toString(),
-            speakerName = currentSpeaker,
-            timestamp = "Just now",
-            text = text.trim(),
-        )
-        _uiState.value = _uiState.value.copy(
-            transcripts = _uiState.value.transcripts + newEntry,
-        )
+        viewModelScope.launch {
+            sessionRepository.addTranscriptEntry(
+                sessionId = sessionId,
+                speakerName = currentSpeaker,
+                text = text.trim(),
+                isSystemEvent = isSystemEvent || currentSpeaker == "SYSTEM",
+            ).onSuccess { newEntry ->
+                val currentTranscripts = _uiState.value.transcripts
+                val updatedTranscripts = if (currentTranscripts.none { it.id == newEntry.id }) {
+                    currentTranscripts + newEntry
+                } else currentTranscripts
+
+                _uiState.value = _uiState.value.copy(
+                    transcripts = updatedTranscripts,
+                    partialTranscript = "",
+                )
+            }.onFailure {
+                val fallbackEntry = TranscriptEntry(
+                    id = System.currentTimeMillis().toString(),
+                    speakerName = currentSpeaker,
+                    timestamp = "Just now",
+                    text = text.trim(),
+                    isSystemEvent = isSystemEvent || currentSpeaker == "SYSTEM",
+                )
+                _uiState.value = _uiState.value.copy(
+                    transcripts = _uiState.value.transcripts + fallbackEntry,
+                    partialTranscript = "",
+                )
+            }
+        }
     }
 
     fun addContextNote(title: String, content: String, category: String = "BACKGROUND NOTE") {
