@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,26 +67,30 @@ fun CreateSessionScreen(
     val scrollState = rememberScrollState()
     val context = LocalContext.current
 
-    var selectedBanner by remember {
-        mutableStateOf(ConferenceThemeBanner.DefaultCategories.first())
+    var selectedBannerId by rememberSaveable {
+        mutableStateOf(ConferenceThemeBanner.DefaultCategories.first().id)
     }
-    var sessionTitle by remember { mutableStateOf("") }
-    var talkCode by remember { mutableStateOf(generateAlphanumericCode()) }
-    var speakerName by remember(initialSpeakerName) { mutableStateOf(initialSpeakerName) }
-    var categoryTrack by remember { mutableStateOf(selectedBanner.categoryName) }
-    var roomStage by remember { mutableStateOf("") }
-    var startTime by remember { mutableStateOf("10:00 AM") }
-    var endTime by remember { mutableStateOf("") }
+    val selectedBanner = remember(selectedBannerId) {
+        ConferenceThemeBanner.DefaultCategories.find { it.id == selectedBannerId }
+            ?: ConferenceThemeBanner.DefaultCategories.first()
+    }
+    var sessionTitle by rememberSaveable { mutableStateOf("") }
+    var talkCode by rememberSaveable { mutableStateOf(generateAlphanumericCode()) }
+    var speakerName by rememberSaveable(initialSpeakerName) { mutableStateOf(initialSpeakerName) }
+    var categoryTrack by rememberSaveable { mutableStateOf(selectedBanner.categoryName) }
+    var roomStage by rememberSaveable { mutableStateOf("") }
+    var startTime by rememberSaveable { mutableStateOf("10:00 AM") }
+    var endTime by rememberSaveable { mutableStateOf("") }
 
-    var titleError by remember { mutableStateOf<String?>(null) }
-    var codeError by remember { mutableStateOf<String?>(null) }
-    var speakerError by remember { mutableStateOf<String?>(null) }
-    var categoryError by remember { mutableStateOf<String?>(null) }
-    var roomError by remember { mutableStateOf<String?>(null) }
-    var startTimeError by remember { mutableStateOf<String?>(null) }
+    var titleError by rememberSaveable { mutableStateOf<String?>(null) }
+    var codeError by rememberSaveable { mutableStateOf<String?>(null) }
+    var speakerError by rememberSaveable { mutableStateOf<String?>(null) }
+    var categoryError by rememberSaveable { mutableStateOf<String?>(null) }
+    var roomError by rememberSaveable { mutableStateOf<String?>(null) }
+    var startTimeError by rememberSaveable { mutableStateOf<String?>(null) }
 
-    var showStartTimePicker by remember { mutableStateOf(false) }
-    var showEndTimePicker by remember { mutableStateOf(false) }
+    var showStartTimePicker by rememberSaveable { mutableStateOf(false) }
+    var showEndTimePicker by rememberSaveable { mutableStateOf(false) }
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -183,7 +188,7 @@ fun CreateSessionScreen(
                 sessionTitle = sessionTitle,
                 banners = ConferenceThemeBanner.DefaultCategories,
                 onBannerSelect = { newBanner ->
-                    selectedBanner = newBanner
+                    selectedBannerId = newBanner.id
                     categoryTrack = newBanner.categoryName
                     categoryError = null
                 },

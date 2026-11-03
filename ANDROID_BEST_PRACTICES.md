@@ -148,6 +148,33 @@ To maintain code quality, readability, modularity, and isolated preview renderin
 - **Preview Placement:** Keep `@Preview` composables at the bottom of the file containing the primary Composable they render.
 - **Benefits:** Prevents massive bloated screen files, simplifies unit testing and preview generation, improves compile times, and makes component reusability straightforward.
 
+### G. Maintain UI State Across Configuration Changes (`rememberSaveable`)
+- **Preserve User Progress & Input:** Standard `remember` only retains state during recompositions. On configuration changes (such as device rotation, screen resizing, or dark/light mode toggles), the Activity is recreated and standard `remember` state is lost.
+- **Use `rememberSaveable` for Local Form & Component State:** Use `rememberSaveable` for form text inputs, selections, active dialog/picker flags, and validation error messages so user data persists seamlessly across screen rotations.
+
+```kotlin
+// BAD: Form input resets to empty string when screen is rotated
+var sessionTitle by remember { mutableStateOf("") }
+
+// GOOD: Form input survives screen rotation and Activity recreation
+var sessionTitle by rememberSaveable { mutableStateOf("") }
+```
+
+- **Identifier-Based Saving for Non-Parcelable Objects:** For custom domain objects or complex selection types, save a primitive identifier in `rememberSaveable` and resolve the object dynamically, or provide a custom `Saver`.
+
+```kotlin
+// GOOD: Store primitive identifier in rememberSaveable and resolve object
+var selectedThemeId by rememberSaveable {
+    mutableStateOf(ConferenceThemeBanner.DefaultCategories.first().id)
+}
+val selectedTheme = remember(selectedThemeId) {
+    ConferenceThemeBanner.DefaultCategories.find { it.id == selectedThemeId }
+        ?: ConferenceThemeBanner.DefaultCategories.first()
+}
+```
+
+- **ViewModel-Backed State Hoisting:** Screen-level data streams and business logic states should be hoisted into ViewModels, which automatically survive configuration changes via `ViewModelProvider`.
+
 ---
 
 ## 4. Coroutines & Kotlin Flow Best Practices
