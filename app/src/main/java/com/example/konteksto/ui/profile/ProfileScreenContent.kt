@@ -1,7 +1,6 @@
 package com.example.konteksto.ui.profile
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,6 +28,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.domain.model.AuthUser
+import com.example.konteksto.domain.model.UserProfile
 import com.example.konteksto.ui.login.GoogleSignInButton
 import com.example.konteksto.ui.theme.KontekstoTheme
 
@@ -36,8 +36,12 @@ import com.example.konteksto.ui.theme.KontekstoTheme
 fun ProfileScreenContent(
     currentUser: AuthUser?,
     modifier: Modifier = Modifier,
+    profile: UserProfile? = null,
+    isDarkMode: Boolean = false,
+    onDarkModeChange: (Boolean) -> Unit = {},
     isLoading: Boolean = false,
     errorMessage: String? = null,
+    onEditProfileClick: () -> Unit = {},
     onGoogleSignInClick: () -> Unit = {},
     onConfirmSignOut: () -> Unit = {},
 ) {
@@ -111,91 +115,104 @@ fun ProfileScreenContent(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 24.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
+                .padding(horizontal = 20.dp, vertical = 24.dp),
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    text = "Profile",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 26.sp,
-                    ),
-                    color = MaterialTheme.colorScheme.onBackground,
+            Text(
+                text = "Profile & Settings", // changed
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 26.sp,
+                ),
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = "Manage your attendee identity and app preferences",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Use Firestore profile, then fall back to Firebase Auth.
+            val shownProfile = profile ?: currentUser?.let { UserProfile.fromAuthUser(it) }
+
+            if (shownProfile != null) {
+                SignedInProfileCard(
+                    profile = shownProfile,
+                    onEditClick = onEditProfileClick,
                 )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = "Manage your Konteksto account and authentication",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                if (currentUser != null) {
-                    SignedInProfileCard(user = currentUser)
-                } else {
-                    SignedOutProfileCard()
-                }
+            } else {
+                SignedOutProfileCard()
             }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 24.dp, bottom = 12.dp),
-            ) {
-                if (!errorMessage.isNullOrBlank()) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                        shape = MaterialTheme.shapes.small,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 12.dp),
-                    ) {
-                        Text(
-                            text = errorMessage,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                        )
-                    }
-                }
+            Spacer(modifier = Modifier.height(16.dp))
 
-                if (currentUser != null) {
-                    OutlinedButton(
-                        onClick = { showSignOutDialog = true },
-                        enabled = !isLoading,
-                        shape = MaterialTheme.shapes.medium,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-                            contentColor = MaterialTheme.colorScheme.error,
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                    ) {
-                        Text(
-                            text = "Sign Out",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 15.sp,
-                            ),
-                        )
-                    }
-                } else {
-                    GoogleSignInButton(
-                        onClick = onGoogleSignInClick,
-                        isLoading = isLoading,
-                        modifier = Modifier.fillMaxWidth(),
+            ThemeAppearanceCard(
+                isDarkMode = isDarkMode,
+                onDarkModeChange = onDarkModeChange,
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ExplanationLanguageCard()
+
+            if (!errorMessage.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    shape = MaterialTheme.shapes.small,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = errorMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            if (currentUser != null) {
+                OutlinedButton(
+                    onClick = { showSignOutDialog = true },
+                    enabled = !isLoading,
+                    shape = MaterialTheme.shapes.medium,
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.error.copy(alpha = 0.5f),
+                    ),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                ) {
+                    Text(
+                        text = "Sign Out",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 15.sp,
+                        ),
+                    )
+                }
+            } else {
+                GoogleSignInButton(
+                    onClick = onGoogleSignInClick,
+                    isLoading = isLoading,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -207,10 +224,19 @@ fun ProfileScreenSignedInPreview() {
         ProfileScreenContent(
             currentUser = AuthUser(
                 uid = "firebase_uid_123456789",
-                email = "sarah.chen@konteksto.app",
-                displayName = "Dr. Sarah Chen",
+                email = "razz.ernesto@gmail.com",
+                displayName = "Razz Ernesto",
                 isAnonymous = false,
             ),
+            profile = UserProfile(
+                uid = "firebase_uid_123456789",
+                name = "Razz Ernesto",
+                role = "AI Systems & Cloud Engineer",
+                email = "razz.ernesto@gmail.com",
+                organization = "Google Developer Group / Tech Summit PH",
+                bio = "Building real-time intelligent interfaces and on-device AI tools.",
+            ),
+            isDarkMode = false,
         )
     }
 }

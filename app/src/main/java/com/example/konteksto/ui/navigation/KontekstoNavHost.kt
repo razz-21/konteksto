@@ -46,6 +46,8 @@ fun KontekstoNavHost(
     navController: NavHostController = rememberNavController(),
     authRepository: AuthRepository = remember { FirebaseAuthRepository() },
     startDestination: String? = null,
+    isDarkMode: Boolean = false,
+    onDarkModeChange: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
     val sessionRepository: SessionRepository = remember(context) {
@@ -171,6 +173,8 @@ fun KontekstoNavHost(
                 hostSessions = hostSessions,
                 isHostRefreshing = isHostRefreshing,
                 onHostRefresh = { hostViewModel.refreshSessions() },
+                isDarkMode = isDarkMode,
+                onDarkModeChange = onDarkModeChange,
                 onSignOut = {
                     if (navController.currentDestination?.route != Screen.Login.route) {
                         navController.navigate(Screen.Login.route) {

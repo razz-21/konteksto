@@ -31,6 +31,8 @@ fun MainScreen(
     onSignOut: () -> Unit = {},
     onNavigateToCreateSession: () -> Unit = {},
     onNavigateToPresentQr: (HostSession) -> Unit = {},
+    isDarkMode: Boolean = false,
+    onDarkModeChange: (Boolean) -> Unit = {},
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -65,7 +67,10 @@ fun MainScreen(
                 GlossaryScreen()
             }
             composable(MainTab.Profile.route) {
-                ProfileScreen(onSignOutClick = onSignOut)
+                ProfileScreen(
+                    isDarkMode = isDarkMode,
+                    onDarkModeChange = onDarkModeChange,
+                    onSignOutClick = onSignOut)
             }
         }
     }
