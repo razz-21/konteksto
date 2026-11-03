@@ -51,29 +51,8 @@ fun ThemeAppearanceCard(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.End,
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "THEME APPEARANCE",
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp,
-                        ),
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = "Choose light or dark display mode",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
                 Surface(
                     shape = MaterialTheme.shapes.extraSmall,
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -88,6 +67,27 @@ fun ThemeAppearanceCard(
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = "THEME APPEARANCE",
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                ),
+                color = MaterialTheme.colorScheme.primary,
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "Choose light or dark display mode",
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
