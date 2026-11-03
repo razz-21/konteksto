@@ -1,7 +1,10 @@
 package com.example.konteksto
 
+import com.example.konteksto.data.repository.FirebaseSessionRepository
 import com.example.konteksto.domain.model.ConferenceThemeBanner
 import com.example.konteksto.domain.model.HostSession
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -47,5 +50,50 @@ class HostSessionsTest {
         assertTrue(categoryNames.contains("Policy & Governance"))
         assertTrue(categoryNames.contains("Sports & Performance"))
         assertTrue(categoryNames.contains("Technology & Digital"))
+    }
+
+    @Test
+    fun testGetHostSessionsStreamFiltersByHostUid() = runBlocking {
+        val repository = FirebaseSessionRepository(
+            context = null,
+            firestoreProvider = { throw IllegalStateException("No firestore in unit test") },
+        )
+
+        repository.createSession(
+            title = "User 1 Session",
+            speakerName = "User 1",
+            category = "Tech",
+            venue = "Room A",
+            startTime = "10:00 AM",
+            endTime = "11:00 AM",
+            bannerImageUrl = "",
+            talkCode = "TALK1",
+            hostUid = "user_1",
+        )
+
+        repository.createSession(
+            title = "User 2 Session",
+            speakerName = "User 2",
+            category = "Tech",
+            venue = "Room B",
+            startTime = "11:00 AM",
+            endTime = "12:00 PM",
+            bannerImageUrl = "",
+            talkCode = "TALK2",
+            hostUid = "user_2",
+        )
+
+        val user1Sessions = repository.getHostSessionsStream("user_1").first()
+        assertEquals(1, user1Sessions.size)
+        assertEquals("User 1 Session", user1Sessions[0].title)
+        assertEquals("user_1", user1Sessions[0].hostUid)
+
+        val user2Sessions = repository.getHostSessionsStream("user_2").first()
+        assertEquals(1, user2Sessions.size)
+        assertEquals("User 2 Session", user2Sessions[0].title)
+        assertEquals("user_2", user2Sessions[0].hostUid)
+
+        val emptyUserSessions = repository.getHostSessionsStream("").first()
+        assertEquals(0, emptyUserSessions.size)
     }
 }
