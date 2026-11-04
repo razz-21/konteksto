@@ -5,6 +5,7 @@ import com.example.konteksto.R
 
 sealed class Screen(val route: String) {
     object Login : Screen("login")
+    object Onboarding : Screen("onboarding")
     object Main : Screen("main")
     object CreateSession : Screen("create_session")
     object PresentQr : Screen("present_qr/{sessionId}") {
