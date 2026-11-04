@@ -80,48 +80,6 @@ interface SessionRepository {
 
 private const val MAX_SLIDE_DECK_BYTES = 50L * 1024 * 1024
 
-private val DEFAULT_SESSIONS = listOf(
-    HostSession(
-        id = "session_talk_892",
-        venue = "Main Auditorium · Stage A",
-        time = "09:30 AM - 10:45 AM",
-        talkCode = "TALK-892",
-        title = "Revolutionizing Deep Learning: Advancements in Neural Architectures",
-        speakerName = "Dr. Elena Santos",
-        attendeesCount = 124,
-        isLive = false,
-        status = "not_live",
-        bannerImageUrl = "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?q=80&w=1000",
-        category = "Deep Learning",
-    ),
-    HostSession(
-        id = "session_talk_415",
-        venue = "Tech Summit Hall B",
-        time = "10:00 AM - 11:15 AM",
-        talkCode = "TALK-415",
-        title = "Edge AI & Distributed Cloud Architecture: Scaling to Zero Latency",
-        speakerName = "Engr. Marco Valerio",
-        attendeesCount = 890,
-        isLive = true,
-        status = "live",
-        bannerImageUrl = "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1000",
-        category = "Edge AI",
-    ),
-    HostSession(
-        id = "session_talk_703",
-        venue = "Plenary Hall C",
-        time = "01:30 PM - 02:45 PM",
-        talkCode = "TALK-703",
-        title = "Next-Gen Quantum Computing & Cryptographic Resilience",
-        speakerName = "Prof. Alejandro Reyes",
-        attendeesCount = 450,
-        isLive = false,
-        status = "not_live",
-        bannerImageUrl = "https://images.unsplash.com/photo-1511578314322-379afb476865?q=80&w=1000",
-        category = "Quantum",
-    ),
-)
-
 class FirebaseSessionRepository(
     private val context: Context? = null,
     private val firestoreProvider: () -> FirebaseFirestore = { FirebaseFirestore.getInstance() },
@@ -248,6 +206,11 @@ class FirebaseSessionRepository(
                 if (doc != null) {
                     val session = doc.toHostSession()
                     if (session != null) {
+                        if (localCreatedSessions.value.none { it.id == session.id }) {
+                            val newLocal = localCreatedSessions.value + session
+                            localCreatedSessions.value = newLocal
+                            saveLocalSessions(newLocal)
+                        }
                         return Result.success(session)
                     }
                 }
@@ -1154,16 +1117,15 @@ class FirebaseSessionRepository(
         val prefs = context?.getSharedPreferences("konteksto_sessions_prefs", Context.MODE_PRIVATE)
         val jsonString = prefs?.getString("saved_sessions", null)
         if (jsonString.isNullOrBlank()) {
-            return DEFAULT_SESSIONS
+            return emptyList()
         }
         return try {
             val array = JSONArray(jsonString)
-            val loaded = (0 until array.length()).map { i ->
+            (0 until array.length()).map { i ->
                 array.getJSONObject(i).toHostSessionFromJsonObject()
             }
-            if (loaded.isEmpty()) DEFAULT_SESSIONS else loaded
         } catch (_: Exception) {
-            DEFAULT_SESSIONS
+            emptyList()
         }
     }
 
@@ -1180,9 +1142,9 @@ class FirebaseSessionRepository(
     private fun loadJoinedSessionIds(userUid: String): Set<String> {
         val key = if (userUid.isNotBlank()) "joined_ids_$userUid" else "joined_ids"
         val prefs = context?.getSharedPreferences("konteksto_joined_prefs", Context.MODE_PRIVATE)
-            ?: return setOf("session_talk_892")
+            ?: return emptySet()
         val set = prefs.getStringSet(key, null)
-        return if (set.isNullOrEmpty()) setOf("session_talk_892") else set
+        return set ?: emptySet()
     }
 
     private fun saveJoinedSessionIds(userUid: String, ids: Set<String>) {

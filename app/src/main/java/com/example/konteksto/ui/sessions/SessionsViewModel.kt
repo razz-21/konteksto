@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.konteksto.data.repository.AuthRepository
 import com.example.konteksto.data.repository.FirebaseAuthRepository
-import com.example.konteksto.data.repository.FirebaseSessionRepository
 import com.example.konteksto.data.repository.SessionRepository
 import com.example.konteksto.domain.model.HostSession
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -34,12 +33,13 @@ class SessionsViewModel(
     private val _joinedSessionIds = MutableStateFlow<Set<String>>(emptySet())
     val joinedSessionIds: StateFlow<Set<String>> = _joinedSessionIds.asStateFlow()
 
-    val filteredSessions = combine(_allSessions, _searchQuery) { sessions, query ->
+    val filteredSessions = combine(_allSessions, _joinedSessionIds, _searchQuery) { sessions, joinedIds, query ->
+        val attendedSessions = sessions.filter { it.id in joinedIds }
         if (query.isBlank()) {
-            sessions
+            attendedSessions
         } else {
             val q = query.trim().lowercase()
-            sessions.filter { session ->
+            attendedSessions.filter { session ->
                 session.title.lowercase().contains(q) ||
                     session.speakerName.lowercase().contains(q) ||
                     session.talkCode.lowercase().contains(q) ||
