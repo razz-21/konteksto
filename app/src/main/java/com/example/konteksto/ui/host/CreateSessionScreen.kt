@@ -172,7 +172,7 @@ fun CreateSessionScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 20.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
             // Top Bar
             CreateSessionTopBar(
@@ -180,7 +180,7 @@ fun CreateSessionScreen(
                 onCreateClick = { validateAndSubmit() },
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Cover Photo Selector Card (main preview + 12 categories)
             CoverPhotoSelectorCard(
@@ -195,7 +195,7 @@ fun CreateSessionScreen(
                 onUploadClick = { /* Handle custom image upload */ },
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Field 1: Session Title (*)
             OutlinedTextField(

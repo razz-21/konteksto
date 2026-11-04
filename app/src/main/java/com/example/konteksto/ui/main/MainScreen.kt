@@ -31,6 +31,7 @@ fun MainScreen(
     onSignOut: () -> Unit = {},
     onNavigateToCreateSession: () -> Unit = {},
     onNavigateToPresentQr: (HostSession) -> Unit = {},
+    onNavigateToHostStudio: (HostSession) -> Unit = {},
     isDarkMode: Boolean = false,
     onDarkModeChange: (Boolean) -> Unit = {},
 ) {
@@ -61,6 +62,7 @@ fun MainScreen(
                     onRefresh = onHostRefresh,
                     onNewSessionClick = onNavigateToCreateSession,
                     onPresentQrClick = onNavigateToPresentQr,
+                    onLiveRoomClick = onNavigateToHostStudio,
                 )
             }
             composable(MainTab.Glossary.route) {

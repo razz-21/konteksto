@@ -12,7 +12,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -23,7 +22,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.konteksto.data.preferences.OnboardingPreferences
 import com.example.konteksto.data.repository.AuthRepository
 import com.example.konteksto.data.repository.FirebaseAuthRepository
 import com.example.konteksto.data.repository.FirebaseSessionRepository
@@ -35,8 +33,6 @@ import com.example.konteksto.ui.host.HostViewModel
 import com.example.konteksto.ui.host.PresentQrScreen
 import com.example.konteksto.ui.login.LoginRoute
 import com.example.konteksto.ui.main.MainScreen
-import com.example.konteksto.ui.onboarding.OnboardingScreen
-import kotlinx.coroutines.launch
 
 private sealed interface SessionBootstrapState {
     data object Loading : SessionBootstrapState
@@ -54,14 +50,6 @@ fun KontekstoNavHost(
     onDarkModeChange: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-
-    val onboardingPreferences = remember(context) {
-        OnboardingPreferences(context.applicationContext)
-    }
-    val isOnboardingCompleted by onboardingPreferences.isOnboardingCompleted
-        .collectAsStateWithLifecycle(initialValue = false)
-
     val sessionRepository: SessionRepository = remember(context) {
         FirebaseSessionRepository(context = context.applicationContext)
     }
@@ -90,6 +78,7 @@ fun KontekstoNavHost(
     }
 
     // Wait for Firebase Auth to finish restoring any persisted session from disk
+    // so the Login screen never flashes or overrides a logged-in user on app restart.
     if (startDestination == null && sessionState is SessionBootstrapState.Loading) {
         Surface(
             modifier = modifier.fillMaxSize(),
@@ -100,22 +89,20 @@ fun KontekstoNavHost(
         return
     }
 
-    val initialRoute = remember(startDestination, sessionState, isOnboardingCompleted) {
-        startDestination ?: when (sessionState) {
-            is SessionBootstrapState.Authenticated -> {
-                if (isOnboardingCompleted) Screen.Main.route else Screen.Onboarding.route
-            }
-            else -> Screen.Login.route
+    val initialRoute = remember(startDestination) {
+        startDestination ?: if (sessionState is SessionBootstrapState.Authenticated) {
+            Screen.Main.route
+        } else {
+            Screen.Login.route
         }
     }
 
-    LaunchedEffect(sessionState, isOnboardingCompleted) {
+    LaunchedEffect(sessionState) {
         val currentRoute = navController.currentDestination?.route ?: return@LaunchedEffect
         when (sessionState) {
             is SessionBootstrapState.Authenticated -> {
                 if (currentRoute == Screen.Login.route) {
-                    val target = if (isOnboardingCompleted) Screen.Main.route else Screen.Onboarding.route
-                    navController.navigate(target) {
+                    navController.navigate(Screen.Main.route) {
                         popUpTo(Screen.Login.route) {
                             inclusive = true
                         }
@@ -124,9 +111,9 @@ fun KontekstoNavHost(
                 }
             }
             is SessionBootstrapState.Unauthenticated -> {
-                if (currentRoute == Screen.Main.route || currentRoute == Screen.Onboarding.route) {
+                if (currentRoute == Screen.Main.route) {
                     navController.navigate(Screen.Login.route) {
-                        popUpTo(navController.graph.id) {
+                        popUpTo(Screen.Main.route) {
                             inclusive = true
                         }
                         launchSingleTop = true
@@ -169,30 +156,13 @@ fun KontekstoNavHost(
         composable(Screen.Login.route) {
             LoginRoute(
                 onSignInSuccess = {
-                    val target = if (isOnboardingCompleted) Screen.Main.route else Screen.Onboarding.route
-                    if (navController.currentDestination?.route != target) {
-                        navController.navigate(target) {
+                    if (navController.currentDestination?.route != Screen.Main.route) {
+                        navController.navigate(Screen.Main.route) {
                             popUpTo(Screen.Login.route) {
                                 inclusive = true
                             }
                             launchSingleTop = true
                         }
-                    }
-                },
-            )
-        }
-
-        composable(Screen.Onboarding.route) {
-            OnboardingScreen(
-                onOnboardingComplete = {
-                    coroutineScope.launch {
-                        onboardingPreferences.setOnboardingCompleted(true)
-                    }
-                    navController.navigate(Screen.Main.route) {
-                        popUpTo(Screen.Onboarding.route) {
-                            inclusive = true
-                        }
-                        launchSingleTop = true
                     }
                 },
             )
@@ -249,6 +219,7 @@ fun KontekstoNavHost(
         }
 
         composable(Screen.CreateSession.route) {
+            val context = LocalContext.current
             val currentUser = (sessionState as? SessionBootstrapState.Authenticated)?.user
                 ?: authRepository.currentUser
             val currentSpeakerName = currentUser?.displayName?.takeIf { it.isNotBlank() }

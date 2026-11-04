@@ -66,17 +66,17 @@ fun HostSessionsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(scrollState)
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
             ) {
                 KontekstoTopBar(
                     onNewSessionClick = onNewSessionClick,
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 HostSessionHeader()
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 if (sessions.isEmpty()) {
                     // Empty State View with Icon and Message

@@ -88,6 +88,21 @@ class HostViewModel(
         }
     }
 
+    fun toggleSessionLiveStatus(
+        sessionId: String,
+        isLive: Boolean,
+        onSuccess: () -> Unit = {},
+        onError: (message: String) -> Unit = {},
+    ) {
+        viewModelScope.launch {
+            sessionRepository.updateSessionLiveStatus(sessionId, isLive)
+                .onSuccess { onSuccess() }
+                .onFailure { throwable ->
+                    onError(throwable.localizedMessage ?: "Failed to update session live status.")
+                }
+        }
+    }
+
     companion object {
         fun provideFactory(
             sessionRepository: SessionRepository = FirebaseSessionRepository(),

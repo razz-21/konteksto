@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -17,6 +19,19 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        val localProps = Properties()
+        val rootLocalProps = rootProject.file("local.properties")
+        if (rootLocalProps.exists()) {
+            rootLocalProps.inputStream().use { localProps.load(it) }
+        }
+        val appLocalProps = file("local.properties")
+        if (appLocalProps.exists()) {
+            appLocalProps.inputStream().use { localProps.load(it) }
+        }
+        val geminiApiKey = localProps.getProperty("GEMINI_API_KEY") ?: ""
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
+        buildConfigField("String", "FIREBASE_STORAGE_BUCKET", "\"gs://konteksto.firebasestorage.app\"")
     }
 
     signingConfigs {
@@ -43,6 +58,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -63,8 +79,11 @@ dependencies {
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
+    implementation(libs.firebase.storage)
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.messaging)
+    implementation(libs.firebase.vertexai)
+    implementation(libs.google.generativeai)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
