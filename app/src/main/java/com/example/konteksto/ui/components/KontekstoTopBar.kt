@@ -31,6 +31,8 @@ import com.example.konteksto.ui.theme.KontekstoTheme
 fun KontekstoTopBar(
     modifier: Modifier = Modifier,
     onNewSessionClick: (() -> Unit)? = null,
+    onAttendClick: (() -> Unit)? = null,
+    actionContent: (@Composable () -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
@@ -62,7 +64,32 @@ fun KontekstoTopBar(
             )
         }
 
-        if (onNewSessionClick != null) {
+        if (onAttendClick != null) {
+            Button(
+                onClick = onAttendClick,
+                shape = MaterialTheme.shapes.small,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_qr_code),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Attend",
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                    ),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+            }
+        } else if (onNewSessionClick != null) {
             Button(
                 onClick = onNewSessionClick,
                 shape = MaterialTheme.shapes.small,
@@ -82,11 +109,13 @@ fun KontekstoTopBar(
                 Text(
                     text = stringResource(id = R.string.host_new_session),
                     style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Bold,
                     ),
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
             }
+        } else if (actionContent != null) {
+            actionContent()
         }
     }
 }

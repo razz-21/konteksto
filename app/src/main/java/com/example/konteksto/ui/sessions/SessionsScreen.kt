@@ -25,7 +25,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -39,7 +38,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -53,6 +51,7 @@ import com.example.konteksto.R
 import com.example.konteksto.data.repository.FirebaseSessionRepository
 import com.example.konteksto.data.repository.SessionRepository
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.ui.components.KontekstoTopBar
 import com.example.konteksto.ui.theme.KontekstoTheme
 
 @Composable
@@ -95,166 +94,122 @@ fun SessionsScreen(
         )
     }
 
-    Scaffold(
+    Surface(
         modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background,
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-        ) {
-            // Header Row: Konteksto Logo + Attend Button
-            Row(
+        color = MaterialTheme.colorScheme.background,
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // Header Row using exact same KontekstoTopBar component and layout as HostSessionsScreen
+                KontekstoTopBar(
+                    onAttendClick = { viewModel.openAttendSheet() },
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Search Bar
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { viewModel.onSearchQueryChange(it) },
+                        placeholder = {
+                            Text(
+                                text = "Search sessions or speaker name...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_search),
+                                contentDescription = "Search",
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
+                                    Text(
+                                        text = "✕",
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
+                            focusedBorderColor = Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent,
+                        ),
+                        shape = MaterialTheme.shapes.small,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Sessions List
+                if (filteredSessions.isEmpty()) {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
-                            .clip(MaterialTheme.shapes.small)
-                            .background(Color(0xFF3B52D4)),
+                            .fillMaxSize()
+                            .padding(32.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_logo_icon),
-                            contentDescription = "Konteksto Logo",
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp),
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(10.dp))
-
-                    Text(
-                        text = "Konteksto",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp,
-                        ),
-                    )
-                }
-
-                Button(
-                    onClick = { viewModel.openAttendSheet() },
-                    shape = MaterialTheme.shapes.small,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF3B52D4),
-                        contentColor = Color.White,
-                    ),
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_qr_code),
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Attend",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                    )
-                }
-            }
-
-            // Search Bar
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 4.dp),
-            ) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { viewModel.onSearchQueryChange(it) },
-                    placeholder = {
                         Text(
-                            text = "Search sessions or speaker name...",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_search),
-                            contentDescription = "Search",
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
-                                Text(
-                                    text = "✕",
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                    },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent,
-                    ),
-                    shape = MaterialTheme.shapes.small,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Sessions List
-            if (filteredSessions.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = if (searchQuery.isBlank()) {
-                            "No sessions available right now."
-                        } else {
-                            "No sessions match \"$searchQuery\""
-                        },
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    items(
-                        items = filteredSessions,
-                        key = { it.id },
-                    ) { session ->
-                        val isAttending = joinedSessionIds.contains(session.id)
-
-                        AttendeeSessionCard(
-                            session = session,
-                            isAttending = isAttending,
-                            onActionClick = {
-                                if (isAttending) {
-                                    onNavigateToAttendeeRoom(session.id)
-                                } else {
-                                    viewModel.openAttendSheet()
-                                }
+                            text = if (searchQuery.isBlank()) {
+                                "No sessions available right now."
+                            } else {
+                                "No sessions match \"$searchQuery\""
                             },
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        items(
+                            items = filteredSessions,
+                            key = { it.id },
+                        ) { session ->
+                            val isAttending = joinedSessionIds.contains(session.id)
+
+                            AttendeeSessionCard(
+                                session = session,
+                                isAttending = isAttending,
+                                onActionClick = {
+                                    if (isAttending) {
+                                        onNavigateToAttendeeRoom(session.id)
+                                    } else {
+                                        viewModel.openAttendSheet()
+                                    }
+                                },
+                            )
+                        }
                     }
                 }
             }
+
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp),
+            )
         }
     }
 }
