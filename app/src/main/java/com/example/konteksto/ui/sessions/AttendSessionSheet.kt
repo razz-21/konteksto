@@ -350,53 +350,6 @@ private fun AttendSessionMainContent(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Quick Fill Demo Session Codes
-            Text(
-                text = "Quick fill demo session code:",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                val demoCodes = listOf("TALK-892", "TALK-415", "TALK-703")
-                demoCodes.forEachIndexed { index, code ->
-                    Surface(
-                        onClick = {
-                            roomCode = code
-                            errorMessage = null
-                        },
-                        shape = MaterialTheme.shapes.small,
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                    ) {
-                        Text(
-                            text = code,
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp,
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-
-                    if (index < demoCodes.lastIndex) {
-                        Spacer(modifier = Modifier.width(10.dp))
-                    }
-                }
-            }
-
             Spacer(modifier = Modifier.height(28.dp))
         } else {
             // Scan QR Section
