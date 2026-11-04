@@ -56,12 +56,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.ui.theme.KontekstoTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -711,3 +713,37 @@ private fun SessionConfirmationContent(
         Spacer(modifier = Modifier.height(28.dp))
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun AttendSessionMainContentPreview() {
+    KontekstoTheme {
+        AttendSessionMainContent(
+            onDismiss = {},
+            onVerifyCode = { _, _ -> },
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun SessionConfirmationContentPreview() {
+    val sampleSession = HostSession(
+        id = "1",
+        venue = "Tech Summit Hall B",
+        time = "10:00 AM",
+        talkCode = "TALK-415",
+        title = "Edge AI & Distributed Cloud Architecture",
+        speakerName = "Engr. Marco Valerio",
+        attendeesCount = 120,
+        isLive = true,
+    )
+    KontekstoTheme {
+        SessionConfirmationContent(
+            session = sampleSession,
+            onDismiss = {},
+            onConfirmJoin = {},
+        )
+    }
+}
+
