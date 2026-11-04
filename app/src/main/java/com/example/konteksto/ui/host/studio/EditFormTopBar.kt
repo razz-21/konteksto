@@ -27,10 +27,10 @@ import com.example.konteksto.R
 fun EditFormTopBar(
     title: String,
     subtitle: String?,
-    saveEnabled: Boolean,
     onBackClick: () -> Unit,
-    onSaveClick: () -> Unit,
     modifier: Modifier = Modifier,
+    saveEnabled: Boolean = true,
+    onSaveClick: (() -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
@@ -68,30 +68,32 @@ fun EditFormTopBar(
             }
         }
 
-        Spacer(modifier = Modifier.width(8.dp))
+        if (onSaveClick != null) {
+            Spacer(modifier = Modifier.width(8.dp))
 
-        Button(
-            onClick = onSaveClick,
-            enabled = saveEnabled,
-            shape = MaterialTheme.shapes.small,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            ),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_check),
-                contentDescription = null,
-                modifier = Modifier.size(15.dp),
-            )
-            Spacer(modifier = Modifier.width(5.dp))
-            Text(
-                text = "Save",
-                style = MaterialTheme.typography.labelLarge.copy(
-                    fontWeight = FontWeight.Bold,
+            Button(
+                onClick = onSaveClick,
+                enabled = saveEnabled,
+                shape = MaterialTheme.shapes.small,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
-            )
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_check),
+                    contentDescription = null,
+                    modifier = Modifier.size(15.dp),
+                )
+                Spacer(modifier = Modifier.width(5.dp))
+                Text(
+                    text = "Save",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                    ),
+                )
+            }
         }
     }
 }
