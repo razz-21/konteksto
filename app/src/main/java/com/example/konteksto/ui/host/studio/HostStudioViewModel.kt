@@ -54,6 +54,16 @@ internal fun resolveSlideDeck(currentDeck: SlideDeckInfo?, session: HostSession)
     )
 }
 
+/**
+ * The host can turn the mic off during a live session, and the session document also changes for
+ * unrelated reasons such as saving slides, so only starting or ending the session resets the mic.
+ */
+internal fun resolveAudioBroadcasting(
+    isAudioBroadcasting: Boolean,
+    previousSession: HostSession?,
+    session: HostSession,
+): Boolean = if (previousSession?.isLive == session.isLive) isAudioBroadcasting else session.isLive
+
 class HostStudioViewModel(
     private val sessionId: String,
     private val sessionRepository: SessionRepository = FirebaseSessionRepository(),
@@ -118,7 +128,11 @@ class HostStudioViewModel(
                 if (matchingSession != null) {
                     _uiState.value = _uiState.value.copy(
                         session = matchingSession,
-                        isAudioBroadcasting = matchingSession.isLive,
+                        isAudioBroadcasting = resolveAudioBroadcasting(
+                            isAudioBroadcasting = _uiState.value.isAudioBroadcasting,
+                            previousSession = _uiState.value.session,
+                            session = matchingSession,
+                        ),
                         slideDeckInfo = resolveSlideDeck(_uiState.value.slideDeckInfo, matchingSession),
                     )
                 }
