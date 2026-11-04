@@ -13,7 +13,7 @@ Section 13 lists where today's code doesn't follow these rules yet. When you tou
 ## 1. Project Baseline
 
 | Item | Value |
-|---|---|
+| --- | --- |
 | Language | Kotlin |
 | UI | Jetpack Compose, Material 3, single activity |
 | Min / target SDK | 33 / 36 |
@@ -61,7 +61,7 @@ Section 9 of the spec is the single source for the package layout. Add new featu
 
 ### Naming
 | Item | Convention | Example |
-|---|---|---|
+| --- | --- | --- |
 | Route and screen | `<Name>Route`, `<Name>Screen` | `HostStudioRoute`, `HostStudioScreen` |
 | UI state | `<Screen>UiState` | `HostStudioUiState` |
 | Streams | `get<Model>Stream` | `getTranscriptsStream()` |
@@ -79,6 +79,7 @@ Section 9 of the spec is the single source for the package layout. Add new featu
 
 ```kotlin
 @Composable
+@Suppress("FunctionName")
 fun HostStudioRoute(
     viewModel: HostStudioViewModel,
     onBackClick: () -> Unit,
@@ -136,7 +137,7 @@ uiState.errorMessage?.let { message ->
 
 ### Saving State
 | Kind of state | Where it lives | Survives rotation | Survives process death |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Animation, scroll helpers | `remember` | No | No |
 | Form input, selections, dialog visibility | `rememberSaveable` | Yes | Yes |
 | Screen data and business state | ViewModel | Yes | No |
@@ -207,7 +208,9 @@ Do sorting and filtering in the ViewModel, or at least cache the result.
 
 ```kotlin
 // Bad: sorts on every recomposition
-items(terms.sortedBy { it.term }) { ... }
+items(terms.sortedBy { it.term }) { term ->
+    TermRow(term)
+}
 
 // Good
 val sortedTerms = remember(terms) { terms.sortedBy { it.term } }
@@ -249,7 +252,7 @@ Check performance in a **release build**. Debug builds of Compose are much slowe
 Targeting API 36 turns these on for us.
 
 | Requirement | What it means for us |
-|---|---|
+| --- | --- |
 | **Edge-to-edge can't be disabled** | Every screen handles insets, using `safeDrawingPadding()` or Scaffold padding. Don't use `windowOptOutEdgeToEdgeEnforcement` |
 | **Predictive back is on by default** | `onBackPressed` isn't called and `KEYCODE_BACK` isn't dispatched. Use `BackHandler` |
 | **Large screens ignore orientation and resize limits** | On displays 600dp wide or more, `screenOrientation` and `resizeableActivity` have no effect. Layouts must work at any width |
@@ -294,14 +297,16 @@ Use vector drawables for icons and WebP for bitmaps.
 class GeminiSlideAnalyzer(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
-    suspend fun analyzeSlideDeck(...) = withContext(ioDispatcher) { ... }
+    suspend fun analyzeSlideDeck(slideDeck: SlideDeck) = withContext(ioDispatcher) {
+        // Perform analysis
+    }
 }
 ```
 
 **Scope choice**
 
 | Work | Scope |
-|---|---|
+| --- | --- |
 | UI logic such as an animation | Composition (`rememberCoroutineScope`, `LaunchedEffect`) |
 | Business logic for a screen | `viewModelScope` |
 | Must finish even if the user leaves the screen | Injected application scope |
@@ -320,7 +325,9 @@ class GeminiSlideAnalyzer(
 
 ```kotlin
 // Bad: also catches cancellation
-suspend fun deleteContextNote(id: String): Result<Unit> = runCatching { ... }
+suspend fun deleteContextNote(id: String): Result<Unit> = runCatching {
+    noteDocument(id).delete().await()
+}
 
 // Good
 suspend fun deleteContextNote(id: String): Result<Unit> = try {
@@ -331,6 +338,8 @@ suspend fun deleteContextNote(id: String): Result<Unit> = try {
 }
 
 // Good: when you need a catch-all at a boundary
+try {
+    noteDocument(id).delete().await()
 } catch (e: CancellationException) {
     throw e
 } catch (e: Exception) {
@@ -350,7 +359,7 @@ suspend fun deleteContextNote(id: String): Result<Unit> = try {
 **Must:** work that has to outlive a screen never runs inside a composable. Composition can end at any moment, and anything started there stops with it.
 
 | Need | Use |
-|---|---|
+| --- | --- |
 | Only matters while the screen is visible | `viewModelScope` |
 | Must finish after leaving the screen, while the app is alive | Injected application scope |
 | Can be deferred but must eventually run | WorkManager |
@@ -495,7 +504,7 @@ class HostStudioViewModel @Inject constructor(
 **Minimum coverage**
 
 | Test | Tools | Priority targets |
-|---|---|---|
+| --- | --- | --- |
 | ViewModels and state logic | JUnit, `runTest`, fakes | Mic state, session state, error paths |
 | Repositories and mapping | JUnit, fakes | Document mapping, failure results |
 | Security rules | Firebase Emulator Suite | Attendees can't read notes or write transcripts |
@@ -531,7 +540,7 @@ class FakeSessionRepository : SessionRepository {
 Measured when this guide was written. Product and feature fixes are tracked in Section 11 of the spec.
 
 | Rule | Current state | Where |
-|---|---|---|
+| --- | --- | --- |
 | Data layer doesn't import from UI | 31 references to `ui.host.studio` types | `data/repository/` |
 | Long-running work stays out of composables | Speech recognition runs in a composable and its class lives in `ui` | `HostStudioBroadcastView.kt`, `SpeechToTextManager.kt` |
 | Never swallow cancellation | 34 generic `catch` or `runCatching` sites, with none rethrowing `CancellationException` | `data/repository/` |
