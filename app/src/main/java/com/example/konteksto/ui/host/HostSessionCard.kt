@@ -250,7 +250,7 @@ fun HostSessionCard(
                     Spacer(modifier = Modifier.width(4.dp))
 
                     Text(
-                        text = "joined",
+                        text = if (session.attendeesCount == 1) "audience" else "audiences",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

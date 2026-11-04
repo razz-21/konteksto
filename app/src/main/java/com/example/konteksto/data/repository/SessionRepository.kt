@@ -18,6 +18,10 @@ import org.json.JSONObject
 interface SessionRepository {
     fun getHostSessionsStream(hostUid: String): Flow<List<HostSession>>
     fun getAllLiveSessionsStream(): Flow<List<HostSession>>
+    fun getAllSessionsStream(): Flow<List<HostSession>>
+    fun getJoinedSessionIdsStream(userUid: String): Flow<Set<String>>
+    suspend fun findSessionByCode(code: String): Result<HostSession>
+    suspend fun joinSession(userUid: String, sessionId: String): Result<HostSession>
     suspend fun createSession(
         title: String,
         speakerName: String,
@@ -82,6 +86,7 @@ class FirebaseSessionRepository(
 ) : SessionRepository {
 
     private val localCreatedSessions = MutableStateFlow<List<HostSession>>(loadLocalSessions())
+    private val joinedSessionIdsFlow = MutableStateFlow<Set<String>>(emptySet())
 
     private val firestoreOrNull: FirebaseFirestore?
         get() = try {
@@ -89,6 +94,183 @@ class FirebaseSessionRepository(
         } catch (_: Exception) {
             null
         }
+
+    override fun getAllSessionsStream(): Flow<List<HostSession>> = callbackFlow {
+        val firestore = firestoreOrNull
+        if (firestore == null) {
+            val localJob = launch {
+                localCreatedSessions.collect { sessions ->
+                    trySend(sessions)
+                }
+            }
+            awaitClose { localJob.cancel() }
+            return@callbackFlow
+        }
+
+        trySend(localCreatedSessions.value)
+
+        val listenerRegistration = try {
+            firestore.collection("sessions")
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        trySend(localCreatedSessions.value)
+                        return@addSnapshotListener
+                    }
+
+                    val remoteSessions = snapshot?.documents?.mapNotNull { doc ->
+                        val createdAt = doc.getLong("createdAt") ?: 0L
+                        val session = doc.toHostSession()
+                        if (session != null) createdAt to session else null
+                    }?.sortedByDescending { it.first }
+                        ?.map { it.second } ?: emptyList()
+
+                    if (snapshot != null) {
+                        val merged = (remoteSessions + localCreatedSessions.value).distinctBy { it.id }
+                        trySend(merged)
+                    } else {
+                        trySend(localCreatedSessions.value)
+                    }
+                }
+        } catch (_: Exception) {
+            null
+        }
+
+        awaitClose {
+            listenerRegistration?.remove()
+        }
+    }
+
+    override fun getJoinedSessionIdsStream(userUid: String): Flow<Set<String>> = callbackFlow {
+        val initialSet = loadJoinedSessionIds(userUid)
+        joinedSessionIdsFlow.value = initialSet
+        trySend(initialSet)
+
+        val localJob = launch {
+            joinedSessionIdsFlow.collect { ids ->
+                trySend(ids)
+            }
+        }
+
+        val firestore = firestoreOrNull
+        val listenerRegistration = if (firestore != null && userUid.isNotBlank()) {
+            try {
+                firestore.collection("users").document(userUid)
+                    .collection("joined_sessions")
+                    .addSnapshotListener { snapshot, error ->
+                        if (error == null && snapshot != null) {
+                            val remoteIds = snapshot.documents.map { it.id }.toSet()
+                            val combined = joinedSessionIdsFlow.value + remoteIds
+                            if (combined != joinedSessionIdsFlow.value) {
+                                joinedSessionIdsFlow.value = combined
+                                saveJoinedSessionIds(userUid, combined)
+                            }
+                        }
+                    }
+            } catch (_: Exception) {
+                null
+            }
+        } else null
+
+        awaitClose {
+            localJob.cancel()
+            listenerRegistration?.remove()
+        }
+    }
+
+    override suspend fun findSessionByCode(code: String): Result<HostSession> {
+        val cleanCode = code.trim().replace("–", "-").uppercase()
+        if (cleanCode.isBlank()) {
+            return Result.failure(IllegalArgumentException("Please enter a valid session room code."))
+        }
+
+        val localList = localCreatedSessions.value
+        val match = localList.find { session ->
+            val sTalkCode = session.talkCode.trim().replace("–", "-").uppercase()
+            val sId = session.id.trim().uppercase()
+            sTalkCode == cleanCode || sId == cleanCode
+        }
+
+        if (match != null) {
+            return Result.success(match)
+        }
+
+        val firestore = firestoreOrNull
+        if (firestore != null) {
+            try {
+                val querySnapshot = firestore.collection("sessions")
+                    .whereEqualTo("talkCode", cleanCode)
+                    .get()
+                    .await()
+
+                val doc = querySnapshot.documents.firstOrNull()
+                if (doc != null) {
+                    val session = doc.toHostSession()
+                    if (session != null) {
+                        if (localCreatedSessions.value.none { it.id == session.id }) {
+                            val newLocal = localCreatedSessions.value + session
+                            localCreatedSessions.value = newLocal
+                            saveLocalSessions(newLocal)
+                        }
+                        return Result.success(session)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("FirebaseSessionRepo", "Error searching session by code: ${e.message}")
+            }
+        }
+
+        return Result.failure(IllegalArgumentException("No session found for code '$code'"))
+    }
+
+    override suspend fun joinSession(userUid: String, sessionId: String): Result<HostSession> {
+        val currentJoined = loadJoinedSessionIds(userUid).toMutableSet()
+        val isNewJoin = currentJoined.add(sessionId)
+        saveJoinedSessionIds(userUid, currentJoined)
+        joinedSessionIdsFlow.value = currentJoined
+
+        val updatedLocal = localCreatedSessions.value.map { session ->
+            if (session.id == sessionId) {
+                val newCount = if (isNewJoin) session.attendeesCount + 1 else session.attendeesCount
+                session.copy(attendeesCount = newCount)
+            } else {
+                session
+            }
+        }
+        localCreatedSessions.value = updatedLocal
+        saveLocalSessions(updatedLocal)
+
+        val targetSession = updatedLocal.find { it.id == sessionId }
+            ?: return Result.failure(IllegalArgumentException("Session not found."))
+
+        try {
+            val firestore = firestoreOrNull
+            if (firestore != null && isNewJoin) {
+                val sessionRef = firestore.collection("sessions").document(sessionId)
+                sessionRef.update("attendeesCount", FieldValue.increment(1)).await()
+
+                val attendeeDoc = sessionRef.collection("attendees").document(userUid)
+                attendeeDoc.set(
+                    mapOf(
+                        "userUid" to userUid,
+                        "joinedAt" to System.currentTimeMillis(),
+                    ),
+                ).await()
+
+                val userJoinedDoc = firestore.collection("users").document(userUid)
+                    .collection("joined_sessions").document(sessionId)
+                userJoinedDoc.set(
+                    mapOf(
+                        "sessionId" to sessionId,
+                        "joinedAt" to System.currentTimeMillis(),
+                    ),
+                ).await()
+            }
+        } catch (e: Exception) {
+            Log.e("FirebaseSessionRepo", "Failed to sync attendance to Firestore: ${e.message}")
+        }
+
+        return Result.success(targetSession)
+    }
 
     override fun getHostSessionsStream(hostUid: String): Flow<List<HostSession>> = callbackFlow {
         if (hostUid.isBlank()) {
@@ -108,10 +290,6 @@ class FirebaseSessionRepository(
             return@callbackFlow
         }
 
-        // Send local cached sessions for this hostUid immediately for fast initial rendering
-        val initialFiltered = localCreatedSessions.value.filter { it.hostUid == hostUid }
-        trySend(initialFiltered)
-
         val listenerRegistration = try {
             firestore.collection("sessions")
                 .whereEqualTo("hostUid", hostUid)
@@ -126,10 +304,9 @@ class FirebaseSessionRepository(
                         val session = doc.toHostSession()
                         if (session != null) createdAt to session else null
                     }?.sortedByDescending { it.first }
-                    ?.map { it.second } ?: emptyList()
+                        ?.map { it.second } ?: emptyList()
 
                     if (snapshot != null) {
-                        // Remote is SSOT for hostUid: update local persistence
                         val otherUserSessions = localCreatedSessions.value.filter { it.hostUid != hostUid }
                         val updatedLocal = otherUserSessions + remoteSessions
                         localCreatedSessions.value = updatedLocal
@@ -176,7 +353,7 @@ class FirebaseSessionRepository(
                         val session = doc.toHostSession()
                         if (session != null) createdAt to session else null
                     }?.sortedByDescending { it.first }
-                    ?.map { it.second } ?: emptyList()
+                        ?.map { it.second } ?: emptyList()
 
                     if (snapshot != null) {
                         trySend(remoteSessions)
@@ -218,7 +395,7 @@ class FirebaseSessionRepository(
             title = title.trim(),
             speakerName = speakerName.trim(),
             attendeesCount = 0,
-            isLive = false, // Newly created session is not live yet
+            isLive = false,
             bannerImageUrl = bannerImageUrl,
             category = category,
             hostUid = hostUid,
@@ -227,12 +404,10 @@ class FirebaseSessionRepository(
             status = "not_live",
         )
 
-        // Store locally and persist to device disk immediately
         val updatedLocal = listOf(newSession) + localCreatedSessions.value.filter { it.id != sessionId }
         localCreatedSessions.value = updatedLocal
         saveLocalSessions(updatedLocal)
 
-        // Try syncing to Firestore in background
         try {
             val firestore = firestoreOrNull
             if (firestore != null) {
@@ -498,6 +673,9 @@ class FirebaseSessionRepository(
         saveLocalSessions(updatedLocal)
 
         try {
+            if (fileName != null) {
+                deleteSlideDeckFile(sessionId, fileName)
+            }
             val firestore = firestoreOrNull
             if (firestore != null && sessionId.isNotBlank()) {
                 firestore.collection("sessions").document(sessionId)
@@ -509,18 +687,13 @@ class FirebaseSessionRepository(
                             "slideDeckPageCount" to FieldValue.delete(),
                             "slideDeckUploadTime" to FieldValue.delete(),
                             "slideDeckUploadedAt" to FieldValue.delete(),
+                            "isSlideDeckAnalyzed" to false,
                             "analyzedContextNotesSignature" to FieldValue.delete(),
                         ),
                     ).await()
             }
         } catch (e: Exception) {
-            Log.e("FirebaseSessionRepo", "Failed to clear slide deck metadata: ${e.message}")
-            return Result.failure(e)
-        }
-
-        // Only delete the file once nothing points at it, so a failed clear leaves a working deck.
-        if (!fileName.isNullOrBlank()) {
-            deleteSlideDeckFile(sessionId, fileName)
+            Log.e("FirebaseSessionRepo", "Failed to clear slide deck metadata in Firestore: ${e.message}")
         }
 
         return Result.success(Unit)
@@ -543,8 +716,7 @@ class FirebaseSessionRepository(
                     .await()
             }
         } catch (e: Exception) {
-            Log.e("FirebaseSessionRepo", "Failed to save analyzed context notes signature: ${e.message}")
-            return Result.failure(e)
+            Log.e("FirebaseSessionRepo", "Failed to save context notes signature: ${e.message}")
         }
 
         return Result.success(Unit)
@@ -556,111 +728,108 @@ class FirebaseSessionRepository(
     ): Result<Unit> {
         val updatedLocal = localCreatedSessions.value.map { session ->
             if (session.id == sessionId) {
-                session.copy(isSlideDeckAnalyzed = analyzedSlides.isNotEmpty())
+                session.copy(isSlideDeckAnalyzed = true)
             } else session
         }
         localCreatedSessions.value = updatedLocal
         saveLocalSessions(updatedLocal)
 
-        val slidesList = analyzedSlides.map { slide ->
-            mapOf(
-                "id" to slide.id,
-                "slideNumber" to slide.slideNumber,
-                "title" to slide.title,
-                "summary" to (slide.summary ?: ""),
-                "explanation" to (slide.explanation ?: ""),
-                "keyTakeaway" to (slide.keyTakeaway ?: ""),
-            )
-        }
-
         try {
             val firestore = firestoreOrNull
             if (firestore != null && sessionId.isNotBlank()) {
                 firestore.collection("sessions").document(sessionId)
-                    .update(
-                        mapOf(
-                            "analyzedSlides" to slidesList,
-                            "isSlideDeckAnalyzed" to analyzedSlides.isNotEmpty(),
-                            "analyzedSlidesCount" to analyzedSlides.size,
-                            "analyzedAt" to System.currentTimeMillis(),
-                        ),
-                    ).await()
-
-                val slidesRef = firestore.collection("sessions").document(sessionId)
-                    .collection("analyzed_slides")
-                val keptIds = analyzedSlides.map { it.id }.toSet()
-                val existingSlides = slidesRef.get().await()
+                    .update("isSlideDeckAnalyzed", true)
+                    .await()
 
                 val batch = firestore.batch()
-                existingSlides.documents
-                    .filter { it.id !in keptIds }
-                    .forEach { batch.delete(it.reference) }
-                analyzedSlides.forEach { slide ->
-                    val docRef = slidesRef.document(slide.id)
+                val collectionRef = firestore.collection("sessions").document(sessionId).collection("analyzed_slides")
+                analyzedSlides.forEach { item ->
+                    val docRef = collectionRef.document(item.id)
                     batch.set(
                         docRef,
                         mapOf(
-                            "id" to slide.id,
-                            "slideNumber" to slide.slideNumber,
-                            "title" to slide.title,
-                            "summary" to (slide.summary ?: ""),
-                            "explanation" to (slide.explanation ?: ""),
-                            "keyTakeaway" to (slide.keyTakeaway ?: ""),
-                            "analyzedAt" to System.currentTimeMillis(),
+                            "id" to item.id,
+                            "slideNumber" to item.slideNumber,
+                            "title" to item.title,
+                            "summary" to (item.summary ?: ""),
+                            "explanation" to (item.explanation ?: ""),
+                            "keyTakeaway" to (item.keyTakeaway ?: ""),
+                            "updatedAt" to System.currentTimeMillis(),
                         ),
                     )
                 }
                 batch.commit().await()
-                Log.d("FirebaseSessionRepo", "Saved ${analyzedSlides.size} analyzed slides to Firestore for session $sessionId")
             }
         } catch (e: Exception) {
-            Log.e("FirebaseSessionRepo", "Failed to save analyzed slides to Firestore: ${e.message}")
+            Log.e("FirebaseSessionRepo", "Failed to save analyzed slides: ${e.message}")
             return Result.failure(e)
         }
 
         return Result.success(Unit)
     }
 
+    private val localAnalyzedSlidesMap = MutableStateFlow<Map<String, List<com.example.konteksto.ui.host.studio.AnalyzedSlideItem>>>(emptyMap())
+
     override fun getAnalyzedSlidesStream(sessionId: String): Flow<List<com.example.konteksto.ui.host.studio.AnalyzedSlideItem>> = callbackFlow {
-        val firestore = firestoreOrNull
-        if (firestore == null || sessionId.isBlank()) {
+        if (sessionId.isBlank()) {
             trySend(emptyList())
             awaitClose { }
             return@callbackFlow
         }
 
-        val listener = firestore.collection("sessions").document(sessionId)
-            .collection("analyzed_slides")
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    trySend(emptyList())
-                    return@addSnapshotListener
+        val firestore = firestoreOrNull
+        if (firestore == null) {
+            val job = launch {
+                localAnalyzedSlidesMap.collect { map ->
+                    trySend(map[sessionId] ?: emptyList())
                 }
-                val slides = snapshot?.documents?.mapNotNull { doc ->
-                    val id = doc.getString("id") ?: doc.id
-                    val slideNumber = doc.getLong("slideNumber")?.toInt() ?: 1
-                    val title = doc.getString("title") ?: "Slide $slideNumber"
-                    val summary = doc.getString("summary")
-                    val explanation = doc.getString("explanation")
-                    val keyTakeaway = doc.getString("keyTakeaway")
-                    com.example.konteksto.ui.host.studio.AnalyzedSlideItem(
-                        id = id,
-                        slideNumber = slideNumber,
-                        title = title,
-                        summary = summary,
-                        explanation = explanation,
-                        keyTakeaway = keyTakeaway,
-                    )
-                }?.sortedBy { it.slideNumber } ?: emptyList()
-
-                trySend(slides)
             }
+            awaitClose { job.cancel() }
+            return@callbackFlow
+        }
 
-        awaitClose { listener.remove() }
+        val listenerRegistration = try {
+            firestore.collection("sessions").document(sessionId)
+                .collection("analyzed_slides")
+                .orderBy("slideNumber")
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        trySend(localAnalyzedSlidesMap.value[sessionId] ?: emptyList())
+                        return@addSnapshotListener
+                    }
+
+                    val remoteSlides = snapshot?.documents?.mapNotNull { doc ->
+                        val id = doc.getString("id") ?: doc.id
+                        val slideNumber = doc.getLong("slideNumber")?.toInt() ?: 1
+                        val title = doc.getString("title") ?: ""
+                        val summary = doc.getString("summary")
+                        val explanation = doc.getString("explanation")
+                        val keyTakeaway = doc.getString("keyTakeaway")
+
+                        com.example.konteksto.ui.host.studio.AnalyzedSlideItem(
+                            id = id,
+                            slideNumber = slideNumber,
+                            title = title,
+                            summary = summary,
+                            explanation = explanation,
+                            keyTakeaway = keyTakeaway,
+                        )
+                    } ?: emptyList()
+
+                    val updatedMap = localAnalyzedSlidesMap.value + (sessionId to remoteSlides)
+                    localAnalyzedSlidesMap.value = updatedMap
+                    trySend(remoteSlides)
+                }
+        } catch (_: Exception) {
+            null
+        }
+
+        awaitClose {
+            listenerRegistration?.remove()
+        }
     }
 
-    private val localContextNotesMap =
-        MutableStateFlow<Map<String, List<com.example.konteksto.ui.host.studio.ContextNoteItem>>>(emptyMap())
+    private val localContextNotesMap = MutableStateFlow<Map<String, List<com.example.konteksto.ui.host.studio.ContextNoteItem>>>(emptyMap())
 
     override fun getContextNotesStream(sessionId: String): Flow<List<com.example.konteksto.ui.host.studio.ContextNoteItem>> = callbackFlow {
         if (sessionId.isBlank()) {
@@ -683,7 +852,6 @@ class FirebaseSessionRepository(
         val listenerRegistration = try {
             firestore.collection("sessions").document(sessionId)
                 .collection("context_notes")
-                .orderBy("createdAt")
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) {
                         trySend(localContextNotesMap.value[sessionId] ?: emptyList())
@@ -691,17 +859,24 @@ class FirebaseSessionRepository(
                     }
 
                     val remoteNotes = snapshot?.documents?.mapNotNull { doc ->
-                        val title = doc.getString("title") ?: return@mapNotNull null
-                        com.example.konteksto.ui.host.studio.ContextNoteItem(
-                            id = doc.getString("id") ?: doc.id,
-                            category = doc.getString("category") ?: "BACKGROUND NOTE",
-                            title = title,
-                            content = doc.getString("content") ?: "",
-                            timestamp = doc.getString("timestamp") ?: "",
-                        )
+                        val id = doc.getString("id") ?: doc.id
+                        val category = doc.getString("category") ?: "GENERAL"
+                        val title = doc.getString("title") ?: ""
+                        val content = doc.getString("content") ?: doc.getString("text") ?: ""
+                        val timestamp = doc.getString("timestamp") ?: ""
+                        if (title.isNotBlank() || content.isNotBlank()) {
+                            com.example.konteksto.ui.host.studio.ContextNoteItem(
+                                id = id,
+                                category = category,
+                                title = title,
+                                content = content,
+                                timestamp = timestamp,
+                            )
+                        } else null
                     } ?: emptyList()
 
-                    localContextNotesMap.value = localContextNotesMap.value + (sessionId to remoteNotes)
+                    val updatedMap = localContextNotesMap.value + (sessionId to remoteNotes)
+                    localContextNotesMap.value = updatedMap
                     trySend(remoteNotes)
                 }
         } catch (_: Exception) {
@@ -717,30 +892,28 @@ class FirebaseSessionRepository(
         sessionId: String,
         note: com.example.konteksto.ui.host.studio.ContextNoteItem,
     ): Result<Unit> {
-        val currentNotes = localContextNotesMap.value[sessionId] ?: emptyList()
-        localContextNotesMap.value = localContextNotesMap.value + (sessionId to currentNotes + note)
+        val currentList = localContextNotesMap.value[sessionId] ?: emptyList()
+        val updatedList = currentList + note
+        localContextNotesMap.value = localContextNotesMap.value + (sessionId to updatedList)
 
         try {
             val firestore = firestoreOrNull
             if (firestore != null && sessionId.isNotBlank()) {
-                firestore.collection("sessions").document(sessionId)
+                val docRef = firestore.collection("sessions").document(sessionId)
                     .collection("context_notes").document(note.id)
-                    .set(
-                        mapOf(
-                            "id" to note.id,
-                            "category" to note.category,
-                            "title" to note.title,
-                            "content" to note.content,
-                            "timestamp" to note.timestamp,
-                            "createdAt" to System.currentTimeMillis(),
-                        ),
-                    ).await()
+                docRef.set(
+                    mapOf(
+                        "id" to note.id,
+                        "category" to note.category,
+                        "title" to note.title,
+                        "content" to note.content,
+                        "timestamp" to note.timestamp,
+                        "updatedAt" to System.currentTimeMillis(),
+                    ),
+                ).await()
             }
         } catch (e: Exception) {
-            Log.e("FirebaseSessionRepo", "Failed to save context note to Firestore: ${e.message}")
-            val remainingNotes = (localContextNotesMap.value[sessionId] ?: emptyList()).filter { it.id != note.id }
-            localContextNotesMap.value = localContextNotesMap.value + (sessionId to remainingNotes)
-            return Result.failure(e)
+            Log.e("FirebaseSessionRepo", "Failed to add context note: ${e.message}")
         }
 
         return Result.success(Unit)
@@ -750,36 +923,37 @@ class FirebaseSessionRepository(
         sessionId: String,
         note: com.example.konteksto.ui.host.studio.ContextNoteItem,
     ): Result<Unit> {
-        val previousNotes = localContextNotesMap.value[sessionId] ?: emptyList()
-        val updatedNotes = previousNotes.map { if (it.id == note.id) note else it }
-        localContextNotesMap.value = localContextNotesMap.value + (sessionId to updatedNotes)
+        val currentList = localContextNotesMap.value[sessionId] ?: emptyList()
+        val updatedList = currentList.map { if (it.id == note.id) note else it }
+        localContextNotesMap.value = localContextNotesMap.value + (sessionId to updatedList)
 
         try {
             val firestore = firestoreOrNull
             if (firestore != null && sessionId.isNotBlank()) {
-                // Leaves createdAt untouched so the note keeps its place in the list.
-                firestore.collection("sessions").document(sessionId)
+                val docRef = firestore.collection("sessions").document(sessionId)
                     .collection("context_notes").document(note.id)
-                    .update(
-                        mapOf(
-                            "title" to note.title,
-                            "content" to note.content,
-                        ),
-                    ).await()
+                docRef.set(
+                    mapOf(
+                        "id" to note.id,
+                        "category" to note.category,
+                        "title" to note.title,
+                        "content" to note.content,
+                        "timestamp" to note.timestamp,
+                        "updatedAt" to System.currentTimeMillis(),
+                    ),
+                ).await()
             }
         } catch (e: Exception) {
-            Log.e("FirebaseSessionRepo", "Failed to update context note in Firestore: ${e.message}")
-            localContextNotesMap.value = localContextNotesMap.value + (sessionId to previousNotes)
-            return Result.failure(e)
+            Log.e("FirebaseSessionRepo", "Failed to update context note: ${e.message}")
         }
 
         return Result.success(Unit)
     }
 
     override suspend fun deleteContextNote(sessionId: String, noteId: String): Result<Unit> {
-        val previousNotes = localContextNotesMap.value[sessionId] ?: emptyList()
-        val remainingNotes = previousNotes.filter { it.id != noteId }
-        localContextNotesMap.value = localContextNotesMap.value + (sessionId to remainingNotes)
+        val currentList = localContextNotesMap.value[sessionId] ?: emptyList()
+        val updatedList = currentList.filter { it.id != noteId }
+        localContextNotesMap.value = localContextNotesMap.value + (sessionId to updatedList)
 
         try {
             val firestore = firestoreOrNull
@@ -789,16 +963,13 @@ class FirebaseSessionRepository(
                     .delete().await()
             }
         } catch (e: Exception) {
-            Log.e("FirebaseSessionRepo", "Failed to delete context note from Firestore: ${e.message}")
-            localContextNotesMap.value = localContextNotesMap.value + (sessionId to previousNotes)
-            return Result.failure(e)
+            Log.e("FirebaseSessionRepo", "Failed to delete context note: ${e.message}")
         }
 
         return Result.success(Unit)
     }
 
-    private val localDomainTermsMap =
-        MutableStateFlow<Map<String, List<com.example.konteksto.ui.host.studio.DomainTermItem>>>(emptyMap())
+    private val localDomainTermsMap = MutableStateFlow<Map<String, List<com.example.konteksto.ui.host.studio.DomainTermItem>>>(emptyMap())
 
     override fun getDomainTermsStream(sessionId: String): Flow<List<com.example.konteksto.ui.host.studio.DomainTermItem>> = callbackFlow {
         if (sessionId.isBlank()) {
@@ -818,11 +989,9 @@ class FirebaseSessionRepository(
             return@callbackFlow
         }
 
-        trySend(localDomainTermsMap.value[sessionId] ?: emptyList())
-
         val listenerRegistration = try {
             firestore.collection("sessions").document(sessionId)
-                .collection("glossary")
+                .collection("domain_terms")
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) {
                         trySend(localDomainTermsMap.value[sessionId] ?: emptyList())
@@ -830,17 +999,23 @@ class FirebaseSessionRepository(
                     }
 
                     val remoteTerms = snapshot?.documents?.mapNotNull { doc ->
-                        val term = doc.getString("term") ?: return@mapNotNull null
-                        val definition = doc.getString("definition") ?: return@mapNotNull null
-                        com.example.konteksto.ui.host.studio.DomainTermItem(
-                            id = doc.getString("termId") ?: doc.id,
-                            term = term,
-                            category = doc.getString("category") ?: "TECHNICAL TERM",
-                            description = definition,
-                        )
-                    }?.sortedBy { it.term.lowercase() } ?: emptyList()
+                        val id = doc.getString("id") ?: doc.id
+                        val term = doc.getString("term") ?: ""
+                        val category = doc.getString("category") ?: "TECHNICAL TERM"
+                        val description = doc.getString("description") ?: ""
 
-                    localDomainTermsMap.value = localDomainTermsMap.value + (sessionId to remoteTerms)
+                        if (term.isNotBlank()) {
+                            com.example.konteksto.ui.host.studio.DomainTermItem(
+                                id = id,
+                                term = term,
+                                category = category,
+                                description = description,
+                            )
+                        } else null
+                    } ?: emptyList()
+
+                    val updatedMap = localDomainTermsMap.value + (sessionId to remoteTerms)
+                    localDomainTermsMap.value = updatedMap
                     trySend(remoteTerms)
                 }
         } catch (_: Exception) {
@@ -856,38 +1031,31 @@ class FirebaseSessionRepository(
         sessionId: String,
         terms: List<com.example.konteksto.ui.host.studio.DomainTermItem>,
     ): Result<Unit> {
-        localDomainTermsMap.value = localDomainTermsMap.value + (sessionId to terms)
+        val cleaned = com.example.konteksto.ui.host.studio.cleanDomainTerms(terms)
+        localDomainTermsMap.value = localDomainTermsMap.value + (sessionId to cleaned)
 
         try {
             val firestore = firestoreOrNull
             if (firestore != null && sessionId.isNotBlank()) {
-                val glossaryRef = firestore.collection("sessions").document(sessionId)
-                    .collection("glossary")
-                val keptIds = terms.map { it.id }.toSet()
-                // Only replaces terms from slide analysis, leaving any added from other sources.
-                val existingTerms = glossaryRef.whereEqualTo("source", "slides").get().await()
-
                 val batch = firestore.batch()
-                existingTerms.documents
-                    .filter { it.id !in keptIds }
-                    .forEach { batch.delete(it.reference) }
-                terms.forEach { term ->
+                val collectionRef = firestore.collection("sessions").document(sessionId).collection("domain_terms")
+                terms.forEach { item ->
+                    val docRef = collectionRef.document(item.id)
                     batch.set(
-                        glossaryRef.document(term.id),
+                        docRef,
                         mapOf(
-                            "termId" to term.id,
-                            "term" to term.term,
-                            "category" to term.category,
-                            "definition" to term.description,
-                            "source" to "slides",
-                            "timestamp" to System.currentTimeMillis(),
+                            "id" to item.id,
+                            "term" to item.term,
+                            "category" to item.category,
+                            "description" to item.description,
+                            "updatedAt" to System.currentTimeMillis(),
                         ),
                     )
                 }
                 batch.commit().await()
             }
         } catch (e: Exception) {
-            Log.e("FirebaseSessionRepo", "Failed to save domain terms to Firestore: ${e.message}")
+            Log.e("FirebaseSessionRepo", "Failed to save domain terms: ${e.message}")
             return Result.failure(e)
         }
 
@@ -898,49 +1066,48 @@ class FirebaseSessionRepository(
         sessionId: String,
         term: com.example.konteksto.ui.host.studio.DomainTermItem,
     ): Result<Unit> {
-        val previousTerms = localDomainTermsMap.value[sessionId] ?: emptyList()
-        val updatedTerms = previousTerms.map { if (it.id == term.id) term else it }
-            .sortedBy { it.term.lowercase() }
-        localDomainTermsMap.value = localDomainTermsMap.value + (sessionId to updatedTerms)
+        val currentList = localDomainTermsMap.value[sessionId] ?: emptyList()
+        val updatedList = com.example.konteksto.ui.host.studio.cleanDomainTerms(
+            currentList.map { if (it.id == term.id) term else it }
+        )
+        localDomainTermsMap.value = localDomainTermsMap.value + (sessionId to updatedList)
 
         try {
             val firestore = firestoreOrNull
             if (firestore != null && sessionId.isNotBlank()) {
-                firestore.collection("sessions").document(sessionId)
-                    .collection("glossary").document(term.id)
-                    .update(
-                        mapOf(
-                            "term" to term.term,
-                            "category" to term.category,
-                            "definition" to term.description,
-                        ),
-                    ).await()
+                val docRef = firestore.collection("sessions").document(sessionId)
+                    .collection("domain_terms").document(term.id)
+                docRef.set(
+                    mapOf(
+                        "id" to term.id,
+                        "term" to term.term,
+                        "category" to term.category,
+                        "description" to term.description,
+                        "updatedAt" to System.currentTimeMillis(),
+                    ),
+                ).await()
             }
         } catch (e: Exception) {
-            Log.e("FirebaseSessionRepo", "Failed to update domain term in Firestore: ${e.message}")
-            localDomainTermsMap.value = localDomainTermsMap.value + (sessionId to previousTerms)
-            return Result.failure(e)
+            Log.e("FirebaseSessionRepo", "Failed to update domain term: ${e.message}")
         }
 
         return Result.success(Unit)
     }
 
     override suspend fun deleteDomainTerm(sessionId: String, termId: String): Result<Unit> {
-        val previousTerms = localDomainTermsMap.value[sessionId] ?: emptyList()
-        val remainingTerms = previousTerms.filter { it.id != termId }
-        localDomainTermsMap.value = localDomainTermsMap.value + (sessionId to remainingTerms)
+        val currentList = localDomainTermsMap.value[sessionId] ?: emptyList()
+        val updatedList = currentList.filter { it.id != termId }
+        localDomainTermsMap.value = localDomainTermsMap.value + (sessionId to updatedList)
 
         try {
             val firestore = firestoreOrNull
             if (firestore != null && sessionId.isNotBlank()) {
                 firestore.collection("sessions").document(sessionId)
-                    .collection("glossary").document(termId)
+                    .collection("domain_terms").document(termId)
                     .delete().await()
             }
         } catch (e: Exception) {
-            Log.e("FirebaseSessionRepo", "Failed to delete domain term from Firestore: ${e.message}")
-            localDomainTermsMap.value = localDomainTermsMap.value + (sessionId to previousTerms)
-            return Result.failure(e)
+            Log.e("FirebaseSessionRepo", "Failed to delete domain term: ${e.message}")
         }
 
         return Result.success(Unit)
@@ -948,8 +1115,10 @@ class FirebaseSessionRepository(
 
     private fun loadLocalSessions(): List<HostSession> {
         val prefs = context?.getSharedPreferences("konteksto_sessions_prefs", Context.MODE_PRIVATE)
-            ?: return emptyList()
-        val jsonString = prefs.getString("saved_sessions", null) ?: return emptyList()
+        val jsonString = prefs?.getString("saved_sessions", null)
+        if (jsonString.isNullOrBlank()) {
+            return emptyList()
+        }
         return try {
             val array = JSONArray(jsonString)
             (0 until array.length()).map { i ->
@@ -968,6 +1137,21 @@ class FirebaseSessionRepository(
             sessions.forEach { array.put(it.toJsonObject()) }
             prefs.edit().putString("saved_sessions", array.toString()).apply()
         } catch (_: Exception) { }
+    }
+
+    private fun loadJoinedSessionIds(userUid: String): Set<String> {
+        val key = if (userUid.isNotBlank()) "joined_ids_$userUid" else "joined_ids"
+        val prefs = context?.getSharedPreferences("konteksto_joined_prefs", Context.MODE_PRIVATE)
+            ?: return emptySet()
+        val set = prefs.getStringSet(key, null)
+        return set ?: emptySet()
+    }
+
+    private fun saveJoinedSessionIds(userUid: String, ids: Set<String>) {
+        val key = if (userUid.isNotBlank()) "joined_ids_$userUid" else "joined_ids"
+        val prefs = context?.getSharedPreferences("konteksto_joined_prefs", Context.MODE_PRIVATE)
+            ?: return
+        prefs.edit().putStringSet(key, ids).apply()
     }
 
     private fun HostSession.toJsonObject(): JSONObject = JSONObject().apply {

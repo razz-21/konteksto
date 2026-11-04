@@ -32,6 +32,7 @@ fun MainScreen(
     onNavigateToCreateSession: () -> Unit = {},
     onNavigateToPresentQr: (HostSession) -> Unit = {},
     onNavigateToHostStudio: (HostSession) -> Unit = {},
+    onNavigateToAttendeeRoom: (sessionId: String) -> Unit = {},
     isDarkMode: Boolean = false,
     onDarkModeChange: (Boolean) -> Unit = {},
 ) {
@@ -53,7 +54,9 @@ fun MainScreen(
             popExitTransition = { ExitTransition.None },
         ) {
             composable(MainTab.Sessions.route) {
-                SessionsScreen()
+                SessionsScreen(
+                    onNavigateToAttendeeRoom = onNavigateToAttendeeRoom,
+                )
             }
             composable(MainTab.HostSessions.route) {
                 HostSessionsScreen(
@@ -72,7 +75,8 @@ fun MainScreen(
                 ProfileScreen(
                     isDarkMode = isDarkMode,
                     onDarkModeChange = onDarkModeChange,
-                    onSignOutClick = onSignOut)
+                    onSignOutClick = onSignOut,
+                )
             }
         }
     }
