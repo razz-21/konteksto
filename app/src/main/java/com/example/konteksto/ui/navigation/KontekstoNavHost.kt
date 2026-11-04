@@ -33,6 +33,12 @@ import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.host.CreateSessionScreen
 import com.example.konteksto.ui.host.HostViewModel
 import com.example.konteksto.ui.host.PresentQrScreen
+import com.example.konteksto.ui.host.studio.AddContextNoteRoute
+import com.example.konteksto.ui.host.studio.EditContextNoteRoute
+import com.example.konteksto.ui.host.studio.EditDomainTermRoute
+import com.example.konteksto.ui.host.studio.EditSlideRoute
+import com.example.konteksto.ui.host.studio.HostStudioRoute
+import com.example.konteksto.ui.host.studio.HostStudioViewModel
 import com.example.konteksto.ui.login.LoginRoute
 import com.example.konteksto.ui.main.MainScreen
 import com.example.konteksto.ui.onboarding.OnboardingScreen
@@ -222,6 +228,174 @@ fun KontekstoNavHost(
                 },
                 onNavigateToPresentQr = { session ->
                     navController.navigate(Screen.PresentQr.createRoute(session.id))
+                },
+                onNavigateToHostStudio = { session ->
+                    navController.navigate(Screen.HostStudio.createRoute(session.id))
+                },
+            )
+        }
+
+        composable(
+            route = Screen.HostStudio.route,
+            arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
+            val studioViewModel: HostStudioViewModel = viewModel(
+                viewModelStoreOwner = backStackEntry,
+                factory = HostStudioViewModel.provideFactory(
+                    sessionId = sessionId,
+                    sessionRepository = sessionRepository,
+                    authRepository = authRepository,
+                ),
+            )
+            val session = hostSessions.find { it.id == sessionId } ?: HostSession(
+                id = sessionId,
+                venue = "Tech Summit Hall B",
+                time = "10:00 AM",
+                talkCode = "TALK–415",
+                title = "Edge AI & Distributed Cloud Architecture: Scaling to Zero Latency",
+                speakerName = "Engr. Marco Valerio",
+                attendeesCount = 890,
+                isLive = true,
+            )
+
+            HostStudioRoute(
+                viewModel = studioViewModel,
+                initialSession = session,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onPresentQrClick = { hostSession ->
+                    navController.navigate(Screen.PresentQr.createRoute(hostSession.id))
+                },
+                onEditSlideClick = { slideId ->
+                    navController.navigate(Screen.EditSlide.createRoute(sessionId, slideId))
+                },
+                onEditDomainTermClick = { termId ->
+                    navController.navigate(Screen.EditDomainTerm.createRoute(sessionId, termId))
+                },
+                onAddContextNoteClick = {
+                    navController.navigate(Screen.AddContextNote.createRoute(sessionId))
+                },
+                onEditContextNoteClick = { noteId ->
+                    navController.navigate(Screen.EditContextNote.createRoute(sessionId, noteId))
+                },
+            )
+        }
+
+        composable(
+            route = Screen.EditSlide.route,
+            arguments = listOf(
+                navArgument("sessionId") { type = NavType.StringType },
+                navArgument("slideId") { type = NavType.StringType },
+            ),
+        ) { backStackEntry ->
+            val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
+            val slideId = backStackEntry.arguments?.getString("slideId") ?: ""
+            val parentEntry = remember(backStackEntry) {
+                navController.getBackStackEntry(Screen.HostStudio.createRoute(sessionId))
+            }
+            val studioViewModel: HostStudioViewModel = viewModel(
+                viewModelStoreOwner = parentEntry,
+                factory = HostStudioViewModel.provideFactory(
+                    sessionId = sessionId,
+                    sessionRepository = sessionRepository,
+                    authRepository = authRepository,
+                ),
+            )
+
+            EditSlideRoute(
+                viewModel = studioViewModel,
+                slideId = slideId,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+            )
+        }
+
+        composable(
+            route = Screen.EditDomainTerm.route,
+            arguments = listOf(
+                navArgument("sessionId") { type = NavType.StringType },
+                navArgument("termId") { type = NavType.StringType },
+            ),
+        ) { backStackEntry ->
+            val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
+            val termId = backStackEntry.arguments?.getString("termId") ?: ""
+            val parentEntry = remember(backStackEntry) {
+                navController.getBackStackEntry(Screen.HostStudio.createRoute(sessionId))
+            }
+            val studioViewModel: HostStudioViewModel = viewModel(
+                viewModelStoreOwner = parentEntry,
+                factory = HostStudioViewModel.provideFactory(
+                    sessionId = sessionId,
+                    sessionRepository = sessionRepository,
+                    authRepository = authRepository,
+                ),
+            )
+
+            EditDomainTermRoute(
+                viewModel = studioViewModel,
+                termId = termId,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+            )
+        }
+
+        composable(
+            route = Screen.AddContextNote.route,
+            arguments = listOf(
+                navArgument("sessionId") { type = NavType.StringType },
+            ),
+        ) { backStackEntry ->
+            val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
+            val parentEntry = remember(backStackEntry) {
+                navController.getBackStackEntry(Screen.HostStudio.createRoute(sessionId))
+            }
+            val studioViewModel: HostStudioViewModel = viewModel(
+                viewModelStoreOwner = parentEntry,
+                factory = HostStudioViewModel.provideFactory(
+                    sessionId = sessionId,
+                    sessionRepository = sessionRepository,
+                    authRepository = authRepository,
+                ),
+            )
+
+            AddContextNoteRoute(
+                viewModel = studioViewModel,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+            )
+        }
+
+        composable(
+            route = Screen.EditContextNote.route,
+            arguments = listOf(
+                navArgument("sessionId") { type = NavType.StringType },
+                navArgument("noteId") { type = NavType.StringType },
+            ),
+        ) { backStackEntry ->
+            val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
+            val noteId = backStackEntry.arguments?.getString("noteId") ?: ""
+            val parentEntry = remember(backStackEntry) {
+                navController.getBackStackEntry(Screen.HostStudio.createRoute(sessionId))
+            }
+            val studioViewModel: HostStudioViewModel = viewModel(
+                viewModelStoreOwner = parentEntry,
+                factory = HostStudioViewModel.provideFactory(
+                    sessionId = sessionId,
+                    sessionRepository = sessionRepository,
+                    authRepository = authRepository,
+                ),
+            )
+
+            EditContextNoteRoute(
+                viewModel = studioViewModel,
+                noteId = noteId,
+                onBackClick = {
+                    navController.popBackStack()
                 },
             )
         }
