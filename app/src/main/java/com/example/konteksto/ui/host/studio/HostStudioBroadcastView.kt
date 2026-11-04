@@ -45,11 +45,10 @@ import com.example.konteksto.R
 
 @Composable
 fun HostStudioBroadcastView(
-    isSessionLive: Boolean,
+    isAudioBroadcasting: Boolean,
     transcripts: List<TranscriptEntry>,
     onAddTranscript: (String) -> Unit,
     modifier: Modifier = Modifier,
-    isAudioBroadcasting: Boolean = isSessionLive,
     partialTranscript: String = "",
 ) {
     val context = LocalContext.current
@@ -66,10 +65,9 @@ fun HostStudioBroadcastView(
     }
 
     val livePartialText by speechToTextManager.partialText.collectAsStateWithLifecycle()
-    val shouldListen = isAudioBroadcasting || isSessionLive
 
-    LaunchedEffect(shouldListen) {
-        if (shouldListen) {
+    LaunchedEffect(isAudioBroadcasting) {
+        if (isAudioBroadcasting) {
             speechToTextManager.startListening()
         } else {
             speechToTextManager.stopListening()
@@ -102,7 +100,7 @@ fun HostStudioBroadcastView(
                     modifier = Modifier
                         .size(8.dp)
                         .background(
-                            color = if (shouldListen) Color(0xFF00C853) else MaterialTheme.colorScheme.outline,
+                            color = if (isAudioBroadcasting) Color(0xFF00C853) else MaterialTheme.colorScheme.outline,
                             shape = CircleShape,
                         ),
                 )
