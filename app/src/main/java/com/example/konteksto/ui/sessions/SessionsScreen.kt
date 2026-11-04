@@ -48,6 +48,7 @@ fun SessionsScreen(
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val filteredSessions by viewModel.filteredSessions.collectAsStateWithLifecycle(initialValue = emptyList())
     val joinedSessionIds by viewModel.joinedSessionIds.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val showAttendSheet by viewModel.showAttendSheet.collectAsStateWithLifecycle()
     val sessionToConfirm by viewModel.selectedSessionToConfirm.collectAsStateWithLifecycle()
 
@@ -101,8 +102,18 @@ fun SessionsScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Sessions List
-                if (filteredSessions.isEmpty()) {
+                // Sessions List / Skeleton Loading / Empty State
+                if (isLoading) {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        items(count = 2) {
+                            AttendeeSessionCardSkeleton()
+                        }
+                    }
+                } else if (filteredSessions.isEmpty()) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -162,11 +173,7 @@ fun SessionsScreen(
                                 session = session,
                                 isAttending = isAttending,
                                 onActionClick = {
-                                    if (isAttending) {
-                                        onNavigateToAttendeeRoom(session.id)
-                                    } else {
-                                        viewModel.openAttendSheet()
-                                    }
+                                    onNavigateToAttendeeRoom(session.id)
                                 },
                             )
                         }

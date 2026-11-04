@@ -22,6 +22,7 @@ interface SessionRepository {
     fun getJoinedSessionIdsStream(userUid: String): Flow<Set<String>>
     suspend fun findSessionByCode(code: String): Result<HostSession>
     suspend fun joinSession(userUid: String, sessionId: String): Result<HostSession>
+    suspend fun leaveSession(userUid: String, sessionId: String): Result<Unit>
     suspend fun createSession(
         title: String,
         speakerName: String,
@@ -270,6 +271,45 @@ class FirebaseSessionRepository(
         }
 
         return Result.success(targetSession)
+    }
+
+    override suspend fun leaveSession(userUid: String, sessionId: String): Result<Unit> {
+        val currentJoined = loadJoinedSessionIds(userUid).toMutableSet()
+        val isRemoved = currentJoined.remove(sessionId)
+        saveJoinedSessionIds(userUid, currentJoined)
+        joinedSessionIdsFlow.value = currentJoined
+
+        if (isRemoved) {
+            val updatedLocal = localCreatedSessions.value.map { session ->
+                if (session.id == sessionId) {
+                    val newCount = (session.attendeesCount - 1).coerceAtLeast(0)
+                    session.copy(attendeesCount = newCount)
+                } else {
+                    session
+                }
+            }
+            localCreatedSessions.value = updatedLocal
+            saveLocalSessions(updatedLocal)
+
+            try {
+                val firestore = firestoreOrNull
+                if (firestore != null) {
+                    val sessionRef = firestore.collection("sessions").document(sessionId)
+                    sessionRef.update("attendeesCount", FieldValue.increment(-1)).await()
+
+                    val attendeeDoc = sessionRef.collection("attendees").document(userUid)
+                    attendeeDoc.delete().await()
+
+                    val userJoinedDoc = firestore.collection("users").document(userUid)
+                        .collection("joined_sessions").document(sessionId)
+                    userJoinedDoc.delete().await()
+                }
+            } catch (e: Exception) {
+                Log.e("FirebaseSessionRepo", "Failed to sync leave session to Firestore: ${e.message}")
+            }
+        }
+
+        return Result.success(Unit)
     }
 
     override fun getHostSessionsStream(hostUid: String): Flow<List<HostSession>> = callbackFlow {

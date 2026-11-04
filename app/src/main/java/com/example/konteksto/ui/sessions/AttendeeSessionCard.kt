@@ -39,6 +39,8 @@ import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.theme.KontekstoTheme
 
+import androidx.compose.foundation.clickable
+
 @Composable
 fun AttendeeSessionCard(
     session: HostSession,
@@ -61,7 +63,9 @@ fun AttendeeSessionCard(
     }
 
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onActionClick() },
         shape = MaterialTheme.shapes.small,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
