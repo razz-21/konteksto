@@ -9,6 +9,7 @@ class NavigationTest {
     @Test
     fun testRootRoutes() {
         assertEquals("login", Screen.Login.route)
+        assertEquals("onboarding", Screen.Onboarding.route)
         assertEquals("main", Screen.Main.route)
     }
 

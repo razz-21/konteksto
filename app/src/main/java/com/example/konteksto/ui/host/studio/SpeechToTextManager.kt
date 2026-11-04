@@ -29,12 +29,6 @@ class SpeechToTextManager(
     private val _isListening = MutableStateFlow(false)
     val isListening: StateFlow<Boolean> = _isListening.asStateFlow()
 
-    private var lastCommittedText = ""
-
-    private val pauseCommitRunnable = Runnable {
-        commitCurrentPartialAsParagraph()
-    }
-
     private val recognitionIntent by lazy {
         Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(
@@ -44,6 +38,7 @@ class SpeechToTextManager(
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            putStringArrayListExtra(RecognizerIntent.EXTRA_BIASING_STRINGS, arrayListOf("Konteksto"))
         }
     }
 
@@ -102,12 +97,15 @@ class SpeechToTextManager(
         }
     }
 
-    private fun commitCurrentPartialAsParagraph() {
-        val currentText = _partialText.value.trim()
-        if (currentText.isNotBlank() && currentText != lastCommittedText) {
-            lastCommittedText = currentText
-            _partialText.value = ""
-            onParagraphComplete(currentText)
+    /**
+     * Partial results are only a live preview, because the recognizer can still revise or retract
+     * their words. This saves one when no final result is coming, so the speech isn't lost.
+     */
+    private fun commitPartialText() {
+        val text = _partialText.value.trim()
+        _partialText.value = ""
+        if (text.isNotBlank()) {
+            onParagraphComplete(text)
         }
     }
 
@@ -115,9 +113,7 @@ class SpeechToTextManager(
         isBroadcastActive = false
         isCurrentlyListening = false
         _isListening.value = false
-        _partialText.value = ""
-        lastCommittedText = ""
-        mainHandler.removeCallbacks(pauseCommitRunnable)
+        commitPartialText()
 
         mainHandler.post {
             try {
@@ -144,18 +140,11 @@ class SpeechToTextManager(
 
         override fun onBufferReceived(buffer: ByteArray?) {}
 
-        override fun onEndOfSpeech() {
-            mainHandler.postDelayed(pauseCommitRunnable, 800)
-        }
+        override fun onEndOfSpeech() {}
 
         override fun onError(error: Int) {
             isCurrentlyListening = false
-            mainHandler.removeCallbacks(pauseCommitRunnable)
-
-            // Only commit if there was actual spoken text accumulated
-            if (_partialText.value.isNotBlank()) {
-                commitCurrentPartialAsParagraph()
-            }
+            commitPartialText()
 
             if (isBroadcastActive) {
                 // If it's a silent timeout/no match error, wait 1200ms backoff before restarting to prevent rapid toggling
@@ -174,33 +163,28 @@ class SpeechToTextManager(
         }
 
         override fun onResults(results: Bundle?) {
+            if (!isBroadcastActive) return
             isCurrentlyListening = false
-            mainHandler.removeCallbacks(pauseCommitRunnable)
 
-            val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-            val finalText = matches?.firstOrNull()?.trim() ?: _partialText.value.trim()
-            if (finalText.isNotBlank() && finalText != lastCommittedText) {
-                lastCommittedText = finalText
-                _partialText.value = ""
-                onParagraphComplete(finalText)
-            }
+            results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                ?.firstOrNull()
+                ?.takeIf { it.isNotBlank() }
+                ?.let { _partialText.value = it }
+            commitPartialText()
 
-            if (isBroadcastActive) {
-                mainHandler.postDelayed({
-                    if (isBroadcastActive && !isCurrentlyListening) {
-                        startListeningInternal()
-                    }
-                }, 400)
-            }
+            mainHandler.postDelayed({
+                if (isBroadcastActive && !isCurrentlyListening) {
+                    startListeningInternal()
+                }
+            }, 100)
         }
 
         override fun onPartialResults(partialResults: Bundle?) {
+            if (!isBroadcastActive) return
             val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
             val text = matches?.firstOrNull()?.trim() ?: ""
             if (text.isNotBlank()) {
                 _partialText.value = text
-                mainHandler.removeCallbacks(pauseCommitRunnable)
-                mainHandler.postDelayed(pauseCommitRunnable, 1200)
             }
         }
 

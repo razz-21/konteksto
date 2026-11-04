@@ -167,7 +167,6 @@ fun HostStudioScreen(
                     Spacer(modifier = Modifier.height(14.dp))
 
                     HostStudioBroadcastView(
-                        isSessionLive = session.isLive,
                         isAudioBroadcasting = isAudioBroadcasting,
                         transcripts = transcripts,
                         partialTranscript = uiState?.partialTranscript ?: "",
