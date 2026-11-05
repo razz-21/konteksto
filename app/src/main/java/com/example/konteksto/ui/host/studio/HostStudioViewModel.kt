@@ -1,5 +1,6 @@
 package com.example.konteksto.ui.host.studio
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -9,10 +10,15 @@ import com.example.konteksto.data.repository.FirebaseSessionRepository
 import com.example.konteksto.data.repository.GeminiSlideAnalyzer
 import com.example.konteksto.data.repository.SessionRepository
 import com.example.konteksto.domain.model.HostSession
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
 data class HostStudioUiState(
@@ -64,8 +70,27 @@ internal fun resolveAudioBroadcasting(
     session: HostSession,
 ): Boolean = if (previousSession?.isLive == session.isLive) isAudioBroadcasting else session.isLive
 
+private const val LIVE_PARTIAL_PUBLISH_INTERVAL_MS = 1_000L
+
+/**
+ * Publishes the latest in-progress text at most once per [intervalMs]. Blank text is skipped because
+ * saving the finished line already clears it, in the same write.
+ */
+internal suspend fun StateFlow<String>.publishThrottled(
+    intervalMs: Long,
+    publish: suspend (String) -> Unit,
+) {
+    collect { text ->
+        if (text.isNotBlank()) {
+            publish(text)
+            delay(intervalMs)
+        }
+    }
+}
+
 class HostStudioViewModel(
     private val sessionId: String,
+    transcriptionEngineFactory: (onSegmentComplete: (String) -> Unit) -> TranscriptionEngine,
     private val sessionRepository: SessionRepository = FirebaseSessionRepository(),
     private val authRepository: AuthRepository = FirebaseAuthRepository(),
     private val geminiSlideAnalyzer: GeminiSlideAnalyzer = GeminiSlideAnalyzer(),
@@ -79,10 +104,19 @@ class HostStudioViewModel(
     val uiState: StateFlow<HostStudioUiState> = _uiState.asStateFlow()
 
     private var removeSlideDeckJob: Job? = null
+    private var hasReportedLivePartialFailure = false
+
+    // Leaving the studio cancels viewModelScope, and the words still in progress must be saved after that.
+    private val transcriptWriteScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+    private val transcriptionEngine = transcriptionEngineFactory { segment ->
+        addTranscriptEntry(text = segment, clearsLivePartial = true)
+    }
 
     init {
         observeSession()
         observeTranscripts()
+        observeLivePartial()
         observeAnalyzedSlides()
         observeContextNotes()
         observeDomainTerms()
@@ -126,15 +160,16 @@ class HostStudioViewModel(
             sessionRepository.getHostSessionsStream(hostUid).collect { sessions ->
                 val matchingSession = sessions.find { it.id == sessionId }
                 if (matchingSession != null) {
+                    val isAudioBroadcasting = resolveAudioBroadcasting(
+                        isAudioBroadcasting = _uiState.value.isAudioBroadcasting,
+                        previousSession = _uiState.value.session,
+                        session = matchingSession,
+                    )
                     _uiState.value = _uiState.value.copy(
                         session = matchingSession,
-                        isAudioBroadcasting = resolveAudioBroadcasting(
-                            isAudioBroadcasting = _uiState.value.isAudioBroadcasting,
-                            previousSession = _uiState.value.session,
-                            session = matchingSession,
-                        ),
                         slideDeckInfo = resolveSlideDeck(_uiState.value.slideDeckInfo, matchingSession),
                     )
+                    setAudioBroadcasting(isAudioBroadcasting)
                 }
             }
         }
@@ -142,12 +177,54 @@ class HostStudioViewModel(
 
     private fun observeTranscripts() {
         viewModelScope.launch {
-            sessionRepository.getTranscriptsStream(sessionId).collect { remoteTranscripts ->
-                _uiState.value = _uiState.value.copy(
-                    transcripts = remoteTranscripts,
-                )
+            sessionRepository.getTranscriptsStream(sessionId)
+                .catch {
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = "Couldn't load the live transcript. Reopen this session to try again.",
+                    )
+                }
+                .collect { remoteTranscripts ->
+                    _uiState.value = _uiState.value.copy(
+                        transcripts = remoteTranscripts,
+                    )
+                }
+        }
+    }
+
+    private fun observeLivePartial() {
+        viewModelScope.launch {
+            transcriptionEngine.partialText.collect { text ->
+                _uiState.value = _uiState.value.copy(partialTranscript = text)
             }
         }
+        viewModelScope.launch {
+            transcriptionEngine.partialText.publishThrottled(LIVE_PARTIAL_PUBLISH_INTERVAL_MS) { text ->
+                sessionRepository.updateLivePartialTranscript(sessionId, text).onFailure {
+                    if (!hasReportedLivePartialFailure) {
+                        hasReportedLivePartialFailure = true
+                        _uiState.value = _uiState.value.copy(
+                            errorMessage = "Attendees can't see your words as you speak. " +
+                                "They'll still get each line once you finish it.",
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    /** The engine saves any words in progress when it stops, so this runs before logging the stop. */
+    private fun setAudioBroadcasting(isAudioBroadcasting: Boolean) {
+        if (_uiState.value.isAudioBroadcasting == isAudioBroadcasting) return
+        _uiState.value = _uiState.value.copy(isAudioBroadcasting = isAudioBroadcasting)
+        if (isAudioBroadcasting) {
+            transcriptionEngine.startListening()
+        } else {
+            transcriptionEngine.stopListening()
+        }
+    }
+
+    override fun onCleared() {
+        transcriptionEngine.stopListening()
     }
 
     fun setSelectedTab(tabIndex: Int) {
@@ -156,9 +233,7 @@ class HostStudioViewModel(
 
     fun toggleAudioBroadcasting() {
         val newStatus = !_uiState.value.isAudioBroadcasting
-        _uiState.value = _uiState.value.copy(
-            isAudioBroadcasting = newStatus,
-        )
+        setAudioBroadcasting(newStatus)
         val eventMsg = if (newStatus) "Audio broadcast enabled" else "Audio broadcast ended"
         addTranscriptEntry(speakerName = "SYSTEM", text = eventMsg, isSystemEvent = true)
     }
@@ -184,9 +259,9 @@ class HostStudioViewModel(
                 .onSuccess {
                     _uiState.value = _uiState.value.copy(
                         isUpdatingLiveStatus = false,
-                        isAudioBroadcasting = isLive,
                         session = currentSession.copy(isLive = isLive),
                     )
+                    setAudioBroadcasting(isLive)
                     val eventMsg = if (isLive) "Session started" else "Session ended"
                     addTranscriptEntry(speakerName = "SYSTEM", text = eventMsg, isSystemEvent = true)
                     onSuccess()
@@ -202,11 +277,12 @@ class HostStudioViewModel(
         }
     }
 
-    fun updatePartialTranscript(text: String) {
-        _uiState.value = _uiState.value.copy(partialTranscript = text)
-    }
-
-    fun addTranscriptEntry(speakerName: String = "", text: String, isSystemEvent: Boolean = false) {
+    fun addTranscriptEntry(
+        speakerName: String = "",
+        text: String,
+        isSystemEvent: Boolean = false,
+        clearsLivePartial: Boolean = false,
+    ) {
         if (text.isBlank()) return
         val currentSpeaker = if (isSystemEvent || speakerName.equals("SYSTEM", ignoreCase = true)) {
             "SYSTEM"
@@ -215,33 +291,16 @@ class HostStudioViewModel(
                 _uiState.value.session?.speakerName?.takeIf { it.isNotBlank() } ?: "Host"
             }
         }
-        viewModelScope.launch {
+        transcriptWriteScope.launch {
             sessionRepository.addTranscriptEntry(
                 sessionId = sessionId,
                 speakerName = currentSpeaker,
                 text = text.trim(),
                 isSystemEvent = isSystemEvent || currentSpeaker == "SYSTEM",
-            ).onSuccess { newEntry ->
-                val currentTranscripts = _uiState.value.transcripts
-                val updatedTranscripts = if (currentTranscripts.none { it.id == newEntry.id }) {
-                    currentTranscripts + newEntry
-                } else currentTranscripts
-
+                clearsLivePartial = clearsLivePartial,
+            ).onFailure {
                 _uiState.value = _uiState.value.copy(
-                    transcripts = updatedTranscripts,
-                    partialTranscript = "",
-                )
-            }.onFailure {
-                val fallbackEntry = TranscriptEntry(
-                    id = System.currentTimeMillis().toString(),
-                    speakerName = currentSpeaker,
-                    timestamp = "Just now",
-                    text = text.trim(),
-                    isSystemEvent = isSystemEvent || currentSpeaker == "SYSTEM",
-                )
-                _uiState.value = _uiState.value.copy(
-                    transcripts = _uiState.value.transcripts + fallbackEntry,
-                    partialTranscript = "",
+                    errorMessage = "Couldn't publish a transcript line, so attendees won't see it.",
                 )
             }
         }
@@ -491,13 +550,23 @@ class HostStudioViewModel(
 
     companion object {
         fun provideFactory(
+            context: Context,
             sessionId: String,
             sessionRepository: SessionRepository = FirebaseSessionRepository(),
             authRepository: AuthRepository = FirebaseAuthRepository(),
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+            private val appContext = context.applicationContext
+
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return HostStudioViewModel(sessionId, sessionRepository, authRepository) as T
+                return HostStudioViewModel(
+                    sessionId = sessionId,
+                    transcriptionEngineFactory = { onSegmentComplete ->
+                        SpeechToTextManager(appContext, onSegmentComplete)
+                    },
+                    sessionRepository = sessionRepository,
+                    authRepository = authRepository,
+                ) as T
             }
         }
     }

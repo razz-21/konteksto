@@ -71,6 +71,11 @@
     <string name="host_studio_audio_live">Audio Live · Broadcasting</string>
     <string name="host_studio_audio_start">Start Audio Broadcast</string>
     <string name="host_studio_entries_format">%1$d entries</string>
+    <string name="transcript_jump_to_live">Jump to live</string>
+    <string name="transcript_load_earlier">Load earlier lines</string>
+    <string name="transcript_load_earlier_failed">Couldn\'t load earlier lines. Tap to retry.</string>
+    <string name="transcript_live_failed">Couldn\'t load the live transcript.</string>
+    <string name="transcript_retry">Retry</string>
     <string name="host_studio_audience_format">%1$d audience</string>
     <string name="host_studio_mic_permission_required">Microphone permission is required to stream audio live.</string>
     <string name="firebase_web_client_id" translatable="false">328928803643-0rlsa0e1nul8msn8q0901tmktgtis9ig.apps.googleusercontent.com</string>

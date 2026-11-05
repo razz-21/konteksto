@@ -48,7 +48,9 @@ fun SessionStudioScreen(
     onLeaveConfirm: () -> Unit,
     onPresentQrClick: (HostSession) -> Unit,
     modifier: Modifier = Modifier,
-    customTranscripts: List<CompanionTranscriptItem> = emptyList(),
+    transcriptState: SessionStudioUiState = SessionStudioUiState(),
+    onLoadEarlierTranscripts: () -> Unit = {},
+    onRetryLiveTranscript: () -> Unit = {},
     domainTerms: List<DomainTermItem> = emptyList(),
 ) {
     val context = LocalContext.current
@@ -174,7 +176,14 @@ fun SessionStudioScreen(
                         SessionLiveCompanionView(
                             session = session,
                             isAudioBroadcasting = session.isLive,
-                            customTranscripts = customTranscripts,
+                            customTranscripts = transcriptState.transcripts,
+                            livePartialText = transcriptState.livePartialText.takeIf { session.isLive }.orEmpty(),
+                            hasEarlierTranscripts = transcriptState.hasEarlierTranscripts,
+                            isLoadingEarlierTranscripts = transcriptState.isLoadingEarlierTranscripts,
+                            didEarlierTranscriptsFail = transcriptState.didEarlierTranscriptsFail,
+                            didLiveTranscriptFail = transcriptState.didLiveTranscriptFail,
+                            onLoadEarlierTranscripts = onLoadEarlierTranscripts,
+                            onRetryLiveTranscript = onRetryLiveTranscript,
                             onAskWhatTheyMean = { selectedItems ->
                                 val msg = "Analyzing ${selectedItems.size} selected statement(s)…"
                                 Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()

@@ -6,6 +6,7 @@ data class TranscriptEntry(
     val timestamp: String,
     val text: String,
     val isSystemEvent: Boolean = false,
+    val createdAt: Long = 0L,
 )
 
 data class DomainTermItem(

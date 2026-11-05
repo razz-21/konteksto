@@ -17,14 +17,14 @@ import java.util.Locale
 class SpeechToTextManager(
     private val context: Context,
     private val onParagraphComplete: (String) -> Unit,
-) {
+) : TranscriptionEngine {
     private var speechRecognizer: SpeechRecognizer? = null
     private var isBroadcastActive = false
     private var isCurrentlyListening = false
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private val _partialText = MutableStateFlow("")
-    val partialText: StateFlow<String> = _partialText.asStateFlow()
+    override val partialText: StateFlow<String> = _partialText.asStateFlow()
 
     private val _isListening = MutableStateFlow(false)
     val isListening: StateFlow<Boolean> = _isListening.asStateFlow()
@@ -42,7 +42,7 @@ class SpeechToTextManager(
         }
     }
 
-    fun startListening() {
+    override fun startListening() {
         if (!SpeechRecognizer.isRecognitionAvailable(context)) {
             Log.w("SpeechToTextManager", "Speech recognition is not available on this device.")
             return
@@ -109,7 +109,7 @@ class SpeechToTextManager(
         }
     }
 
-    fun stopListening() {
+    override fun stopListening() {
         isBroadcastActive = false
         isCurrentlyListening = false
         _isListening.value = false

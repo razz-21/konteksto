@@ -1,27 +1,39 @@
 package com.example.konteksto.ui.sessions.studio
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.LifecycleStartEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.host.studio.DomainTermItem
 
 @Composable
 fun SessionStudioRoute(
+    viewModel: SessionStudioViewModel,
     session: HostSession,
     onBackClick: () -> Unit,
     onLeaveConfirm: () -> Unit,
     onPresentQrClick: (HostSession) -> Unit,
     modifier: Modifier = Modifier,
-    customTranscripts: List<CompanionTranscriptItem> = emptyList(),
     domainTerms: List<DomainTermItem> = emptyList(),
 ) {
+    val transcriptState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LifecycleStartEffect(viewModel) {
+        viewModel.startObserving()
+        onStopOrDispose { viewModel.stopObserving() }
+    }
+
     SessionStudioScreen(
         session = session,
         onBackClick = onBackClick,
         onLeaveConfirm = onLeaveConfirm,
         onPresentQrClick = onPresentQrClick,
         modifier = modifier,
-        customTranscripts = customTranscripts,
+        transcriptState = transcriptState,
+        onLoadEarlierTranscripts = viewModel::loadEarlierTranscripts,
+        onRetryLiveTranscript = viewModel::retryLiveTranscript,
         domainTerms = domainTerms,
     )
 }

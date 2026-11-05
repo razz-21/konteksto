@@ -4,8 +4,12 @@ import android.content.Context
 import android.util.Log
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.host.studio.TranscriptEntry
+import com.google.firebase.firestore.DocumentReference
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +18,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.UUID
+import java.util.concurrent.atomic.AtomicLong
 
 interface SessionRepository {
     fun getHostSessionsStream(hostUid: String): Flow<List<HostSession>>
@@ -35,13 +41,28 @@ interface SessionRepository {
         hostUid: String,
     ): Result<String>
     suspend fun updateSessionLiveStatus(sessionId: String, isLive: Boolean): Result<Unit>
-    fun getTranscriptsStream(sessionId: String): Flow<List<TranscriptEntry>>
+
+    /**
+     * Streams the transcript in spoken order, limited to the latest [limit] lines when set. The flow
+     * fails if the listener is rejected, because Firestore delivers nothing further after that.
+     */
+    fun getTranscriptsStream(sessionId: String, limit: Long? = null): Flow<List<TranscriptEntry>>
+    suspend fun getEarlierTranscripts(
+        sessionId: String,
+        beforeCreatedAt: Long,
+        limit: Long,
+    ): Result<List<TranscriptEntry>>
+
+    /** [clearsLivePartial] removes the in-progress text in the same write, so it never shows twice. */
     suspend fun addTranscriptEntry(
         sessionId: String,
         speakerName: String,
         text: String,
         isSystemEvent: Boolean = false,
+        clearsLivePartial: Boolean = false,
     ): Result<TranscriptEntry>
+    fun getLivePartialTranscriptStream(sessionId: String): Flow<String>
+    suspend fun updateLivePartialTranscript(sessionId: String, text: String): Result<Unit>
     suspend fun uploadSlideDeckPdf(
         sessionId: String,
         uri: android.net.Uri,
@@ -509,57 +530,100 @@ class FirebaseSessionRepository(
     }
 
     private val localTranscriptsMap = MutableStateFlow<Map<String, List<TranscriptEntry>>>(emptyMap())
+    private val localLivePartials = MutableStateFlow<Map<String, String>>(emptyMap())
+    private val lastTranscriptCreatedAt = AtomicLong(0L)
 
-    override fun getTranscriptsStream(sessionId: String): Flow<List<TranscriptEntry>> = callbackFlow {
+    private fun transcriptsCollection(firestore: FirebaseFirestore, sessionId: String) =
+        firestore.collection("sessions").document(sessionId).collection("transcripts")
+
+    private fun livePartialDocument(firestore: FirebaseFirestore, sessionId: String): DocumentReference =
+        firestore.collection("sessions").document(sessionId).collection("live").document("current")
+
+    private fun livePartialData(text: String): Map<String, Any> = hashMapOf(
+        "partialText" to text,
+        "updatedAt" to System.currentTimeMillis(),
+    )
+
+    private fun DocumentSnapshot.toTranscriptEntry(): TranscriptEntry? {
+        val speaker = getString("speakerName") ?: "Speaker"
+        val text = getString("text") ?: ""
+        if (text.isBlank()) return null
+        return TranscriptEntry(
+            id = id,
+            speakerName = speaker,
+            timestamp = getString("timestamp") ?: "",
+            text = text,
+            isSystemEvent = getBoolean("isSystemEvent") ?: speaker.equals("SYSTEM", ignoreCase = true),
+            createdAt = getLong("createdAt") ?: 0L,
+        )
+    }
+
+    override fun getTranscriptsStream(sessionId: String, limit: Long?): Flow<List<TranscriptEntry>> = callbackFlow {
         if (sessionId.isBlank()) {
             trySend(emptyList())
             awaitClose { }
             return@callbackFlow
         }
 
+        fun List<TranscriptEntry>.inWindow() = if (limit != null) takeLast(limit.toInt()) else this
+
         val firestore = firestoreOrNull
         if (firestore == null) {
             val job = launch {
                 localTranscriptsMap.collect { map ->
-                    trySend(map[sessionId] ?: emptyList())
+                    trySend(map[sessionId].orEmpty().inWindow())
                 }
             }
             awaitClose { job.cancel() }
             return@callbackFlow
         }
 
-        val initialLocal = localTranscriptsMap.value[sessionId] ?: emptyList()
-        trySend(initialLocal)
+        trySend(localTranscriptsMap.value[sessionId].orEmpty().inWindow())
 
-        val listenerRegistration = try {
-            firestore.collection("sessions").document(sessionId)
-                .collection("transcripts")
-                .orderBy("createdAt")
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        trySend(localTranscriptsMap.value[sessionId] ?: emptyList())
-                        return@addSnapshotListener
-                    }
+        val orderedTranscripts = transcriptsCollection(firestore, sessionId).orderBy("createdAt")
+        val query = if (limit != null) orderedTranscripts.limitToLast(limit) else orderedTranscripts
+        val listenerRegistration = query.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                Log.e("FirebaseSessionRepo", "Transcript listener failed: ${error.message}")
+                close(error)
+                return@addSnapshotListener
+            }
 
-                    val remoteTranscripts = snapshot?.documents?.mapNotNull { doc ->
-                        val id = doc.getString("id") ?: doc.id
-                        val speaker = doc.getString("speakerName") ?: "Speaker"
-                        val time = doc.getString("timestamp") ?: ""
-                        val text = doc.getString("text") ?: ""
-                        val isSystem = doc.getBoolean("isSystemEvent") ?: speaker.equals("SYSTEM", ignoreCase = true)
-                        if (text.isNotBlank()) TranscriptEntry(id, speaker, time, text, isSystem) else null
-                    } ?: emptyList()
-
-                    val updatedMap = localTranscriptsMap.value + (sessionId to remoteTranscripts)
-                    localTranscriptsMap.value = updatedMap
-                    trySend(remoteTranscripts)
-                }
-        } catch (_: Exception) {
-            null
+            val remoteTranscripts = snapshot?.documents?.mapNotNull { it.toTranscriptEntry() } ?: emptyList()
+            localTranscriptsMap.value = localTranscriptsMap.value + (sessionId to remoteTranscripts)
+            trySend(remoteTranscripts)
         }
 
         awaitClose {
-            listenerRegistration?.remove()
+            listenerRegistration.remove()
+        }
+    }
+
+    override suspend fun getEarlierTranscripts(
+        sessionId: String,
+        beforeCreatedAt: Long,
+        limit: Long,
+    ): Result<List<TranscriptEntry>> {
+        val firestore = firestoreOrNull
+            ?: return Result.success(
+                localTranscriptsMap.value[sessionId].orEmpty()
+                    .filter { it.createdAt < beforeCreatedAt }
+                    .takeLast(limit.toInt()),
+            )
+
+        return try {
+            val snapshot = transcriptsCollection(firestore, sessionId)
+                .whereLessThan("createdAt", beforeCreatedAt)
+                .orderBy("createdAt")
+                .limitToLast(limit)
+                .get()
+                .await()
+            Result.success(snapshot.documents.mapNotNull { it.toTranscriptEntry() })
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e("FirebaseSessionRepo", "Failed to load earlier transcripts: ${e.message}")
+            Result.failure(e)
         }
     }
 
@@ -568,8 +632,11 @@ class FirebaseSessionRepository(
         speakerName: String,
         text: String,
         isSystemEvent: Boolean,
+        clearsLivePartial: Boolean,
     ): Result<TranscriptEntry> {
-        val transcriptId = "tr_${System.currentTimeMillis()}"
+        // Lines sort by createdAt and page by it too, so no two lines may ever share a value.
+        val createdAt = lastTranscriptCreatedAt.updateAndGet { maxOf(it + 1, System.currentTimeMillis()) }
+        val transcriptId = "tr_${createdAt}_${UUID.randomUUID().toString().take(8)}"
         val nowFormatted = java.text.SimpleDateFormat("h:mm a", java.util.Locale.US).format(java.util.Date())
         val entry = TranscriptEntry(
             id = transcriptId,
@@ -577,32 +644,111 @@ class FirebaseSessionRepository(
             timestamp = nowFormatted,
             text = text.trim(),
             isSystemEvent = isSystemEvent || speakerName.equals("SYSTEM", ignoreCase = true),
+            createdAt = createdAt,
         )
 
-        val currentList = localTranscriptsMap.value[sessionId] ?: emptyList()
-        val updatedList = currentList + entry
-        localTranscriptsMap.value = localTranscriptsMap.value + (sessionId to updatedList)
-
-        try {
-            val firestore = firestoreOrNull
-            if (firestore != null) {
-                val docRef = firestore.collection("sessions").document(sessionId)
-                    .collection("transcripts").document(transcriptId)
-                val data = hashMapOf<String, Any?>(
-                    "id" to transcriptId,
-                    "speakerName" to entry.speakerName,
-                    "timestamp" to entry.timestamp,
-                    "text" to entry.text,
-                    "isSystemEvent" to entry.isSystemEvent,
-                    "createdAt" to System.currentTimeMillis(),
-                )
-                docRef.set(data).await()
+        val firestore = firestoreOrNull
+        if (firestore == null) {
+            val currentList = localTranscriptsMap.value[sessionId] ?: emptyList()
+            localTranscriptsMap.value = localTranscriptsMap.value + (sessionId to currentList + entry)
+            if (clearsLivePartial) {
+                localLivePartials.value = localLivePartials.value + (sessionId to "")
             }
-        } catch (e: Exception) {
-            Log.e("FirebaseSessionRepo", "Failed to add transcript to Firestore: ${e.message}")
+            return Result.success(entry)
         }
 
-        return Result.success(entry)
+        return try {
+            val docRef = transcriptsCollection(firestore, sessionId).document(transcriptId)
+            val data = hashMapOf<String, Any?>(
+                "id" to transcriptId,
+                "speakerName" to entry.speakerName,
+                "timestamp" to entry.timestamp,
+                "text" to entry.text,
+                "isSystemEvent" to entry.isSystemEvent,
+                "createdAt" to createdAt,
+            )
+            if (clearsLivePartial) {
+                writeTranscriptClearingLivePartial(firestore, sessionId, docRef, data)
+            } else {
+                docRef.set(data).await()
+            }
+            Result.success(entry)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e("FirebaseSessionRepo", "Failed to add transcript to Firestore: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun writeTranscriptClearingLivePartial(
+        firestore: FirebaseFirestore,
+        sessionId: String,
+        docRef: DocumentReference,
+        data: Map<String, Any?>,
+    ) {
+        try {
+            firestore.batch()
+                .set(docRef, data)
+                .set(livePartialDocument(firestore, sessionId), livePartialData(""))
+                .commit()
+                .await()
+        } catch (e: FirebaseFirestoreException) {
+            if (e.code != FirebaseFirestoreException.Code.PERMISSION_DENIED) throw e
+            // Rules that don't cover live/current reject the whole batch, and that mustn't cost the line.
+            docRef.set(data).await()
+        }
+    }
+
+    override fun getLivePartialTranscriptStream(sessionId: String): Flow<String> = callbackFlow {
+        if (sessionId.isBlank()) {
+            trySend("")
+            awaitClose { }
+            return@callbackFlow
+        }
+
+        val firestore = firestoreOrNull
+        if (firestore == null) {
+            val job = launch {
+                localLivePartials.collect { partials ->
+                    trySend(partials[sessionId].orEmpty())
+                }
+            }
+            awaitClose { job.cancel() }
+            return@callbackFlow
+        }
+
+        val listenerRegistration = livePartialDocument(firestore, sessionId).addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                // Finished lines still arrive through the transcript stream, so this only costs the preview.
+                Log.w("FirebaseSessionRepo", "Live partial listener failed: ${error.message}")
+                trySend("")
+                return@addSnapshotListener
+            }
+            trySend(snapshot?.getString("partialText").orEmpty())
+        }
+
+        awaitClose {
+            listenerRegistration.remove()
+        }
+    }
+
+    override suspend fun updateLivePartialTranscript(sessionId: String, text: String): Result<Unit> {
+        val firestore = firestoreOrNull
+        if (firestore == null) {
+            localLivePartials.value = localLivePartials.value + (sessionId to text)
+            return Result.success(Unit)
+        }
+
+        return try {
+            livePartialDocument(firestore, sessionId).set(livePartialData(text)).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w("FirebaseSessionRepo", "Failed to update live partial: ${e.message}")
+            Result.failure(e)
+        }
     }
 
     override suspend fun uploadSlideDeckPdf(

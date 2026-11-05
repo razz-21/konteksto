@@ -41,6 +41,7 @@ import com.example.konteksto.ui.host.studio.HostStudioViewModel
 import com.example.konteksto.ui.login.LoginRoute
 import com.example.konteksto.ui.main.MainScreen
 import com.example.konteksto.ui.sessions.studio.SessionStudioRoute
+import com.example.konteksto.ui.sessions.studio.SessionStudioViewModel
 import kotlinx.coroutines.launch
 
 private sealed interface SessionBootstrapState {
@@ -256,29 +257,21 @@ fun KontekstoNavHost(
                     isLive = true,
                 )
 
-            val dbTranscripts by remember(sessionId) {
-                sessionRepository.getTranscriptsStream(sessionId)
-            }.collectAsStateWithLifecycle(initialValue = emptyList())
+            val transcriptViewModel: SessionStudioViewModel = viewModel(
+                key = sessionId,
+                factory = SessionStudioViewModel.provideFactory(
+                    sessionId = sessionId,
+                    sessionRepository = sessionRepository,
+                ),
+            )
 
             val dbDomainTerms by remember(sessionId) {
                 sessionRepository.getDomainTermsStream(sessionId)
             }.collectAsStateWithLifecycle(initialValue = emptyList())
 
-            val companionTranscripts = remember(dbTranscripts) {
-                dbTranscripts.map { entry ->
-                    com.example.konteksto.ui.sessions.studio.CompanionTranscriptItem(
-                        id = entry.id,
-                        speakerName = entry.speakerName,
-                        timestamp = entry.timestamp,
-                        text = entry.text,
-                        isSystemEvent = entry.isSystemEvent,
-                    )
-                }
-            }
-
             SessionStudioRoute(
+                viewModel = transcriptViewModel,
                 session = session,
-                customTranscripts = companionTranscripts,
                 domainTerms = dbDomainTerms,
                 onBackClick = {
                     navController.popBackStack()
@@ -316,29 +309,21 @@ fun KontekstoNavHost(
                     isLive = true,
                 )
 
-            val dbTranscripts by remember(sessionId) {
-                sessionRepository.getTranscriptsStream(sessionId)
-            }.collectAsStateWithLifecycle(initialValue = emptyList())
+            val transcriptViewModel: SessionStudioViewModel = viewModel(
+                key = sessionId,
+                factory = SessionStudioViewModel.provideFactory(
+                    sessionId = sessionId,
+                    sessionRepository = sessionRepository,
+                ),
+            )
 
             val dbDomainTerms by remember(sessionId) {
                 sessionRepository.getDomainTermsStream(sessionId)
             }.collectAsStateWithLifecycle(initialValue = emptyList())
 
-            val companionTranscripts = remember(dbTranscripts) {
-                dbTranscripts.map { entry ->
-                    com.example.konteksto.ui.sessions.studio.CompanionTranscriptItem(
-                        id = entry.id,
-                        speakerName = entry.speakerName,
-                        timestamp = entry.timestamp,
-                        text = entry.text,
-                        isSystemEvent = entry.isSystemEvent,
-                    )
-                }
-            }
-
             SessionStudioRoute(
+                viewModel = transcriptViewModel,
                 session = session,
-                customTranscripts = companionTranscripts,
                 domainTerms = dbDomainTerms,
                 onBackClick = {
                     navController.popBackStack()
@@ -364,6 +349,7 @@ fun KontekstoNavHost(
             val studioViewModel: HostStudioViewModel = viewModel(
                 key = sessionId,
                 factory = HostStudioViewModel.provideFactory(
+                    context = context,
                     sessionId = sessionId,
                     sessionRepository = sessionRepository,
                     authRepository = authRepository,
@@ -560,6 +546,7 @@ private fun sharedStudioViewModel(
         viewModelStoreOwner = studioEntry,
         key = sessionId,
         factory = HostStudioViewModel.provideFactory(
+            context = LocalContext.current,
             sessionId = sessionId,
             sessionRepository = sessionRepository,
             authRepository = authRepository,
