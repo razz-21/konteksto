@@ -260,6 +260,10 @@ fun KontekstoNavHost(
                 sessionRepository.getTranscriptsStream(sessionId)
             }.collectAsStateWithLifecycle(initialValue = emptyList())
 
+            val dbDomainTerms by remember(sessionId) {
+                sessionRepository.getDomainTermsStream(sessionId)
+            }.collectAsStateWithLifecycle(initialValue = emptyList())
+
             val companionTranscripts = remember(dbTranscripts) {
                 dbTranscripts.map { entry ->
                     com.example.konteksto.ui.sessions.studio.CompanionTranscriptItem(
@@ -275,6 +279,7 @@ fun KontekstoNavHost(
             SessionStudioRoute(
                 session = session,
                 customTranscripts = companionTranscripts,
+                domainTerms = dbDomainTerms,
                 onBackClick = {
                     navController.popBackStack()
                 },
@@ -315,6 +320,10 @@ fun KontekstoNavHost(
                 sessionRepository.getTranscriptsStream(sessionId)
             }.collectAsStateWithLifecycle(initialValue = emptyList())
 
+            val dbDomainTerms by remember(sessionId) {
+                sessionRepository.getDomainTermsStream(sessionId)
+            }.collectAsStateWithLifecycle(initialValue = emptyList())
+
             val companionTranscripts = remember(dbTranscripts) {
                 dbTranscripts.map { entry ->
                     com.example.konteksto.ui.sessions.studio.CompanionTranscriptItem(
@@ -330,6 +339,7 @@ fun KontekstoNavHost(
             SessionStudioRoute(
                 session = session,
                 customTranscripts = companionTranscripts,
+                domainTerms = dbDomainTerms,
                 onBackClick = {
                     navController.popBackStack()
                 },

@@ -19,11 +19,12 @@ fun SessionStudioSegmentedTabs(
     selectedTab: Int,
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    termsCount: Int = 0,
     glossaryCount: Int = 3,
 ) {
     val tabs = listOf(
         "Live Companion",
-        "Terms",
+        if (termsCount > 0) "Terms ($termsCount)" else "Terms",
         if (glossaryCount > 0) "Glossary ($glossaryCount)" else "Glossary",
     )
 
