@@ -57,16 +57,21 @@ class SessionsViewModel(
     private val _snackbarMessage = MutableSharedFlow<String>()
     val snackbarMessage: SharedFlow<String> = _snackbarMessage.asSharedFlow()
 
+    private val _isLoading = MutableStateFlow(true)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
     init {
         viewModelScope.launch {
             sessionRepository.getAllSessionsStream().collect { sessions ->
                 _allSessions.value = sessions
+                _isLoading.value = false
             }
         }
 
         viewModelScope.launch {
             sessionRepository.getJoinedSessionIdsStream(userUid).collect { ids ->
                 _joinedSessionIds.value = ids
+                _isLoading.value = false
             }
         }
     }
@@ -111,6 +116,20 @@ class SessionsViewModel(
                 }
                 .onFailure { error ->
                     _snackbarMessage.emit("Failed to join session: ${error.message}")
+                }
+        }
+    }
+
+    fun leaveSession(sessionId: String, onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            sessionRepository.leaveSession(userUid, sessionId)
+                .onSuccess {
+                    _snackbarMessage.emit("Left session")
+                    onComplete()
+                }
+                .onFailure { error ->
+                    _snackbarMessage.emit("Failed to leave session: ${error.message}")
+                    onComplete()
                 }
         }
     }

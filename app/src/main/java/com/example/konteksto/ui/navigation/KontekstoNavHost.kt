@@ -40,6 +40,9 @@ import com.example.konteksto.ui.host.studio.HostStudioRoute
 import com.example.konteksto.ui.host.studio.HostStudioViewModel
 import com.example.konteksto.ui.login.LoginRoute
 import com.example.konteksto.ui.main.MainScreen
+import com.example.konteksto.ui.sessions.studio.SessionStudioRoute
+import com.example.konteksto.ui.sessions.studio.SessionStudioViewModel
+import kotlinx.coroutines.launch
 
 private sealed interface SessionBootstrapState {
     data object Loading : SessionBootstrapState
@@ -68,6 +71,9 @@ fun KontekstoNavHost(
     )
     val hostSessions by hostViewModel.hostSessions.collectAsStateWithLifecycle()
     val isHostRefreshing by hostViewModel.isRefreshing.collectAsStateWithLifecycle()
+    val allSessions by remember(sessionRepository) {
+        sessionRepository.getAllSessionsStream()
+    }.collectAsStateWithLifecycle(initialValue = emptyList())
 
     val sessionState by produceState<SessionBootstrapState>(
         initialValue = authRepository.currentUser?.let {
@@ -201,6 +207,9 @@ fun KontekstoNavHost(
                 onNavigateToHostStudio = { session ->
                     navController.navigate(Screen.HostStudio.createRoute(session.id))
                 },
+                onNavigateToAttendeeRoom = { sessionId ->
+                    navController.navigate(Screen.SessionStudio.createRoute(sessionId))
+                },
             )
         }
 
@@ -229,6 +238,110 @@ fun KontekstoNavHost(
         }
 
         composable(
+            route = Screen.SessionStudio.route,
+            arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
+            val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+            val session = allSessions.find { it.id == sessionId }
+                ?: hostSessions.find { it.id == sessionId }
+                ?: HostSession(
+                    id = sessionId,
+                    venue = "Main Auditorium · Stage A",
+                    time = "75 min",
+                    talkCode = "TALK–892",
+                    title = "Revolutionizing Deep Learning: Advancements in Neural Architectures",
+                    speakerName = "Dr. Elena Santos",
+                    category = "Frontier",
+                    attendeesCount = 892,
+                    isLive = true,
+                )
+
+            val transcriptViewModel: SessionStudioViewModel = viewModel(
+                key = sessionId,
+                factory = SessionStudioViewModel.provideFactory(
+                    sessionId = sessionId,
+                    sessionRepository = sessionRepository,
+                ),
+            )
+
+            val dbDomainTerms by remember(sessionId) {
+                sessionRepository.getDomainTermsStream(sessionId)
+            }.collectAsStateWithLifecycle(initialValue = emptyList())
+
+            SessionStudioRoute(
+                viewModel = transcriptViewModel,
+                session = session,
+                domainTerms = dbDomainTerms,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onLeaveConfirm = {
+                    val currentUid = authRepository.currentUser?.uid ?: "guest_user"
+                    coroutineScope.launch {
+                        sessionRepository.leaveSession(currentUid, session.id)
+                    }
+                    navController.popBackStack()
+                },
+                onPresentQrClick = { targetSession ->
+                    navController.navigate(Screen.PresentQr.createRoute(targetSession.id))
+                },
+            )
+        }
+
+        composable(
+            route = Screen.AttendeeRoom.route,
+            arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
+            val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+            val session = allSessions.find { it.id == sessionId }
+                ?: hostSessions.find { it.id == sessionId }
+                ?: HostSession(
+                    id = sessionId,
+                    venue = "Main Auditorium · Stage A",
+                    time = "75 min",
+                    talkCode = "TALK–892",
+                    title = "Revolutionizing Deep Learning: Advancements in Neural Architectures",
+                    speakerName = "Dr. Elena Santos",
+                    category = "Frontier",
+                    attendeesCount = 892,
+                    isLive = true,
+                )
+
+            val transcriptViewModel: SessionStudioViewModel = viewModel(
+                key = sessionId,
+                factory = SessionStudioViewModel.provideFactory(
+                    sessionId = sessionId,
+                    sessionRepository = sessionRepository,
+                ),
+            )
+
+            val dbDomainTerms by remember(sessionId) {
+                sessionRepository.getDomainTermsStream(sessionId)
+            }.collectAsStateWithLifecycle(initialValue = emptyList())
+
+            SessionStudioRoute(
+                viewModel = transcriptViewModel,
+                session = session,
+                domainTerms = dbDomainTerms,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onLeaveConfirm = {
+                    val currentUid = authRepository.currentUser?.uid ?: "guest_user"
+                    coroutineScope.launch {
+                        sessionRepository.leaveSession(currentUid, session.id)
+                    }
+                    navController.popBackStack()
+                },
+                onPresentQrClick = { targetSession ->
+                    navController.navigate(Screen.PresentQr.createRoute(targetSession.id))
+                },
+            )
+        }
+
+        composable(
             route = Screen.HostStudio.route,
             arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
         ) { backStackEntry ->
@@ -236,6 +349,7 @@ fun KontekstoNavHost(
             val studioViewModel: HostStudioViewModel = viewModel(
                 key = sessionId,
                 factory = HostStudioViewModel.provideFactory(
+                    context = context,
                     sessionId = sessionId,
                     sessionRepository = sessionRepository,
                     authRepository = authRepository,
@@ -432,6 +546,7 @@ private fun sharedStudioViewModel(
         viewModelStoreOwner = studioEntry,
         key = sessionId,
         factory = HostStudioViewModel.provideFactory(
+            context = LocalContext.current,
             sessionId = sessionId,
             sessionRepository = sessionRepository,
             authRepository = authRepository,
