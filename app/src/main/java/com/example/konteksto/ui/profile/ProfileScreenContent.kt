@@ -39,6 +39,8 @@ fun ProfileScreenContent(
     profile: UserProfile? = null,
     isDarkMode: Boolean = false,
     onDarkModeChange: (Boolean) -> Unit = {},
+    isTaglish: Boolean = false,
+    onLanguageChange: (Boolean) -> Unit = {},
     isLoading: Boolean = false,
     errorMessage: String? = null,
     onEditProfileClick: () -> Unit = {},
@@ -157,7 +159,10 @@ fun ProfileScreenContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            ExplanationLanguageCard()
+            ExplanationLanguageCard(
+                isTaglish = isTaglish,
+                onLanguageChange = onLanguageChange,
+            )
 
             if (!errorMessage.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(16.dp))

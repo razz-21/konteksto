@@ -19,6 +19,13 @@ import kotlinx.coroutines.launch
 internal const val TRANSCRIPT_PAGE_SIZE = 50L
 internal const val LIVE_PARTIAL_STALE_AFTER_MS = 15_000L
 
+data class ActiveExplanationRequest(
+    val selectedItems: List<CompanionTranscriptItem>,
+    val explanation: LiveConceptExplanationItem? = null,
+    val isLoading: Boolean = false,
+    val error: String? = null,
+)
+
 data class SessionStudioUiState(
     val transcripts: List<CompanionTranscriptItem> = emptyList(),
     val livePartialText: String = "",
@@ -26,6 +33,8 @@ data class SessionStudioUiState(
     val isLoadingEarlierTranscripts: Boolean = false,
     val didEarlierTranscriptsFail: Boolean = false,
     val didLiveTranscriptFail: Boolean = false,
+    val conceptExplanations: List<LiveConceptExplanationItem> = emptyList(),
+    val activeExplanation: ActiveExplanationRequest? = null,
 )
 
 /**
@@ -62,6 +71,7 @@ internal fun Flow<String>.expireStalePartial(staleAfterMs: Long = LIVE_PARTIAL_S
 class SessionStudioViewModel(
     private val sessionId: String,
     private val sessionRepository: SessionRepository,
+    private val explanationRepository: com.example.konteksto.data.repository.ExplanationRepository = com.example.konteksto.data.repository.FirebaseExplanationRepository(),
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SessionStudioUiState())
@@ -132,6 +142,44 @@ class SessionStudioViewModel(
                     )
                 }
         }
+    }
+
+    fun explainSelection(selectedItems: List<CompanionTranscriptItem>) {
+        if (selectedItems.isEmpty()) return
+        
+        _uiState.value = _uiState.value.copy(
+            activeExplanation = ActiveExplanationRequest(
+                selectedItems = selectedItems,
+                isLoading = true,
+                error = null
+            )
+        )
+        
+        viewModelScope.launch {
+            val segmentIds = selectedItems.map { it.id }
+            explanationRepository.explainSelection(sessionId, segmentIds)
+                .onSuccess { explanation ->
+                    _uiState.value = _uiState.value.copy(
+                        activeExplanation = _uiState.value.activeExplanation?.copy(
+                            isLoading = false,
+                            explanation = explanation
+                        ),
+                        conceptExplanations = listOf(explanation) + _uiState.value.conceptExplanations
+                    )
+                }
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        activeExplanation = _uiState.value.activeExplanation?.copy(
+                            isLoading = false,
+                            error = error.message ?: "Failed to generate explanation."
+                        )
+                    )
+                }
+        }
+    }
+
+    fun dismissActiveExplanation() {
+        _uiState.value = _uiState.value.copy(activeExplanation = null)
     }
 
     private fun TranscriptEntry.toCompanionItem() = CompanionTranscriptItem(

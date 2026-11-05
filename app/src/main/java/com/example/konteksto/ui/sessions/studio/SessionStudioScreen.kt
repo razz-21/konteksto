@@ -14,21 +14,34 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -51,6 +64,8 @@ fun SessionStudioScreen(
     transcriptState: SessionStudioUiState = SessionStudioUiState(),
     onLoadEarlierTranscripts: () -> Unit = {},
     onRetryLiveTranscript: () -> Unit = {},
+    onAskWhatTheyMean: (List<CompanionTranscriptItem>) -> Unit = {},
+    onDismissActiveExplanation: () -> Unit = {},
     domainTerms: List<DomainTermItem> = emptyList(),
 ) {
     val context = LocalContext.current
@@ -126,6 +141,15 @@ fun SessionStudioScreen(
         )
     }
 
+    val activeExplanation = transcriptState.activeExplanation
+    if (activeExplanation != null) {
+        ExplanationBottomSheet(
+            request = activeExplanation,
+            onDismiss = onDismissActiveExplanation,
+            onRetry = { onAskWhatTheyMean(activeExplanation.selectedItems) },
+        )
+    }
+
     Surface(
         modifier = modifier
             .fillMaxSize()
@@ -184,9 +208,10 @@ fun SessionStudioScreen(
                             didLiveTranscriptFail = transcriptState.didLiveTranscriptFail,
                             onLoadEarlierTranscripts = onLoadEarlierTranscripts,
                             onRetryLiveTranscript = onRetryLiveTranscript,
-                            onAskWhatTheyMean = { selectedItems ->
-                                val msg = "Analyzing ${selectedItems.size} selected statement(s)…"
-                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                            conceptExplanations = transcriptState.conceptExplanations,
+                            onAskWhatTheyMean = { selectedItems, clearSelection ->
+                                onAskWhatTheyMean(selectedItems)
+                                clearSelection()
                             },
                         )
                     }
@@ -291,6 +316,200 @@ private fun EditSessionDomainTermDialog(
             }
         },
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ExplanationBottomSheet(
+    request: ActiveExplanationRequest,
+    onDismiss: () -> Unit,
+    onRetry: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = {
+            androidx.compose.material3.BottomSheetDefaults.DragHandle()
+        }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(bottom = 24.dp),
+        ) {
+            // Header
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(Color(0xFFE8EAFF), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    androidx.compose.material3.Icon(
+                        painter = androidx.compose.ui.res.painterResource(id = com.example.konteksto.R.drawable.ic_sparkle),
+                        contentDescription = null,
+                        tint = Color(0xFF3B52D4),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = "What Did They Mean? (${request.selectedItems.size} Selected)",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                    Text(
+                        text = "Explained by AI",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Selected Statements Card
+            androidx.compose.material3.Card(
+                colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = "SELECTED STATEMENTS (${request.selectedItems.size}):",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp),
+                        color = Color(0xFF3B52D4),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    
+                    request.selectedItems.forEachIndexed { index, item ->
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            // Blue left border
+                            Box(
+                                modifier = Modifier
+                                    .width(3.dp)
+                                    .height(36.dp) // Simplified height, actually should match content but this works for demo, or use intrinsic size
+                                    .background(Color(0xFF3B52D4))
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column(modifier = Modifier.padding(bottom = if (index == request.selectedItems.size - 1) 0.dp else 12.dp)) {
+                                Text(
+                                    text = "${item.speakerName} (${item.timestamp})",
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                )
+                                Text(
+                                    text = "\"${item.text}\"",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Result, Loading, or Error Card
+            androidx.compose.material3.Card(
+                colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(modifier = Modifier.padding(16.dp)) {
+                    when {
+                        request.isLoading -> {
+                            Text("Analyzing selected statements...", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth(), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                        }
+                        request.error != null -> {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                                Text(request.error, color = MaterialTheme.colorScheme.error, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(onClick = onRetry) {
+                                    Text("Retry")
+                                }
+                            }
+                        }
+                        request.explanation != null -> {
+                            val exp = request.explanation
+                            // Combine definition and whyItMatters into a single synthesized breakdown paragraph
+                            val breakdown = buildString {
+                                append("Synthesized breakdown: ")
+                                append(exp.definition)
+                                if (exp.analogy.isNotBlank()) {
+                                    append(" Think of it this way: ${exp.analogy}")
+                                }
+                                if (exp.whyItMatters.isNotBlank()) {
+                                    append(" This matters because ${exp.whyItMatters.replaceFirstChar { it.lowercase() }}")
+                                }
+                            }
+                            Text(
+                                text = breakdown,
+                                style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (request.explanation != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Source: Audio stream segment",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "${request.explanation.percentGrounded}% Grounded",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = Color(0xFF00875A)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Buttons
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f),
+                    shape = MaterialTheme.shapes.small,
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Text("Clear Selection & Close")
+                }
+                
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f),
+                    shape = MaterialTheme.shapes.small,
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF3B52D4)
+                    )
+                ) {
+                    Text("Got it, back to session")
+                }
+            }
+        }
+    }
 }
 
 @Preview(showBackground = true)

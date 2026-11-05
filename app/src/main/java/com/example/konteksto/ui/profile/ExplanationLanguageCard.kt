@@ -3,7 +3,9 @@ package com.example.konteksto.ui.profile
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,6 +31,8 @@ import com.example.konteksto.R
 
 @Composable
 fun ExplanationLanguageCard(
+    isTaglish: Boolean,
+    onLanguageChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -58,13 +62,15 @@ fun ExplanationLanguageCard(
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 LanguagePill(
                     text = "🇵🇭 Taglish (PH)",
-                    selected = true,
+                    selected = isTaglish,
+                    onClick = { onLanguageChange(true) },
                     modifier = Modifier.weight(1f),
                 )
 
                 LanguagePill(
                     text = "English",
-                    selected = false,
+                    selected = !isTaglish,
+                    onClick = { onLanguageChange(false) },
                     iconRes = R.drawable.ic_language,
                     modifier = Modifier.weight(1f),
                 )
@@ -77,6 +83,7 @@ fun ExplanationLanguageCard(
 private fun LanguagePill(
     text: String,
     selected: Boolean,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
     iconRes: Int? = null,
 ) {
@@ -85,6 +92,7 @@ private fun LanguagePill(
     Row(
         modifier = modifier
             .clip(shape)
+            .clickable(onClick = onClick)
             .background(
                 if (selected) {
                     MaterialTheme.colorScheme.primary
