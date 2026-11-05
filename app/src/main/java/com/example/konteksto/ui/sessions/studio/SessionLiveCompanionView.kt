@@ -753,7 +753,7 @@ fun LiveConceptExplanationCard(
 
             // Definition Body Text
             Text(
-                text = item.definition,
+                text = parseMarkdownToAnnotatedString(item.definition),
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = 13.sp,
                     lineHeight = 18.5.sp,
@@ -761,93 +761,7 @@ fun LiveConceptExplanationCard(
                 color = MaterialTheme.colorScheme.onSurface,
             )
 
-            // Analogy Container Box
-            if (item.analogy.isNotBlank()) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.small,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f),
-                    border = BorderStroke(
-                        0.5.dp,
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                    ),
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(22.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFFFEF3C7)),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.ic_lightbulb),
-                                    contentDescription = null,
-                                    tint = Color(0xFFD97706),
-                                    modifier = Modifier.size(13.dp),
-                                )
-                            }
 
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            Text(
-                                text = "ANALOGY",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 10.5.sp,
-                                    letterSpacing = 0.8.sp,
-                                ),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-
-                        Text(
-                            text = "\"${item.analogy}\"",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontSize = 12.5.sp,
-                                lineHeight = 17.sp,
-                                fontStyle = FontStyle.Italic,
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                }
-            }
-
-            // Why It Matters Paragraph
-            if (item.whyItMatters.isNotBlank()) {
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = buildAnnotatedString {
-                            withStyle(
-                                style = SpanStyle(
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onBackground,
-                                    fontSize = 12.5.sp,
-                                ),
-                            ) {
-                                append("Why it matters: ")
-                            }
-                            withStyle(
-                                style = SpanStyle(
-                                    fontWeight = FontWeight.Normal,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 12.5.sp,
-                                ),
-                            ) {
-                                append(item.whyItMatters)
-                            }
-                        },
-                        style = MaterialTheme.typography.bodySmall.copy(lineHeight = 17.sp),
-                    )
-                }
-            }
         }
     }
 }

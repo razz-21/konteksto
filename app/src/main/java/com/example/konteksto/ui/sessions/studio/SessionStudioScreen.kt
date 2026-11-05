@@ -12,8 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -69,7 +67,6 @@ fun SessionStudioScreen(
     domainTerms: List<DomainTermItem> = emptyList(),
 ) {
     val context = LocalContext.current
-    val scrollState = rememberScrollState()
     var showLeaveConfirmDialog by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableIntStateOf(0) }
     var termsList by remember(domainTerms) { mutableStateOf(domainTerms) }
@@ -159,7 +156,6 @@ fun SessionStudioScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
             // Top Bar: Back button navigates directly back, Leave button opens prompt
@@ -192,7 +188,9 @@ fun SessionStudioScreen(
 
             // Tab Content
             Box(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
             ) {
                 when (selectedTab) {
                     0 -> {
@@ -219,8 +217,7 @@ fun SessionStudioScreen(
                         // Terms Tab
                         SessionTermsView(
                             domainTerms = termsList,
-                            onEditTermClick = { termToEdit = it },
-                            onDeleteTermClick = { termToDelete = it },
+                            showEditDeleteActions = false,
                         )
                     }
                     2 -> {

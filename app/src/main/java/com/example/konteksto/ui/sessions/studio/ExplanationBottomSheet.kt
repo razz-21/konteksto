@@ -30,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -39,9 +40,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
@@ -176,21 +180,39 @@ fun ExplanationBottomSheet(
                         }
                         request.explanation != null -> {
                             val exp = request.explanation
-                            // Combine definition and whyItMatters into a single synthesized breakdown paragraph
-                            val breakdown = buildString {
-                                append("Synthesized breakdown: ")
-                                append(exp.definition)
-                                if (exp.analogy.isNotBlank()) {
-                                    append(" Think of it this way: ${exp.analogy}")
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                if (exp.type.isNotBlank()) {
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = Color(0xFFE8EAFF),
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    ) {
+                                        Text(
+                                            text = exp.type.uppercase(),
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                letterSpacing = 0.5.sp
+                                            ),
+                                            color = Color(0xFF3B52D4),
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
                                 }
-                                if (exp.whyItMatters.isNotBlank()) {
-                                    append(" This matters because ${exp.whyItMatters.replaceFirstChar { it.lowercase() }}")
+                                if (exp.title.isNotBlank()) {
+                                    Text(
+                                        text = exp.title,
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    )
                                 }
+                                val breakdown = parseMarkdownToAnnotatedString(exp.definition)
+                                Text(
+                                    text = breakdown,
+                                    style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
                             }
-                            Text(
-                                text = breakdown,
-                                style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp)
-                            )
                         }
                     }
                 }
@@ -266,4 +288,44 @@ fun SkeletonItem(modifier: Modifier = Modifier) {
             .clip(RoundedCornerShape(4.dp))
             .background(Color.Gray.copy(alpha = alpha))
     )
+}
+
+fun parseMarkdownToAnnotatedString(text: String) = buildAnnotatedString {
+    val tokens = mutableListOf<Token>()
+    
+    // Match **bold** or *italic* (ensuring * italic * isn't confused with bullet points or spaces)
+    val combinedRegex = "(\\*\\*(.*?)\\*\\*)|(\\*([^\\s*].*?[^\\s*]|[^\\s*])\\*)".toRegex()
+    
+    var lastIndex = 0
+    combinedRegex.findAll(text).forEach { matchResult ->
+        if (matchResult.range.first > lastIndex) {
+            tokens.add(Token.Text(text.substring(lastIndex, matchResult.range.first)))
+        }
+        
+        val value = matchResult.value
+        if (value.startsWith("**")) {
+            tokens.add(Token.Bold(value.removeSurrounding("**")))
+        } else {
+            tokens.add(Token.Italic(value.removeSurrounding("*")))
+        }
+        lastIndex = matchResult.range.last + 1
+    }
+    
+    if (lastIndex < text.length) {
+        tokens.add(Token.Text(text.substring(lastIndex)))
+    }
+    
+    tokens.forEach { token ->
+        when (token) {
+            is Token.Text -> append(token.content)
+            is Token.Bold -> withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(token.content) }
+            is Token.Italic -> withStyle(SpanStyle(fontStyle = FontStyle.Italic)) { append(token.content) }
+        }
+    }
+}
+
+private sealed class Token {
+    data class Text(val content: String) : Token()
+    data class Bold(val content: String) : Token()
+    data class Italic(val content: String) : Token()
 }

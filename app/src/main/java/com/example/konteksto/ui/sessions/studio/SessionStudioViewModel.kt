@@ -163,8 +163,7 @@ class SessionStudioViewModel(
                         activeExplanation = _uiState.value.activeExplanation?.copy(
                             isLoading = false,
                             explanation = explanation
-                        ),
-                        conceptExplanations = listOf(explanation) + _uiState.value.conceptExplanations
+                        )
                     )
                 }
                 .onFailure { error ->

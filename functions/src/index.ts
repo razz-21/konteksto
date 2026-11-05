@@ -9,10 +9,13 @@ const db = admin.firestore();
 // Initialize the Google Gen AI SDK.
 const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
+// Cache version key: increment this whenever prompt or output schema changes to invalidate stale cache
+const CACHE_VERSION = "v6_required_schema_fields";
+
 // Helper to hash for caching
 function getCacheHash(segmentIds: string[], language: string): string {
   const sortedIds = [...segmentIds].sort().join(",");
-  const raw = `${sortedIds}_${language}`;
+  const raw = `${sortedIds}_${language}_${CACHE_VERSION}`;
   return crypto.createHash("sha256").update(raw).digest("hex");
 }
 
@@ -27,7 +30,7 @@ export const explainSelection = onCall({ region: "asia-southeast1" }, async (req
     // throw new HttpsError("failed-precondition", "The function must be called from an App Check verified app.");
   }
 
-  const { sessionId, segmentIds } = request.data;
+  const { sessionId, segmentIds, forceRefresh } = request.data;
   if (!sessionId || !Array.isArray(segmentIds) || segmentIds.length === 0 || segmentIds.length > 5) {
     throw new HttpsError("invalid-argument", "Invalid session ID or segment selection (max 5).");
   }
@@ -38,13 +41,15 @@ export const explainSelection = onCall({ region: "asia-southeast1" }, async (req
   const userDoc = await db.collection("users").doc(uid).get();
   const explanationLanguage = userDoc.exists ? (userDoc.data()?.explanationLanguage || "english") : "english";
 
-  // 3. Check cache
+  // 3. Check cache (skip if forceRefresh is true)
   const cacheHash = getCacheHash(segmentIds, explanationLanguage);
   const cacheRef = db.collection(`sessions/${sessionId}/explanation_cache`).doc(cacheHash);
-  const cachedDoc = await cacheRef.get();
 
-  if (cachedDoc.exists) {
-    return cachedDoc.data();
+  if (!forceRefresh) {
+    const cachedDoc = await cacheRef.get();
+    if (cachedDoc.exists) {
+      return cachedDoc.data();
+    }
   }
 
   // 4. Rate Limiting (Basic example: max 10 requests per user per session)
@@ -139,39 +144,41 @@ export const explainSelection = onCall({ region: "asia-southeast1" }, async (req
 
   // 8. Build Prompt
   const prompt = `
-You are an AI assistant helping a participant understand a concept mentioned during a live presentation.
+You are an AI assistant helping a participant understand exactly what the speaker meant during a live presentation.
 
 SESSION INFO:
 Title: ${sessionData.title}
 Category: ${sessionData.category}
 
 <instructions>
-1. Analyze the <selected_transcript> and explain the core concept it refers to.
-2. Output your explanation using the language: ${explanationLanguage}. If the language is 'taglish', mix Tagalog and English naturally, typical of a Philippine context.
-3. Your analogy MUST use everyday comparisons (use Philippine context if language is Taglish).
-4. Do NOT make up a concept if the text is filler or vague (e.g., "okay so moving on"). If it cannot be explained, set "explainable" to false.
-5. Provide evidence IDs in the "groundedIn" arrays. Use ONLY the IDs provided in the context tags below.
-6. Base the intended meaning heavily on the <host_notes> and <glossary> if applicable.
+1. Deep Contextual Breakdown (NOT a generic dictionary definition): Do NOT output a single generic textbook definition. Instead, unpack and elaborate on EVERYTHING the speaker explicitly mentioned in <selected_transcript>.
+2. Detailed Itemization: If the speaker lists multiple items, types, keywords, or topics (e.g., private, default, protected, public modifiers), explain each of those specific items clearly using bullet points or sections.
+3. Synthesize & Address ALL Selected Statements: Address and explain what the speaker meant across ALL ${validSelected.length} selected statement(s).
+4. Output Language: Use the language: ${explanationLanguage}. If the language is 'taglish', mix Tagalog and English naturally, typical of a Philippine context.
+5. Markdown Formatting: Structure the explanation thoroughly with Markdown (bold headers, bullet points, line breaks) so it is rich, clear, and easy to read.
+6. Do NOT make up a meaning if the text is filler or vague (e.g., "okay so moving on"). If there is no substantive meaning to explain, set "explainable" to false.
+7. Evidence Grounding: Provide evidence IDs in the "explanationGroundedIn" array. Use ONLY the IDs provided in the context tags below.
+8. Context Integration: Base the intended meaning heavily on <host_notes>, <analyzed_slides>, and <glossary> if applicable, to enrich the explanation.
 </instructions>
 
 <preceding_transcript>
-${precedingSegments.map(s => `[ID: ${s.id}] ${s.speakerName}: ${s.text}`).join("\\n")}
+${precedingSegments.map(s => `[ID: ${s.id}] ${s.speakerName}: ${s.text}`).join("\n")}
 </preceding_transcript>
 
 <selected_transcript>
-${validSelected.map(s => `[ID: ${s.id}] ${s.speakerName}: ${s.text}`).join("\\n")}
+${validSelected.map((s, idx) => `[Statement ${idx + 1} - ID: ${s.id}] ${s.speakerName}: ${s.text}`).join("\n")}
 </selected_transcript>
 
 <host_notes>
-${notes.map(n => `[ID: ${n.id}] ${n.title}: ${n.content}`).join("\\n")}
+${notes.map(n => `[ID: ${n.id}] ${n.title}: ${n.content}`).join("\n")}
 </host_notes>
 
 <glossary>
-${glossary.map(g => `[ID: ${g.id}] ${g.term}: ${g.description}`).join("\\n")}
+${glossary.map(g => `[ID: ${g.id}] ${g.term}: ${g.description}`).join("\n")}
 </glossary>
 
 <analyzed_slides>
-${slides.map(s => `[ID: ${s.id}] Slide ${s.slideNumber}: ${s.title} - ${s.summary}`).join("\\n")}
+${slides.map(s => `[ID: ${s.id}] Slide ${s.slideNumber}: ${s.title} - ${s.summary}`).join("\n")}
 </analyzed_slides>
 `;
 
@@ -181,40 +188,27 @@ ${slides.map(s => `[ID: ${s.id}] Slide ${s.slideNumber}: ${s.title} - ${s.summar
     properties: {
       explainable: {
         type: SchemaType.BOOLEAN,
-        description: "True if the selected text contains a coherent concept to explain, False if it's filler or vague."
+        description: "True if the selected text contains coherent point(s) to explain, False if it's filler or vague."
       },
       type: {
         type: SchemaType.STRING,
-        description: "A short concept category, 2 to 4 words (e.g., 'Core Neural Mechanics')"
+        description: "A short category encompassing all selected statements (e.g., 'OOP & Access Modifiers')"
       },
       title: {
         type: SchemaType.STRING,
-        description: "The concept name, kept short."
+        description: "An overarching title summarizing what the speaker is presenting."
       },
       definition: {
         type: SchemaType.STRING,
-        description: "1 to 2 plain-language sentences, specific to this talk."
+        description: "An expanded, in-depth explanation of everything the speaker mentioned. Do NOT give a short textbook definition. Use Markdown formatting (bold headers, bullet points, line breaks) to break down each specific concept, keyword, modifier, or comparison the speaker brought up so the user gets a rich, thorough understanding."
       },
-      analogy: {
-        type: SchemaType.STRING,
-        description: "One everyday comparison."
-      },
-      whyItMatters: {
-        type: SchemaType.STRING,
-        description: "One sentence on why it matters in this talk."
-      },
-      definitionGroundedIn: {
+      explanationGroundedIn: {
         type: SchemaType.ARRAY,
         items: { type: SchemaType.STRING },
-        description: "List of IDs (from transcript, notes, slides, glossary) that support the definition."
-      },
-      whyItMattersGroundedIn: {
-        type: SchemaType.ARRAY,
-        items: { type: SchemaType.STRING },
-        description: "List of IDs that support the whyItMatters claim."
+        description: "List of IDs (from transcript, notes, slides, glossary) that support the explanation."
       }
     },
-    required: ["explainable"]
+    required: ["explainable", "type", "title", "definition", "explanationGroundedIn"]
   } as any;
 
   // 10. Call Gemini
@@ -248,10 +242,8 @@ ${slides.map(s => `[ID: ${s.id}] Slide ${s.slideNumber}: ${s.title} - ${s.summar
   }
 
   // 11. Grounding Calculation
-  const defEvidence = Array.isArray(modelResponse.definitionGroundedIn) ? modelResponse.definitionGroundedIn : [];
-  const whyEvidence = Array.isArray(modelResponse.whyItMattersGroundedIn) ? modelResponse.whyItMattersGroundedIn : [];
+  const allClaimedIds = Array.isArray(modelResponse.explanationGroundedIn) ? modelResponse.explanationGroundedIn : [];
 
-  const allClaimedIds = [...defEvidence, ...whyEvidence];
   const validClaimsCount = allClaimedIds.filter(id => validContextIds.has(id)).length;
 
   let percentGrounded = 100;
@@ -277,8 +269,8 @@ ${slides.map(s => `[ID: ${s.id}] Slide ${s.slideNumber}: ${s.title} - ${s.summar
       type: modelResponse.type || "Concept",
       title: modelResponse.title || "Unknown Concept",
       definition: modelResponse.definition || "",
-      analogy: modelResponse.analogy || "",
-      whyItMatters: modelResponse.whyItMatters || "",
+      analogy: "",
+      whyItMatters: "",
       timestamp: timestampString,
       percentGrounded: percentGrounded,
       isExplainable: true
