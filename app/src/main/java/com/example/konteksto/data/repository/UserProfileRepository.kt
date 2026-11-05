@@ -54,6 +54,7 @@ class FirebaseUserProfileRepository(
                             bio = data["bio"] as? String ?: "",
                             photoUrl = data["photoUrl"] as? String,
                             avatarColorIndex = (data["avatarColorIndex"] as? Number)?.toInt() ?: 3,
+                            explanationLanguage = data["explanationLanguage"] as? String ?: "english",
                         ),
                     )
                 }
@@ -76,6 +77,7 @@ class FirebaseUserProfileRepository(
             "bio" to profile.bio,
             "photoUrl" to profile.photoUrl,
             "avatarColorIndex" to profile.avatarColorIndex,
+            "explanationLanguage" to profile.explanationLanguage,
         )
 
         firestore.collection("users")

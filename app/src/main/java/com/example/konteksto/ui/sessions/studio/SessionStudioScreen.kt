@@ -12,23 +12,34 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -51,10 +62,11 @@ fun SessionStudioScreen(
     transcriptState: SessionStudioUiState = SessionStudioUiState(),
     onLoadEarlierTranscripts: () -> Unit = {},
     onRetryLiveTranscript: () -> Unit = {},
+    onAskWhatTheyMean: (List<CompanionTranscriptItem>) -> Unit = {},
+    onDismissActiveExplanation: () -> Unit = {},
     domainTerms: List<DomainTermItem> = emptyList(),
 ) {
     val context = LocalContext.current
-    val scrollState = rememberScrollState()
     var showLeaveConfirmDialog by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableIntStateOf(0) }
     var termsList by remember(domainTerms) { mutableStateOf(domainTerms) }
@@ -126,6 +138,15 @@ fun SessionStudioScreen(
         )
     }
 
+    val activeExplanation = transcriptState.activeExplanation
+    if (activeExplanation != null) {
+        ExplanationBottomSheet(
+            request = activeExplanation,
+            onDismiss = onDismissActiveExplanation,
+            onRetry = { onAskWhatTheyMean(activeExplanation.selectedItems) },
+        )
+    }
+
     Surface(
         modifier = modifier
             .fillMaxSize()
@@ -135,7 +156,6 @@ fun SessionStudioScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
             // Top Bar: Back button navigates directly back, Leave button opens prompt
@@ -168,7 +188,9 @@ fun SessionStudioScreen(
 
             // Tab Content
             Box(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
             ) {
                 when (selectedTab) {
                     0 -> {
@@ -184,9 +206,10 @@ fun SessionStudioScreen(
                             didLiveTranscriptFail = transcriptState.didLiveTranscriptFail,
                             onLoadEarlierTranscripts = onLoadEarlierTranscripts,
                             onRetryLiveTranscript = onRetryLiveTranscript,
-                            onAskWhatTheyMean = { selectedItems ->
-                                val msg = "Analyzing ${selectedItems.size} selected statement(s)…"
-                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                            conceptExplanations = transcriptState.conceptExplanations,
+                            onAskWhatTheyMean = { selectedItems, clearSelection ->
+                                onAskWhatTheyMean(selectedItems)
+                                clearSelection()
                             },
                         )
                     }
@@ -194,8 +217,7 @@ fun SessionStudioScreen(
                         // Terms Tab
                         SessionTermsView(
                             domainTerms = termsList,
-                            onEditTermClick = { termToEdit = it },
-                            onDeleteTermClick = { termToDelete = it },
+                            showEditDeleteActions = false,
                         )
                     }
                     2 -> {
@@ -218,80 +240,6 @@ fun SessionStudioScreen(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun EditSessionDomainTermDialog(
-    domainTerm: DomainTermItem,
-    onConfirm: (DomainTermItem) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var term by remember(domainTerm) { mutableStateOf(domainTerm.term) }
-    var category by remember(domainTerm) { mutableStateOf(domainTerm.category) }
-    var description by remember(domainTerm) { mutableStateOf(domainTerm.description) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "Edit Domain Term",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-            )
-        },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Text(
-                    text = "Category",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    DOMAIN_TERM_CATEGORIES.forEach { cat ->
-                        FilterChip(
-                            selected = category == cat,
-                            onClick = { category = cat },
-                            label = { Text(cat, fontSize = 11.sp) },
-                        )
-                    }
-                }
-                OutlinedTextField(
-                    value = term,
-                    onValueChange = { term = it },
-                    label = { Text("Term Name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Description") },
-                    minLines = 2,
-                    maxLines = 4,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    onConfirm(domainTerm.copy(term = term.trim(), category = category, description = description.trim()))
-                },
-                enabled = term.isNotBlank() && description.isNotBlank(),
-            ) {
-                Text("Save")
-            }
-        },
-        dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        },
-    )
-}
 
 @Preview(showBackground = true)
 @Composable

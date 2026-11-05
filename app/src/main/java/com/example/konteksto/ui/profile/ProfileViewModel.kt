@@ -62,6 +62,7 @@ class ProfileViewModel(
             email = authProfile.email.ifBlank { savedProfile.email },
             photoUrl = savedProfile.photoUrl ?: authProfile.photoUrl,
             avatarColorIndex = savedProfile.avatarColorIndex,
+            explanationLanguage = savedProfile.explanationLanguage,
         )
     }
 
@@ -132,6 +133,7 @@ class ProfileViewModel(
                 bio = bio.trim(),
                 photoUrl = user.photoUrl,
                 avatarColorIndex = avatarColorIndex,
+                explanationLanguage = _profile.value?.explanationLanguage ?: "english",
             )
 
             userProfileRepository.saveProfile(updatedProfile)
@@ -148,6 +150,21 @@ class ProfileViewModel(
                     )
                     onComplete(false)
                 }
+        }
+    }
+
+    fun updateLanguage(isTaglish: Boolean) {
+        if (currentUser == null) return
+        val currentProfile = _profile.value ?: return
+        
+        val newLang = if (isTaglish) "taglish" else "english"
+        if (currentProfile.explanationLanguage == newLang) return
+        
+        val updatedProfile = currentProfile.copy(explanationLanguage = newLang)
+        _profile.value = updatedProfile
+        
+        viewModelScope.launch {
+            userProfileRepository.saveProfile(updatedProfile)
         }
     }
 

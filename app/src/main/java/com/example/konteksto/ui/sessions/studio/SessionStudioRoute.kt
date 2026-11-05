@@ -34,6 +34,8 @@ fun SessionStudioRoute(
         transcriptState = transcriptState,
         onLoadEarlierTranscripts = viewModel::loadEarlierTranscripts,
         onRetryLiveTranscript = viewModel::retryLiveTranscript,
+        onAskWhatTheyMean = viewModel::explainSelection,
+        onDismissActiveExplanation = viewModel::dismissActiveExplanation,
         domainTerms = domainTerms,
     )
 }

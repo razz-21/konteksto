@@ -7,10 +7,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -29,16 +32,16 @@ import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
 import com.example.konteksto.ui.host.studio.DomainTermItem
 
-
 @Composable
 fun SessionTermsView(
     domainTerms: List<DomainTermItem>,
     modifier: Modifier = Modifier,
+    showEditDeleteActions: Boolean = false,
     onEditTermClick: (DomainTermItem) -> Unit = {},
     onDeleteTermClick: (DomainTermItem) -> Unit = {},
 ) {
     Column(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         // Section Header: GROUNDED DOMAIN TERMS (count)
@@ -114,12 +117,12 @@ fun SessionTermsView(
                 }
             }
         } else {
-            // Display list of Domain Terms matching design
-            Column(
+            // Display scrollable LazyColumn list of Domain Terms
+            LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                domainTerms.forEach { domainTerm ->
+                items(domainTerms, key = { it.id }) { domainTerm ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.medium,
@@ -136,7 +139,7 @@ fun SessionTermsView(
                                 .fillMaxWidth()
                                 .padding(14.dp),
                         ) {
-                            // Top Row: Category Pill Badge + Edit & Delete Action Buttons
+                            // Top Row: Category Pill Badge + Optional Edit & Delete Action Buttons
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -162,31 +165,33 @@ fun SessionTermsView(
                                     )
                                 }
 
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                ) {
-                                    IconButton(
-                                        onClick = { onEditTermClick(domainTerm) },
-                                        modifier = Modifier.size(28.dp),
+                                if (showEditDeleteActions) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
                                     ) {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.ic_edit),
-                                            contentDescription = "Edit term",
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(16.dp),
-                                        )
-                                    }
-                                    IconButton(
-                                        onClick = { onDeleteTermClick(domainTerm) },
-                                        modifier = Modifier.size(28.dp),
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.ic_delete),
-                                            contentDescription = "Delete term",
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(16.dp),
-                                        )
+                                        IconButton(
+                                            onClick = { onEditTermClick(domainTerm) },
+                                            modifier = Modifier.size(28.dp),
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.ic_edit),
+                                                contentDescription = "Edit term",
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                        }
+                                        IconButton(
+                                            onClick = { onDeleteTermClick(domainTerm) },
+                                            modifier = Modifier.size(28.dp),
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.ic_delete),
+                                                contentDescription = "Delete term",
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                        }
                                     }
                                 }
                             }

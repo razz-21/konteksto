@@ -95,6 +95,8 @@ fun ProfileScreen(
         profile = visibleProfile,
         isDarkMode = isDarkMode,
         onDarkModeChange = onDarkModeChange,
+        isTaglish = visibleProfile?.explanationLanguage == "taglish",
+        onLanguageChange = { isTaglish -> viewModel.updateLanguage(isTaglish) },
         isLoading = uiState.isLoading,
         errorMessage = uiState.errorMessage,
         onEditProfileClick = { showEditProfile = true },

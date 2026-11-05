@@ -133,7 +133,10 @@ fun SessionLiveCompanionView(
     onLoadEarlierTranscripts: () -> Unit = {},
     onRetryLiveTranscript: () -> Unit = {},
     conceptExplanations: List<LiveConceptExplanationItem> = DEFAULT_CONCEPT_EXPLANATIONS,
-    onAskWhatTheyMean: (selectedItems: List<CompanionTranscriptItem>) -> Unit = {},
+    isExplaining: Boolean = false,
+    explainError: String? = null,
+    onRetryExplain: () -> Unit = {},
+    onAskWhatTheyMean: (selectedItems: List<CompanionTranscriptItem>, clearSelection: () -> Unit) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
     val items = remember(customTranscripts, session.speakerName) {
@@ -497,16 +500,41 @@ fun SessionLiveCompanionView(
 
         // Bottom Action Button: ONLY "What did they mean?" (NO Snap Slide)
         val selectedItems = remember(selectedIds, items) {
-            items.filter { it.id in selectedIds }
+            val selected = items.filter { it.id in selectedIds }
+            // Ensure they are sorted by their order in the items list
+            selected.sortedBy { items.indexOf(it) }
+        }
+
+        // Validate selection: max 5, and must be contiguous
+        val isValidSelection = remember(selectedItems) {
+            if (selectedItems.isEmpty()) false
+            else if (selectedItems.size > 5) false
+            else {
+                val indices = selectedItems.map { items.indexOf(it) }
+                val isContiguous = indices.zipWithNext().all { (a, b) -> b == a + 1 }
+                isContiguous
+            }
+        }
+        val showSelectionWarning = selectedItems.isNotEmpty() && !isValidSelection
+
+        if (showSelectionWarning) {
+            Text(
+                text = "Please select up to 5 consecutive statements.",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
         }
 
         Button(
             onClick = {
-                if (selectedItems.isNotEmpty()) {
-                    onAskWhatTheyMean(selectedItems)
+                if (isValidSelection) {
+                    onAskWhatTheyMean(selectedItems) {
+                        selectedIds = emptySet()
+                    }
                 }
             },
-            enabled = selectedItems.isNotEmpty(),
+            enabled = isValidSelection && !isExplaining,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp),
@@ -522,7 +550,7 @@ fun SessionLiveCompanionView(
                 painter = painterResource(id = R.drawable.ic_question_help),
                 contentDescription = null,
                 modifier = Modifier.size(18.dp),
-                tint = if (selectedItems.isNotEmpty()) Color(0xFF152270) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                tint = if (isValidSelection) Color(0xFF152270) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
@@ -574,6 +602,40 @@ fun SessionLiveCompanionView(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
+            if (isExplaining) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    ),
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Analyzing selected statements...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+            if (explainError != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                    ),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(explainError, color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.weight(1f))
+                        TextButton(onClick = onRetryExplain) {
+                            Text("Retry", color = MaterialTheme.colorScheme.onErrorContainer)
+                        }
+                    }
+                }
+            }
             conceptExplanations.forEach { concept ->
                 LiveConceptExplanationCard(
                     item = concept,
@@ -691,7 +753,7 @@ fun LiveConceptExplanationCard(
 
             // Definition Body Text
             Text(
-                text = item.definition,
+                text = parseMarkdownToAnnotatedString(item.definition),
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = 13.sp,
                     lineHeight = 18.5.sp,
@@ -699,93 +761,7 @@ fun LiveConceptExplanationCard(
                 color = MaterialTheme.colorScheme.onSurface,
             )
 
-            // Analogy Container Box
-            if (item.analogy.isNotBlank()) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.small,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f),
-                    border = BorderStroke(
-                        0.5.dp,
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                    ),
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(22.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFFFEF3C7)),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.ic_lightbulb),
-                                    contentDescription = null,
-                                    tint = Color(0xFFD97706),
-                                    modifier = Modifier.size(13.dp),
-                                )
-                            }
 
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            Text(
-                                text = "ANALOGY",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 10.5.sp,
-                                    letterSpacing = 0.8.sp,
-                                ),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-
-                        Text(
-                            text = "\"${item.analogy}\"",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontSize = 12.5.sp,
-                                lineHeight = 17.sp,
-                                fontStyle = FontStyle.Italic,
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                }
-            }
-
-            // Why It Matters Paragraph
-            if (item.whyItMatters.isNotBlank()) {
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = buildAnnotatedString {
-                            withStyle(
-                                style = SpanStyle(
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onBackground,
-                                    fontSize = 12.5.sp,
-                                ),
-                            ) {
-                                append("Why it matters: ")
-                            }
-                            withStyle(
-                                style = SpanStyle(
-                                    fontWeight = FontWeight.Normal,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 12.5.sp,
-                                ),
-                            ) {
-                                append(item.whyItMatters)
-                            }
-                        },
-                        style = MaterialTheme.typography.bodySmall.copy(lineHeight = 17.sp),
-                    )
-                }
-            }
         }
     }
 }
