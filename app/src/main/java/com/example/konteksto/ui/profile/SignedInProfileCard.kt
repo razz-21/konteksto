@@ -2,7 +2,6 @@ package com.example.konteksto.ui.profile
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -118,7 +117,6 @@ fun SignedInProfileHeaderCard(
 @Composable
 fun AboutYouSectionCard(
     profile: UserProfile,
-    onEditClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -138,7 +136,7 @@ fun AboutYouSectionCard(
             color = MaterialTheme.colorScheme.surfaceContainerLowest,
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                // Item 1: Role Row (Aligned right, no arrow)
+                // Item 1: Role Row (Display-only)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -187,11 +185,10 @@ fun AboutYouSectionCard(
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
 
-                // Item 2: Organization Row
+                // Item 2: Organization Row (Display-only)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(onClick = onEditClick)
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -232,13 +229,6 @@ fun AboutYouSectionCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_arrow_forward),
-                        contentDescription = "Edit",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    )
                 }
 
                 HorizontalDivider(
@@ -246,11 +236,10 @@ fun AboutYouSectionCard(
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
 
-                // Item 3: Bio Row
+                // Item 3: Bio Row (Display-only)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(onClick = onEditClick)
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -291,13 +280,6 @@ fun AboutYouSectionCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_arrow_forward),
-                        contentDescription = "Edit",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    )
                 }
             }
         }
