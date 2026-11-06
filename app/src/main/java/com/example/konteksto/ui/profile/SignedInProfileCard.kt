@@ -1,14 +1,11 @@
 package com.example.konteksto.ui.profile
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,10 +16,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -31,13 +27,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.UserProfile
 
@@ -61,31 +55,31 @@ fun SignedInProfileCard(
             .ifEmpty { "K" }
     }
 
-    Card(
+    Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.small,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-            contentColor = MaterialTheme.colorScheme.onBackground,
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
+                .padding(20.dp),
         ) {
-            Row(modifier = Modifier.fillMaxWidth()) {
+            // Profile Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 ProfileAvatar(profile = profile, initials = initials)
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(16.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = profile.name.ifBlank { "Konteksto User" },
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 17.sp,
+                            fontSize = 19.sp,
                         ),
                         color = MaterialTheme.colorScheme.onBackground,
                     )
@@ -95,12 +89,13 @@ fun SignedInProfileCard(
                     Text(
                         text = profile.role.ifBlank { "Attendee" },
                         style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp,
                         ),
                         color = MaterialTheme.colorScheme.primary,
                     )
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
@@ -109,7 +104,7 @@ fun SignedInProfileCard(
                             modifier = Modifier.size(14.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = profile.email.ifBlank { "No email available" },
                             style = MaterialTheme.typography.bodySmall,
@@ -119,62 +114,45 @@ fun SignedInProfileCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            // Organization Info
+            if (profile.organization.isNotBlank()) {
+                Spacer(modifier = Modifier.height(14.dp))
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant,
-                        shape = MaterialTheme.shapes.small,
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_business),
+                        contentDescription = "Organization",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary,
                     )
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_business),
-                    contentDescription = "Organization",
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = profile.organization.ifBlank { "No organization added yet" },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (profile.organization.isBlank()) {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    } else {
-                        MaterialTheme.colorScheme.onBackground
-                    },
-                )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = profile.organization,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 13.sp,
+                        ),
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-                Box(
-                    modifier = Modifier
-                        .width(3.dp)
-                        .fillMaxHeight()
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
-                )
-
-                Spacer(modifier = Modifier.width(10.dp))
+            // Bio Info
+            if (profile.bio.isNotBlank()) {
+                Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
-                    text = if (profile.bio.isNotBlank()) {
-                        "\"${profile.bio}\""
-                    } else {
-                        "No bio added yet."
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = "\"${profile.bio}\"",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp,
+                    ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontStyle = FontStyle.Italic,
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Button(
                 onClick = onEditClick,
@@ -183,10 +161,16 @@ fun SignedInProfileCard(
                     .height(42.dp),
                 shape = MaterialTheme.shapes.small,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    contentColor = MaterialTheme.colorScheme.primary,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ),
             ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_edit),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Edit Profile Details",
                     fontWeight = FontWeight.SemiBold,
@@ -202,7 +186,7 @@ private fun ProfileAvatar(
     profile: UserProfile,
     initials: String,
 ) {
-    Box(modifier = Modifier.size(68.dp)) {
+    Box(modifier = Modifier.size(72.dp)) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -212,28 +196,19 @@ private fun ProfileAvatar(
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            if (!profile.photoUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = profile.photoUrl,
-                    contentDescription = "Profile photo",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
-                Text(
-                    text = initials,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp,
-                )
-            }
+            Text(
+                text = initials,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 24.sp,
+            )
         }
 
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .offset(x = 2.dp, y = 2.dp)
-                .size(20.dp)
+                .size(22.dp)
                 .clip(CircleShape)
                 .background(Color(0xFF34C759))
                 .border(
@@ -246,7 +221,7 @@ private fun ProfileAvatar(
             Icon(
                 painter = painterResource(id = R.drawable.ic_verified_shield),
                 contentDescription = "Verified",
-                modifier = Modifier.size(12.dp),
+                modifier = Modifier.size(13.dp),
                 tint = Color.White,
             )
         }

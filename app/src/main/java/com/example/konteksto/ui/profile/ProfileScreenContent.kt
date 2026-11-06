@@ -1,6 +1,5 @@
 package com.example.konteksto.ui.profile
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,7 +12,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -185,28 +183,25 @@ fun ProfileScreenContent(
             Spacer(modifier = Modifier.height(24.dp))
 
             if (currentUser != null) {
-                OutlinedButton(
+                Button(
                     onClick = { showSignOutDialog = true },
                     enabled = !isLoading,
                     shape = MaterialTheme.shapes.medium,
-                    border = BorderStroke(
-                        1.dp,
-                        MaterialTheme.colorScheme.error.copy(alpha = 0.5f),
-                    ),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
                         contentColor = MaterialTheme.colorScheme.error,
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(44.dp),
+                        .height(46.dp),
                 ) {
                     Text(
                         text = "Sign Out",
                         style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
                         ),
+                        color = MaterialTheme.colorScheme.error,
                     )
                 }
             } else {
