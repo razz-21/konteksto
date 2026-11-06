@@ -54,6 +54,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.ui.theme.extendedColors
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -381,11 +382,7 @@ fun HostStudioSlidesView(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(20.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface,
-                            ),
-                            border = BorderStroke(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                containerColor = MaterialTheme.extendedColors.cardContainer,
                             ),
                         ) {
                             Column(
@@ -466,11 +463,7 @@ fun HostStudioSlidesView(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(20.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface,
-                            ),
-                            border = BorderStroke(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                containerColor = MaterialTheme.extendedColors.cardContainer,
                             ),
                         ) {
                             Column(
@@ -742,11 +735,7 @@ fun HostStudioSlidesView(
                                         modifier = Modifier.fillMaxWidth(),
                                         shape = RoundedCornerShape(20.dp),
                                         colors = CardDefaults.cardColors(
-                                            containerColor = MaterialTheme.colorScheme.surface,
-                                        ),
-                                        border = BorderStroke(
-                                            width = 1.dp,
-                                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                            containerColor = MaterialTheme.extendedColors.cardContainer,
                                         ),
                                     ) {
                                         Column(
@@ -881,11 +870,7 @@ fun HostStudioSlidesView(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(20.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surface,
-                                ),
-                                border = BorderStroke(
-                                    width = 1.dp,
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                    containerColor = MaterialTheme.extendedColors.cardContainer,
                                 ),
                             ) {
                                 Column(
@@ -1062,11 +1047,7 @@ fun HostStudioSlidesView(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(20.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surface,
-                                ),
-                                border = BorderStroke(
-                                    width = 1.dp,
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                    containerColor = MaterialTheme.extendedColors.cardContainer,
                                 ),
                             ) {
                                 Column(
@@ -1165,11 +1146,7 @@ private fun AnalyzedSlideCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        border = BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+            containerColor = MaterialTheme.extendedColors.cardContainer,
         ),
     ) {
         Column(

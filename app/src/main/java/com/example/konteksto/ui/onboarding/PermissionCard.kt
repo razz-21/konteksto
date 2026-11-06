@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
 import com.example.konteksto.ui.theme.KontekstoTheme
+import com.example.konteksto.ui.theme.extendedColors
 
 @Composable
 fun PermissionCard(
@@ -45,9 +46,8 @@ fun PermissionCard(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.small,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+            containerColor = MaterialTheme.extendedColors.cardContainer,
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Row(
             modifier = Modifier

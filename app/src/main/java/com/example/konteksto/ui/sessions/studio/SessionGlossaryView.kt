@@ -1,7 +1,5 @@
 package com.example.konteksto.ui.sessions.studio
 
-import android.widget.Toast
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,11 +25,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -39,36 +36,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
 import com.example.konteksto.data.repository.GlossaryTermItem
-import com.example.konteksto.ui.host.studio.DomainTermItem
+import com.example.konteksto.ui.theme.extendedColors
 
 @Composable
 fun SessionGlossaryView(
     glossaryTerms: List<GlossaryTermItem>,
-    domainTerms: List<DomainTermItem>,
-    onToggleBookmark: (GlossaryTermItem) -> Unit,
+    onRemoveTerm: (GlossaryTermItem) -> Unit,
     modifier: Modifier = Modifier,
+    onShowMessage: (String) -> Unit = {},
 ) {
-    val context = LocalContext.current
-    var searchQuery by remember { mutableStateOf("") }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
 
-    // Combine domain terms from slides and dynamic glossary terms
-    val combinedTerms = remember(glossaryTerms, domainTerms) {
-        val domainAsGlossary = domainTerms.map { dt ->
-            GlossaryTermItem(
-                id = dt.id,
-                term = dt.term,
-                category = dt.category,
-                definition = dt.description,
-                source = "slides",
-                isBookmarked = true,
-            )
-        }
-        (glossaryTerms + domainAsGlossary).distinctBy { it.term.lowercase().trim() }
-    }
+    val sortedTerms = remember(glossaryTerms) { glossaryTerms.sortedByDescending { it.timestamp } }
 
-    val filteredTerms = remember(searchQuery, combinedTerms) {
-        if (searchQuery.isBlank()) combinedTerms
-        else combinedTerms.filter {
+    val filteredTerms = remember(searchQuery, sortedTerms) {
+        if (searchQuery.isBlank()) sortedTerms
+        else sortedTerms.filter {
             it.term.contains(searchQuery, ignoreCase = true) ||
                 it.definition.contains(searchQuery, ignoreCase = true) ||
                 it.category.contains(searchQuery, ignoreCase = true)
@@ -110,7 +93,7 @@ fun SessionGlossaryView(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = if (searchQuery.isNotBlank()) "No glossary terms match '$searchQuery'" else "No session glossary terms yet.\nTerms will build automatically during the talk.",
+                    text = if (searchQuery.isNotBlank()) "No glossary terms match '$searchQuery'" else "No saved terms yet.\nBookmark a live concept explanation to add it here.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -125,13 +108,8 @@ fun SessionGlossaryView(
                     SessionGlossaryCard(
                         term = term,
                         onToggleBookmark = { item ->
-                            onToggleBookmark(item)
-                            val msg = if (item.isBookmarked) {
-                                "Removed ${item.term} from My Glossary"
-                            } else {
-                                "Saved ${item.term} to My Glossary & Session Glossary"
-                            }
-                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                            onRemoveTerm(item)
+                            onShowMessage("Removed ${item.term} from My Glossary")
                         },
                     )
                 }
@@ -152,11 +130,7 @@ fun SessionGlossaryCard(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        ),
-        border = BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+            containerColor = MaterialTheme.extendedColors.cardContainer,
         ),
     ) {
         Column(
@@ -177,7 +151,7 @@ fun SessionGlossaryCard(
                     // Category Chip
                     Surface(
                         shape = CircleShape,
-                        color = Color(0xFFE8EAFF),
+                        color = MaterialTheme.colorScheme.primaryContainer,
                     ) {
                         Text(
                             text = term.category.uppercase(),
@@ -186,7 +160,7 @@ fun SessionGlossaryCard(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 10.5.sp,
                             ),
-                            color = Color(0xFF3B52D4),
+                            color = MaterialTheme.colorScheme.primary,
                         )
                     }
 
@@ -211,7 +185,7 @@ fun SessionGlossaryCard(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_bookmark),
                         contentDescription = "Bookmark Term",
-                        tint = if (isBookmarked) Color(0xFF3B52D4) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        tint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                         modifier = Modifier.size(18.dp),
                     )
                 }

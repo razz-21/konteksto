@@ -8,6 +8,11 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
@@ -86,6 +91,34 @@ private val LightColorScheme = lightColorScheme(
     onErrorContainer = OnErrorContainerLight,
 )
 
+/** Theme colors Material 3 has no role for. Read them with `MaterialTheme.extendedColors`. */
+@Immutable
+data class KontekstoExtendedColors(
+    /** Cards and sections: white on the light page, a step lighter than the dark page so they stand out. */
+    val cardContainer: Color,
+    val success: Color,
+    val successContainer: Color,
+)
+
+private val LightExtendedColors = KontekstoExtendedColors(
+    cardContainer = SurfaceContainerLowestLight,
+    success = SuccessLight,
+    successContainer = SuccessContainerLight,
+)
+
+private val DarkExtendedColors = KontekstoExtendedColors(
+    cardContainer = CardContainerDark,
+    success = SuccessDark,
+    successContainer = SuccessContainerDark,
+)
+
+private val LocalKontekstoExtendedColors = staticCompositionLocalOf { LightExtendedColors }
+
+val MaterialTheme.extendedColors: KontekstoExtendedColors
+    @Composable
+    @ReadOnlyComposable
+    get() = LocalKontekstoExtendedColors.current
+
 @Composable
 fun KontekstoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -103,10 +136,14 @@ fun KontekstoTheme(
         else -> LightColorScheme
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        shapes = Shapes,
-        content = content
-    )
+    CompositionLocalProvider(
+        LocalKontekstoExtendedColors provides if (darkTheme) DarkExtendedColors else LightExtendedColors,
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            shapes = Shapes,
+            content = content
+        )
+    }
 }

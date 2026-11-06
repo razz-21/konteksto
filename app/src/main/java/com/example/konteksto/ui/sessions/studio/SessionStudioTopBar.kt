@@ -1,6 +1,5 @@
 package com.example.konteksto.ui.sessions.studio
 
-import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -19,9 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -38,8 +35,8 @@ fun SessionStudioTopBar(
     onPresentQrClick: (HostSession) -> Unit,
     onLeaveClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onShowMessage: (String) -> Unit = {},
 ) {
-    val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
 
     val talkCodeText = session.talkCode.ifBlank { "4VY4N6" }
@@ -85,11 +82,11 @@ fun SessionStudioTopBar(
             Surface(
                 onClick = {
                     clipboardManager.setText(AnnotatedString(talkCodeText))
-                    Toast.makeText(context, "Copied $talkCodeText to clipboard", Toast.LENGTH_SHORT).show()
+                    onShowMessage("Copied $talkCodeText to clipboard")
                     onPresentQrClick(session)
                 },
                 shape = CircleShape,
-                color = Color(0xFFE2E7FF),
+                color = MaterialTheme.colorScheme.primaryContainer,
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
@@ -98,7 +95,7 @@ fun SessionStudioTopBar(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_copy),
                         contentDescription = "Copy Talk Code",
-                        tint = Color(0xFF3B52D4),
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(16.dp),
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -109,7 +106,7 @@ fun SessionStudioTopBar(
                             fontSize = 13.5.sp,
                             letterSpacing = 0.5.sp,
                         ),
-                        color = Color(0xFF152270),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 }
             }
@@ -122,7 +119,7 @@ fun SessionStudioTopBar(
                 Icon(
                     painter = painterResource(id = R.drawable.ic_leave),
                     contentDescription = "Leave Session",
-                    tint = Color(0xFFDC2626),
+                    tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(22.dp),
                 )
             }

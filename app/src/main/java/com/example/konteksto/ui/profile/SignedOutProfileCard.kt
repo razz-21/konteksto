@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.ui.theme.extendedColors
 
 @Composable
 fun SignedOutProfileCard(
@@ -32,7 +33,7 @@ fun SignedOutProfileCard(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            containerColor = MaterialTheme.extendedColors.cardContainer,
             contentColor = MaterialTheme.colorScheme.onBackground,
         ),
     ) {

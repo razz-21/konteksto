@@ -1,6 +1,5 @@
 package com.example.konteksto.ui.sessions.studio
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -22,13 +21,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -36,7 +34,9 @@ import com.example.konteksto.data.repository.GlossaryTermItem
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.host.studio.DeleteDomainTermDialog
 import com.example.konteksto.ui.host.studio.DomainTermItem
+import com.example.konteksto.ui.components.showKontekstoSnackbar
 import com.example.konteksto.ui.theme.KontekstoTheme
+import kotlinx.coroutines.launch
 
 @Composable
 fun SessionStudioScreen(
@@ -51,38 +51,34 @@ fun SessionStudioScreen(
     onAskWhatTheyMean: (List<CompanionTranscriptItem>) -> Unit = {},
     onDismissActiveExplanation: () -> Unit = {},
     onBookmarkConcept: (LiveConceptExplanationItem) -> Unit = {},
-    onToggleBookmarkGlossaryTerm: (GlossaryTermItem) -> Unit = {},
+    onRemoveGlossaryTerm: (GlossaryTermItem) -> Unit = {},
     domainTerms: List<DomainTermItem> = emptyList(),
 ) {
-    val context = LocalContext.current
     var showLeaveConfirmDialog by remember { mutableStateOf(false) }
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedTab by rememberSaveable { mutableStateOf(SessionStudioTab.LiveCompanion) }
     var termsList by remember(domainTerms) { mutableStateOf(domainTerms) }
     var termToDelete by remember { mutableStateOf<DomainTermItem?>(null) }
     var termToEdit by remember { mutableStateOf<DomainTermItem?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarScope = rememberCoroutineScope()
+    val showMessage: (String) -> Unit = { message ->
+        snackbarScope.launch { snackbarHostState.showKontekstoSnackbar(message) }
+    }
     var previousConceptIds by remember { mutableStateOf<Set<String>?>(null) }
 
+    // The first run only records what is already shown, so only concepts detected afterwards are announced.
     LaunchedEffect(transcriptState.conceptExplanations) {
         val currentConcepts = transcriptState.conceptExplanations
-        if (currentConcepts.isNotEmpty()) {
-            val currentIds = currentConcepts.map { it.id }.toSet()
-            val prev = previousConceptIds
-            if (prev != null) {
-                val newlyAdded = currentConcepts.filter { it.id !in prev }
-                if (newlyAdded.isNotEmpty()) {
-                    val newest = newlyAdded.first()
-                    val result = snackbarHostState.showSnackbar(
-                        message = "New live concept detected: ${newest.title}",
-                        actionLabel = "View",
-                    )
-                    if (result == SnackbarResult.ActionPerformed) {
-                        selectedTab = 0
-                    }
-                }
-            }
-            previousConceptIds = currentIds
+        val prev = previousConceptIds
+        previousConceptIds = currentConcepts.map { it.id }.toSet()
+        val newest = prev?.let { currentConcepts.firstOrNull { it.id !in prev } } ?: return@LaunchedEffect
+        val result = snackbarHostState.showKontekstoSnackbar(
+            message = "New live concept detected: ${newest.title}",
+            actionLabel = "View",
+        )
+        if (result == SnackbarResult.ActionPerformed) {
+            selectedTab = SessionStudioTab.ConceptExplanation
         }
     }
 
@@ -133,7 +129,7 @@ fun SessionStudioScreen(
             onConfirm = {
                 termsList = termsList.filterNot { it.id == term.id }
                 termToDelete = null
-                Toast.makeText(context, "Deleted ${term.term}", Toast.LENGTH_SHORT).show()
+                showMessage("Deleted ${term.term}")
             },
             onDismiss = { termToDelete = null },
         )
@@ -145,7 +141,7 @@ fun SessionStudioScreen(
             onConfirm = { updated ->
                 termsList = termsList.map { if (it.id == updated.id) updated else it }
                 termToEdit = null
-                Toast.makeText(context, "Saved changes to ${updated.term}", Toast.LENGTH_SHORT).show()
+                showMessage("Saved changes to ${updated.term}")
             },
             onDismiss = { termToEdit = null },
         )
@@ -164,7 +160,7 @@ fun SessionStudioScreen(
         modifier = modifier
             .fillMaxSize()
             .safeDrawingPadding(),
-        containerColor = Color(0xFFF5F6FA),
+        containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
     ) { innerPadding ->
         Column(
@@ -179,6 +175,7 @@ fun SessionStudioScreen(
                 onBackClick = onBackClick,
                 onPresentQrClick = onPresentQrClick,
                 onLeaveClick = { showLeaveConfirmDialog = true },
+                onShowMessage = showMessage,
             )
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -191,12 +188,13 @@ fun SessionStudioScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Material Segmented Tabs directly below speaker section
-            // Contains 3 tabs: Live Companion, Terms, Glossary
+            // Contains 4 tabs: Live Companion, Concept Explanation, Terms, Glossary
             SessionStudioSegmentedTabs(
                 selectedTab = selectedTab,
                 onTabSelected = { selectedTab = it },
+                conceptCount = transcriptState.conceptExplanations.size,
                 termsCount = termsList.size,
-                glossaryCount = transcriptState.sessionGlossaryTerms.size.coerceAtLeast(1),
+                glossaryCount = transcriptState.sessionGlossaryTerms.size,
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -208,8 +206,8 @@ fun SessionStudioScreen(
                     .weight(1f),
             ) {
                 when (selectedTab) {
-                    0 -> {
-                        // Live Companion Tab View (Transcripts, What did they mean button, Live Concept Explanations)
+                    SessionStudioTab.LiveCompanion -> {
+                        // Live Companion Tab View (Transcripts, What did they mean button)
                         SessionLiveCompanionView(
                             session = session,
                             isAudioBroadcasting = session.isLive,
@@ -221,27 +219,34 @@ fun SessionStudioScreen(
                             didLiveTranscriptFail = transcriptState.didLiveTranscriptFail,
                             onLoadEarlierTranscripts = onLoadEarlierTranscripts,
                             onRetryLiveTranscript = onRetryLiveTranscript,
-                            conceptExplanations = transcriptState.conceptExplanations,
-                            onBookmarkConcept = onBookmarkConcept,
                             onAskWhatTheyMean = { selectedItems, clearSelection ->
                                 onAskWhatTheyMean(selectedItems)
                                 clearSelection()
                             },
                         )
                     }
-                    1 -> {
+                    SessionStudioTab.ConceptExplanation -> {
+                        // Concept Explanation Tab: concepts detected while the speaker talks
+                        SessionConceptExplanationsView(
+                            conceptExplanations = transcriptState.conceptExplanations,
+                            isSessionLive = session.isLive,
+                            onBookmarkConcept = onBookmarkConcept,
+                            onShowMessage = showMessage,
+                        )
+                    }
+                    SessionStudioTab.Terms -> {
                         // Terms Tab
                         SessionTermsView(
                             domainTerms = termsList,
                             showEditDeleteActions = false,
                         )
                     }
-                    2 -> {
-                        // Glossary Tab
+                    SessionStudioTab.Glossary -> {
+                        // Glossary Tab: only the live concepts this attendee bookmarked
                         SessionGlossaryView(
                             glossaryTerms = transcriptState.sessionGlossaryTerms,
-                            domainTerms = termsList,
-                            onToggleBookmark = onToggleBookmarkGlossaryTerm,
+                            onRemoveTerm = onRemoveGlossaryTerm,
+                            onShowMessage = showMessage,
                         )
                     }
                 }

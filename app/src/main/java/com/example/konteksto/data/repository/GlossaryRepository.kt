@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -194,27 +195,8 @@ class FirebaseGlossaryRepository(
         try {
             val firestore = firestoreOrNull
             if (firestore != null) {
-                // 1. Save to session glossary (sessions/{sessionId}/glossary/{termId})
-                if (sessionId.isNotBlank()) {
-                    val sessionGlossaryRef = firestore.collection("sessions").document(sessionId)
-                        .collection("glossary").document(term.id)
-
-                    sessionGlossaryRef.set(
-                        mapOf(
-                            "termId" to term.id,
-                            "term" to term.term,
-                            "normalizedKey" to term.term.lowercase().trim(),
-                            "category" to term.category,
-                            "definition" to term.definition,
-                            "source" to term.source,
-                            "hostEdited" to false,
-                            "hidden" to false,
-                            "timestamp" to term.timestamp,
-                        ),
-                    ).await()
-                }
-
-                // 2. Save to user personal glossary (users/{uid}/saved_glossary/{termId})
+                // Bookmarks are personal; sessions/{id}/glossary belongs to the glossary engine and host.
+                // Save to user personal glossary (users/{uid}/saved_glossary/{termId})
                 if (currentUid.isNotBlank()) {
                     val userGlossaryRef = firestore.collection("users").document(currentUid)
                         .collection("saved_glossary").document(term.id)
@@ -233,6 +215,8 @@ class FirebaseGlossaryRepository(
                     ).await()
                 }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("FirebaseGlossaryRepo", "Failed to save term to Firestore: ${e.message}")
         }
@@ -259,6 +243,8 @@ class FirebaseGlossaryRepository(
                     .collection("saved_glossary").document(termId)
                     .delete().await()
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("FirebaseGlossaryRepo", "Failed to remove term from user glossary: ${e.message}")
         }

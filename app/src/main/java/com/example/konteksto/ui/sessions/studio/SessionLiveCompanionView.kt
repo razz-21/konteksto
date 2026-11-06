@@ -1,13 +1,11 @@
 package com.example.konteksto.ui.sessions.studio
 
-import android.widget.Toast
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,7 +30,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -46,10 +44,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -57,8 +53,8 @@ import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.components.JumpToLiveButton
 import com.example.konteksto.ui.components.LiveSpeakingBubble
-import com.example.konteksto.ui.components.MarkdownText
 import com.example.konteksto.ui.components.rememberLiveTranscriptFollowState
+import com.example.konteksto.ui.theme.extendedColors
 
 data class CompanionTranscriptItem(
     val id: String,
@@ -80,19 +76,6 @@ data class LiveConceptExplanationItem(
     val isBookmarked: Boolean = false,
 )
 
-private val DEFAULT_CONCEPT_EXPLANATIONS = listOf(
-    LiveConceptExplanationItem(
-        id = "concept_1",
-        type = "Core Neural Mechanics",
-        timestamp = "At 14m 20s",
-        percentGrounded = 98,
-        title = "Self-Attention Weights",
-        definition = "Mathematical scores calculated by the model that determine how much focus or weight each word gives to other words in the sentence.",
-        analogy = "Like a highlighter pen that dynamically emphasizes the pronouns and their antecedents while you read.",
-        whyItMatters = "Without self-attention, the model would treat words in isolation and miss contextual nuance or sentence-level logic.",
-    ),
-)
-
 @Composable
 fun SessionLiveCompanionView(
     session: HostSession,
@@ -106,14 +89,11 @@ fun SessionLiveCompanionView(
     didLiveTranscriptFail: Boolean = false,
     onLoadEarlierTranscripts: () -> Unit = {},
     onRetryLiveTranscript: () -> Unit = {},
-    conceptExplanations: List<LiveConceptExplanationItem> = DEFAULT_CONCEPT_EXPLANATIONS,
     isExplaining: Boolean = false,
     explainError: String? = null,
     onRetryExplain: () -> Unit = {},
-    onBookmarkConcept: (LiveConceptExplanationItem) -> Unit = {},
     onAskWhatTheyMean: (selectedItems: List<CompanionTranscriptItem>, clearSelection: () -> Unit) -> Unit = { _, _ -> },
 ) {
-    val context = LocalContext.current
 
     // Sample default transcript entries matching the design screenshot
     val defaultTranscripts = remember(session.speakerName) {
@@ -156,7 +136,9 @@ fun SessionLiveCompanionView(
 
     val transcriptListState = rememberLazyListState()
     val transcriptItemCount = (if (hasEarlierTranscripts) 1 else 0) + items.size +
-        (if (livePartialText.isNotBlank()) 1 else 0)
+        (if (livePartialText.isNotBlank()) 1 else 0) +
+        (if (isExplaining) 1 else 0) +
+        (if (explainError != null) 1 else 0)
     val followState = rememberLiveTranscriptFollowState(
         listState = transcriptListState,
         itemCount = transcriptItemCount,
@@ -177,361 +159,282 @@ fun SessionLiveCompanionView(
     )
 
     Box(modifier = modifier.fillMaxSize()) {
-        LazyColumn(
-            state = transcriptListState,
+        // PANEL: WHITE CARD FOR LIVE TRANSCRIPT. The header stays put and only the lines scroll,
+        // so the jump-to-live button floats over the visible bottom of the list.
+        Card(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = if (selectedIds.isNotEmpty()) 80.dp else 0.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(bottom = 80.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.extendedColors.cardContainer,
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
-            // PANEL 1: SEPARATE WHITE CARD PANEL FOR LIVE TRANSCRIPT
-            item(key = "live_transcript_panel") {
-                Card(
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                // Header Row: "Live transcript" + Audio status badge
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.White,
-                    ),
-                    border = BorderStroke(
-                        width = 1.dp,
-                        color = Color(0xFFEAECF0),
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    Text(
+                        text = "Live transcript",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 17.sp,
+                        ),
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+
+                    // Audio status pill badge
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
                     ) {
-                        // Header Row: "Live transcript" + Audio status badge
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(
-                                text = "Live transcript",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 17.sp,
-                                ),
-                                color = MaterialTheme.colorScheme.onBackground,
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_audio_waveform),
+                                contentDescription = null,
+                                tint = if (isAudioBroadcasting) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .size(14.dp)
+                                    .graphicsLayer {
+                                        alpha = if (isAudioBroadcasting) waveAlpha else 1.0f
+                                    },
                             )
-
-                            // Audio status pill badge
-                            Surface(
-                                shape = CircleShape,
-                                color = Color(0xFFF2F4F7),
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_audio_waveform),
-                                        contentDescription = null,
-                                        tint = if (isAudioBroadcasting) Color(0xFF2563EB) else Color(0xFF475467),
-                                        modifier = Modifier
-                                            .size(14.dp)
-                                            .graphicsLayer {
-                                                alpha = if (isAudioBroadcasting) waveAlpha else 1.0f
-                                            },
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = if (isAudioBroadcasting) "Audio live" else "Audio off",
-                                        style = MaterialTheme.typography.labelMedium.copy(
-                                            fontWeight = FontWeight.SemiBold,
-                                            fontSize = 12.sp,
-                                        ),
-                                        color = Color(0xFF344054),
-                                    )
-                                }
-                            }
-                        }
-
-                        // Subtitle Row: Instruction
-                        Text(
-                            text = "Tap lines to select them, then ask what they mean.",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontSize = 12.5.sp,
-                            ),
-                            color = Color(0xFF667085),
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-
-                        Spacer(modifier = Modifier.height(2.dp))
-
-                        // Box for Transcript Statements with JumpToLiveButton strictly inside this panel
-                        Box(modifier = Modifier.fillMaxWidth()) {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                if (didLiveTranscriptFail) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Text(
-                                            text = stringResource(id = R.string.transcript_live_failed),
-                                            modifier = Modifier.weight(1f),
-                                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
-                                            color = MaterialTheme.colorScheme.error,
-                                        )
-                                        TextButton(onClick = onRetryLiveTranscript) {
-                                            Text(text = stringResource(id = R.string.transcript_retry))
-                                        }
-                                    }
-                                }
-
-                                if (hasEarlierTranscripts) {
-                                    TextButton(
-                                        onClick = onLoadEarlierTranscripts,
-                                        enabled = !isLoadingEarlierTranscripts,
-                                        modifier = Modifier.fillMaxWidth(),
-                                    ) {
-                                        Text(
-                                            text = stringResource(
-                                                id = if (didEarlierTranscriptsFail) {
-                                                    R.string.transcript_load_earlier_failed
-                                                } else {
-                                                    R.string.transcript_load_earlier
-                                                },
-                                            ),
-                                        )
-                                    }
-                                }
-
-                                items.forEach { item ->
-                                    if (item.isSystemEvent || item.speakerName.equals("SYSTEM", ignoreCase = true)) {
-                                        SystemEventPill(
-                                            text = item.text,
-                                            timestamp = item.timestamp,
-                                        )
-                                    } else {
-                                        val isSelected = selectedIds.contains(item.id)
-
-                                        Card(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable {
-                                                    selectedIds = if (isSelected) {
-                                                        selectedIds - item.id
-                                                    } else {
-                                                        selectedIds + item.id
-                                                    }
-                                                },
-                                            shape = RoundedCornerShape(12.dp),
-                                            colors = CardDefaults.cardColors(
-                                                containerColor = if (isSelected) Color(0xFFF8FAFF) else Color(0xFFFAFAFA),
-                                            ),
-                                            border = BorderStroke(
-                                                width = if (isSelected) 1.5.dp else 1.dp,
-                                                color = if (isSelected) Color(0xFF2563EB) else Color(0xFFEAECF0),
-                                            ),
-                                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                                        ) {
-                                            Column(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(14.dp),
-                                            ) {
-                                                // Top Row: Speaker Name, Timestamp, Square Checkbox
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                ) {
-                                                    Row(
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        modifier = Modifier.weight(1f, fill = false),
-                                                    ) {
-                                                        Text(
-                                                            text = item.speakerName.uppercase(),
-                                                            style = MaterialTheme.typography.titleSmall.copy(
-                                                                fontWeight = FontWeight.ExtraBold,
-                                                                fontSize = 13.5.sp,
-                                                            ),
-                                                            color = Color(0xFF2563EB),
-                                                        )
-
-                                                        Spacer(modifier = Modifier.width(8.dp))
-
-                                                        Surface(
-                                                            shape = RoundedCornerShape(6.dp),
-                                                            color = Color(0xFFF2F4F7),
-                                                        ) {
-                                                            Text(
-                                                                text = item.timestamp,
-                                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                                                style = MaterialTheme.typography.labelSmall.copy(
-                                                                    fontWeight = FontWeight.SemiBold,
-                                                                    fontSize = 11.sp,
-                                                                ),
-                                                                color = Color(0xFF475467),
-                                                            )
-                                                        }
-                                                    }
-
-                                                    // Square Checkbox on Top Right
-                                                    SquareSelectCheckbox(
-                                                        checked = isSelected,
-                                                        onCheckedChange = { checked ->
-                                                            selectedIds = if (checked) {
-                                                                selectedIds + item.id
-                                                            } else {
-                                                                selectedIds - item.id
-                                                            }
-                                                        },
-                                                    )
-                                                }
-
-                                                Spacer(modifier = Modifier.height(8.dp))
-
-                                                // Transcript Statement Text
-                                                Text(
-                                                    text = item.text,
-                                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                                        fontSize = 13.sp,
-                                                        lineHeight = 18.5.sp,
-                                                    ),
-                                                    color = MaterialTheme.colorScheme.onBackground,
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-
-                                if (livePartialText.isNotBlank()) {
-                                    LiveSpeakingBubble(text = livePartialText)
-                                }
-
-                                if (isExplaining) {
-                                    Card(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = Color(0xFFFAFAFA),
-                                        ),
-                                    ) {
-                                        Box(
-                                            modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            Text("Analyzing selected statements...", color = Color(0xFF667085))
-                                        }
-                                    }
-                                }
-
-                                if (explainError != null) {
-                                    Card(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                                        ),
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically,
-                                        ) {
-                                            Text(explainError, color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.weight(1f))
-                                            TextButton(onClick = onRetryExplain) {
-                                                Text("Retry", color = MaterialTheme.colorScheme.onErrorContainer)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Jump To Live button constrained strictly inside Panel 1
-                            if (followState.showJumpToLive) {
-                                JumpToLiveButton(
-                                    listState = transcriptListState,
-                                    followState = followState,
-                                    itemCount = transcriptItemCount,
-                                    modifier = Modifier
-                                        .align(Alignment.BottomCenter)
-                                        .padding(bottom = 4.dp),
-                                )
-                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (isAudioBroadcasting) "Audio live" else "Audio off",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.sp,
+                                ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
                 }
-            }
 
-            // PANEL 2: SEPARATE WHITE CARD PANEL FOR LIVE CONCEPT EXPLANATIONS
-            if (conceptExplanations.isNotEmpty()) {
-                item(key = "live_concept_explanations_panel") {
-                    Card(
+                // Subtitle Row: Instruction
+                Text(
+                    text = "Tap lines to select them, then ask what they mean.",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 12.5.sp,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                if (didLiveTranscriptFail) {
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color.White,
-                        ),
-                        border = BorderStroke(
-                            width = 1.dp,
-                            color = Color(0xFFEAECF0),
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp),
-                        ) {
-                            // Concept Header Row
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_sparkle),
-                                        contentDescription = null,
-                                        tint = Color(0xFF2563EB),
-                                        modifier = Modifier.size(18.dp),
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(id = R.string.transcript_live_failed),
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                        TextButton(onClick = onRetryLiveTranscript) {
+                            Text(text = stringResource(id = R.string.transcript_retry))
+                        }
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                ) {
+                    LazyColumn(
+                        state = transcriptListState,
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        if (hasEarlierTranscripts) {
+                            item(key = "load_earlier") {
+                                TextButton(
+                                    onClick = onLoadEarlierTranscripts,
+                                    enabled = !isLoadingEarlierTranscripts,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
                                     Text(
-                                        text = "Live Concept Explanations (${conceptExplanations.size})",
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 15.sp,
+                                        text = stringResource(
+                                            id = if (didEarlierTranscriptsFail) {
+                                                R.string.transcript_load_earlier_failed
+                                            } else {
+                                                R.string.transcript_load_earlier
+                                            },
                                         ),
-                                        color = MaterialTheme.colorScheme.onBackground,
                                     )
                                 }
-
-                                Text(
-                                    text = "Auto-detected",
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Medium,
-                                    ),
-                                    color = Color(0xFF667085),
-                                )
-                            }
-
-                            conceptExplanations.forEach { concept ->
-                                LiveConceptExplanationCard(
-                                    item = concept,
-                                    onBookmarkToggle = { _ ->
-                                        onBookmarkConcept(concept)
-                                        val msg = if (!concept.isBookmarked) {
-                                            "Saved to My Glossary & Session Glossary"
-                                        } else {
-                                            "Removed from My Glossary"
-                                        }
-                                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                                    },
-                                )
                             }
                         }
+
+                        items(items, key = { it.id }) { item ->
+                            if (item.isSystemEvent || item.speakerName.equals("SYSTEM", ignoreCase = true)) {
+                                SystemEventPill(
+                                    text = item.text,
+                                    timestamp = item.timestamp,
+                                )
+                            } else {
+                                val isSelected = selectedIds.contains(item.id)
+
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            selectedIds = if (isSelected) {
+                                                selectedIds - item.id
+                                            } else {
+                                                selectedIds + item.id
+                                            }
+                                        },
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = CardDefaults.cardColors(
+                                        // No border: selection shows as a full tint plus the checked box.
+                                        containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+                                    ),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(14.dp),
+                                    ) {
+                                        // Top Row: Speaker Name, Timestamp, Square Checkbox
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.weight(1f, fill = false),
+                                            ) {
+                                                Text(
+                                                    text = item.speakerName.uppercase(),
+                                                    style = MaterialTheme.typography.titleSmall.copy(
+                                                        fontWeight = FontWeight.ExtraBold,
+                                                        fontSize = 13.5.sp,
+                                                    ),
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                )
+
+                                                Spacer(modifier = Modifier.width(8.dp))
+
+                                                Surface(
+                                                    shape = RoundedCornerShape(6.dp),
+                                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                                ) {
+                                                    Text(
+                                                        text = item.timestamp,
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            fontSize = 11.sp,
+                                                        ),
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    )
+                                                }
+                                            }
+
+                                            // Square Checkbox on Top Right
+                                            SquareSelectCheckbox(
+                                                checked = isSelected,
+                                                onCheckedChange = { checked ->
+                                                    selectedIds = if (checked) {
+                                                        selectedIds + item.id
+                                                    } else {
+                                                        selectedIds - item.id
+                                                    }
+                                                },
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.height(8.dp))
+
+                                        // Transcript Statement Text
+                                        Text(
+                                            text = item.text,
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                fontSize = 13.sp,
+                                                lineHeight = 18.5.sp,
+                                            ),
+                                            color = MaterialTheme.colorScheme.onBackground,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        if (livePartialText.isNotBlank()) {
+                            item(key = "live_partial") {
+                                LiveSpeakingBubble(text = livePartialText)
+                            }
+                        }
+
+                        if (isExplaining) {
+                            item(key = "explaining") {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                    ),
+                                ) {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text("Analyzing selected statements...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
+                        }
+
+                        if (explainError != null) {
+                            item(key = "explain_error") {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                                    ),
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(explainError, color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.weight(1f))
+                                        TextButton(onClick = onRetryExplain) {
+                                            Text("Retry", color = MaterialTheme.colorScheme.onErrorContainer)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (followState.showJumpToLive) {
+                        JumpToLiveButton(
+                            listState = transcriptListState,
+                            followState = followState,
+                            itemCount = transcriptItemCount,
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 12.dp),
+                        )
                     }
                 }
             }
@@ -542,51 +445,55 @@ fun SessionLiveCompanionView(
             items.filter { it.id in selectedIds }.sortedBy { items.indexOf(it) }
         }
 
-        if (selectedIds.isNotEmpty()) {
-            Box(
+        // Always visible so attendees can find it; enabled once at least one line is selected.
+        val hasSelection = selectedItems.isNotEmpty()
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 8.dp),
+        ) {
+            Button(
+                onClick = {
+                    onAskWhatTheyMean(selectedItems) {
+                        selectedIds = emptySet()
+                    }
+                },
+                enabled = hasSelection,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 8.dp),
+                    .height(54.dp),
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                    disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                ),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, disabledElevation = 0.dp),
             ) {
-                Button(
-                    onClick = {
-                        onAskWhatTheyMean(selectedItems) {
-                            selectedIds = emptySet()
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp),
-                    shape = CircleShape,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF2563EB),
-                        contentColor = Color.White,
-                    ),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp),
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_sparkle),
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp),
-                        )
+                    // Icon and text follow the button's content color, so they dim when disabled.
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_sparkle),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
 
-                        Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
 
-                        Text(
-                            text = "What did they mean?",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
-                            ),
-                            color = Color.White,
-                        )
+                    Text(
+                        text = "What did they mean?",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                        ),
+                    )
 
+                    if (hasSelection) {
                         Spacer(modifier = Modifier.width(10.dp))
 
                         // White Circle Badge with selected count
@@ -594,7 +501,7 @@ fun SessionLiveCompanionView(
                             modifier = Modifier
                                 .size(26.dp)
                                 .clip(CircleShape)
-                                .background(Color.White),
+                                .background(MaterialTheme.colorScheme.onPrimary),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
@@ -603,7 +510,7 @@ fun SessionLiveCompanionView(
                                     fontWeight = FontWeight.ExtraBold,
                                     fontSize = 13.5.sp,
                                 ),
-                                color = Color(0xFF2563EB),
+                                color = MaterialTheme.colorScheme.primary,
                             )
                         }
                     }
@@ -631,11 +538,7 @@ fun SystemEventPill(
     ) {
         Surface(
             shape = CircleShape,
-            color = Color(0xFFF2F4F7),
-            border = BorderStroke(
-                width = 1.dp,
-                color = Color(0xFFEAECF0),
-            ),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
             Row(
                 modifier = Modifier.padding(start = 12.dp, top = 4.dp, end = 4.dp, bottom = 4.dp),
@@ -646,7 +549,7 @@ fun SystemEventPill(
                     modifier = Modifier
                         .size(8.dp)
                         .background(
-                            color = if (isOffOrEnded) Color(0xFFFF8A80) else Color(0xFF00C853),
+                            color = if (isOffOrEnded) MaterialTheme.colorScheme.error else MaterialTheme.extendedColors.success,
                             shape = CircleShape,
                         ),
                 )
@@ -660,7 +563,7 @@ fun SystemEventPill(
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 12.sp,
                     ),
-                    color = Color(0xFF344054),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
                 if (timestamp.isNotBlank()) {
@@ -669,7 +572,7 @@ fun SystemEventPill(
                     // Inner Timestamp Pill Badge
                     Surface(
                         shape = CircleShape,
-                        color = Color(0xFFE2E8F0),
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
                     ) {
                         Text(
                             text = timestamp,
@@ -677,7 +580,7 @@ fun SystemEventPill(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.sp,
                             ),
-                            color = Color(0xFF475467),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                         )
                     }
@@ -697,10 +600,10 @@ fun SquareSelectCheckbox(
         modifier = modifier
             .size(20.dp)
             .clip(RoundedCornerShape(4.dp))
-            .background(if (checked) Color(0xFF2563EB) else Color.Transparent)
+            .background(if (checked) MaterialTheme.colorScheme.primary else Color.Transparent)
             .border(
                 width = 1.5.dp,
-                color = if (checked) Color(0xFF2563EB) else Color(0xFF667085),
+                color = if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 shape = RoundedCornerShape(4.dp),
             )
             .clickable { onCheckedChange(!checked) },
@@ -710,181 +613,10 @@ fun SquareSelectCheckbox(
             Icon(
                 painter = painterResource(id = R.drawable.ic_check),
                 contentDescription = "Selected",
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.size(13.dp),
             )
         }
     }
 }
 
-@Composable
-fun LiveConceptExplanationCard(
-    item: LiveConceptExplanationItem,
-    onBookmarkToggle: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var isBookmarked by remember(item.isBookmarked) { mutableStateOf(item.isBookmarked) }
-
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFFAFAFA),
-        ),
-        border = BorderStroke(
-            1.dp,
-            Color(0xFFEAECF0),
-        ),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f, fill = false),
-                ) {
-                    Text(
-                        text = item.type,
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.5.sp,
-                        ),
-                        color = Color(0xFF2563EB),
-                    )
-
-                    Text(
-                        text = "  ·  ",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-
-                    Text(
-                        text = item.timestamp,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 11.5.sp,
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                IconButton(
-                    onClick = {
-                        isBookmarked = !isBookmarked
-                        onBookmarkToggle(item.id)
-                    },
-                    modifier = Modifier.size(32.dp),
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_bookmark),
-                        contentDescription = "Bookmark Concept",
-                        tint = if (isBookmarked) Color(0xFF2563EB) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-            }
-
-            Surface(
-                shape = CircleShape,
-                color = Color(0xFFE8F8F0),
-            ) {
-                Text(
-                    text = "${item.percentGrounded}% Grounded",
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
-                    ),
-                    color = Color(0xFF00875A),
-                )
-            }
-
-            Text(
-                text = item.title,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 17.5.sp,
-                    lineHeight = 22.sp,
-                ),
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-
-            MarkdownText(
-                markdown = item.definition,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontSize = 13.sp,
-                    lineHeight = 18.5.sp,
-                ),
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-
-            if (item.analogy.isNotBlank()) {
-                Surface(
-                    shape = MaterialTheme.shapes.small,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(10.dp),
-                        verticalAlignment = Alignment.Top,
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_sparkle),
-                            contentDescription = null,
-                            tint = Color(0xFF2563EB),
-                            modifier = Modifier.size(16.dp).padding(top = 2.dp),
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column {
-                            Text(
-                                text = "Analogy",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF2563EB),
-                                ),
-                            )
-                            Text(
-                                text = item.analogy,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontSize = 12.sp,
-                                    lineHeight = 16.sp,
-                                    fontStyle = FontStyle.Italic,
-                                ),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-            }
-
-            if (item.whyItMatters.isNotBlank()) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "Why it matters:",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = item.whyItMatters,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 12.sp,
-                            lineHeight = 16.sp,
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-            }
-        }
-    }
-}

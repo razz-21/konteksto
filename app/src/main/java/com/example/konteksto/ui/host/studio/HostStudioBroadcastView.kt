@@ -1,6 +1,5 @@
 package com.example.konteksto.ui.host.studio
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -47,6 +46,7 @@ import com.example.konteksto.ui.components.LiveSpeakingBubble
 import com.example.konteksto.ui.components.rememberLiveTranscriptFollowState
 import com.example.konteksto.ui.sessions.studio.SquareSelectCheckbox
 import com.example.konteksto.ui.sessions.studio.SystemEventPill
+import com.example.konteksto.ui.theme.extendedColors
 
 @Composable
 fun HostStudioBroadcastView(
@@ -74,11 +74,7 @@ fun HostStudioBroadcastView(
                 .heightIn(max = 420.dp),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-            ),
-            border = BorderStroke(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                containerColor = MaterialTheme.extendedColors.cardContainer,
             ),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
@@ -99,7 +95,7 @@ fun HostStudioBroadcastView(
                             Box(
                                 modifier = Modifier
                                     .size(7.dp)
-                                    .background(Color(0xFF00C853), CircleShape),
+                                    .background(MaterialTheme.extendedColors.success, CircleShape),
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                         }
@@ -183,11 +179,8 @@ fun HostStudioBroadcastView(
                                         },
                                     shape = RoundedCornerShape(12.dp),
                                     colors = CardDefaults.cardColors(
-                                        containerColor = if (isSelected) Color(0xFFEEF2FF) else MaterialTheme.colorScheme.surface,
-                                    ),
-                                    border = BorderStroke(
-                                        width = if (isSelected) 1.5.dp else 1.dp,
-                                        color = if (isSelected) Color(0xFF2563EB) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                        // No border: selection shows as a full tint plus the checked box.
+                                        containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
                                     ),
                                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                                 ) {
@@ -212,7 +205,7 @@ fun HostStudioBroadcastView(
                                                         fontWeight = FontWeight.Bold,
                                                         fontSize = 13.5.sp,
                                                     ),
-                                                    color = Color(0xFF2563EB),
+                                                    color = MaterialTheme.colorScheme.primary,
                                                 )
 
                                                 if (entry.timestamp.isNotBlank()) {
@@ -220,7 +213,7 @@ fun HostStudioBroadcastView(
 
                                                     Surface(
                                                         shape = RoundedCornerShape(6.dp),
-                                                        color = Color(0xFFF2F4F7),
+                                                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
                                                     ) {
                                                         Text(
                                                             text = entry.timestamp,
@@ -229,7 +222,7 @@ fun HostStudioBroadcastView(
                                                                 fontWeight = FontWeight.SemiBold,
                                                                 fontSize = 11.sp,
                                                             ),
-                                                            color = Color(0xFF475467),
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                         )
                                                     }
                                                 }

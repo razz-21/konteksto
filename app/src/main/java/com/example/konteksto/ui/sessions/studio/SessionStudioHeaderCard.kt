@@ -1,6 +1,5 @@
 package com.example.konteksto.ui.sessions.studio
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.ui.theme.extendedColors
 
 private const val DEFAULT_HERO_IMAGE_URL =
     "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1000"
@@ -76,11 +76,7 @@ fun SessionStudioHeaderCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White,
-        ),
-        border = BorderStroke(
-            width = 1.dp,
-            color = Color(0xFFEAECF0),
+            containerColor = MaterialTheme.extendedColors.cardContainer,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
@@ -169,7 +165,7 @@ fun SessionStudioHeaderCard(
                         modifier = Modifier
                             .size(44.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFDCE2FF)),
+                            .background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
@@ -178,7 +174,7 @@ fun SessionStudioHeaderCard(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp,
                             ),
-                            color = Color(0xFF152270),
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
                         )
                     }
 
@@ -204,7 +200,7 @@ fun SessionStudioHeaderCard(
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Normal,
                             ),
-                            color = Color(0xFF667085),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -217,7 +213,7 @@ fun SessionStudioHeaderCard(
                     // Venue Pill
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFF2F4F7),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -226,7 +222,7 @@ fun SessionStudioHeaderCard(
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_location),
                                 contentDescription = "Venue",
-                                tint = Color(0xFF475467),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(14.dp),
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -236,7 +232,7 @@ fun SessionStudioHeaderCard(
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 12.5.sp,
                                 ),
-                                color = Color(0xFF344054),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -244,7 +240,7 @@ fun SessionStudioHeaderCard(
                     // Time Pill
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFF2F4F7),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -253,7 +249,7 @@ fun SessionStudioHeaderCard(
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_clock),
                                 contentDescription = "Time",
-                                tint = Color(0xFF475467),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(14.dp),
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -263,7 +259,7 @@ fun SessionStudioHeaderCard(
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 12.5.sp,
                                 ),
-                                color = Color(0xFF344054),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }

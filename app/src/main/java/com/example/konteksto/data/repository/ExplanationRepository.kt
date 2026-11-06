@@ -212,7 +212,6 @@ class FirebaseExplanationRepository(
             Detect up to 3 key technical concepts, terms, or domain mechanisms mentioned or explained by the speaker in the transcript above.
             
             Return ONLY a raw JSON array of objects with no markdown formatting. Each object MUST contain:
-            - "id": unique string id (e.g., "concept_1")
             - "type": domain category (e.g. "Core Mechanics", "Architecture", "Optimization", "Key Term")
             - "timestamp": timestamp of statement (e.g. "Live")
             - "percentGrounded": integer between 85 and 99
@@ -273,13 +272,15 @@ class FirebaseExplanationRepository(
                 val resultList = mutableListOf<LiveConceptExplanationItem>()
                 for (i in 0 until jsonArray.length()) {
                     val obj = jsonArray.getJSONObject(i)
+                    val title = obj.optString("title").trim()
+                    if (title.isBlank()) continue
                     resultList.add(
                         LiveConceptExplanationItem(
-                            id = obj.optString("id", "concept_${System.currentTimeMillis()}_$i"),
+                            id = liveConceptId(sessionId, title),
                             type = obj.optString("type", "Live Concept"),
                             timestamp = obj.optString("timestamp", "Live"),
                             percentGrounded = obj.optInt("percentGrounded", 95),
-                            title = obj.optString("title"),
+                            title = title,
                             definition = obj.optString("definition"),
                             analogy = obj.optString("analogy"),
                             whyItMatters = obj.optString("whyItMatters"),
@@ -305,5 +306,9 @@ private val bracketedIdTagRegex = Regex("""[ \t]*\[ID:[^\]]*]""")
  * Removes grounding IDs (e.g. "(term_1793882650749_25, term_oop)") that Gemini sometimes echoes
  * from its context tags into the user-facing explanation text.
  */
+/** Same concept title gives the same ID, so a re-detected concept keeps its bookmark and list key. */
+internal fun liveConceptId(sessionId: String, title: String): String =
+    "concept_${sessionId}_" + title.lowercase().replace(Regex("[^a-z0-9]+"), "_").trim('_')
+
 internal fun stripContextIdReferences(text: String): String =
     text.replace(contextIdGroupRegex, "").replace(bracketedIdTagRegex, "")

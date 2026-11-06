@@ -1,6 +1,5 @@
 package com.example.konteksto.ui.host
 
-import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -8,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,16 +28,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -48,8 +50,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.ConferenceThemeBanner
+import com.example.konteksto.ui.components.showKontekstoSnackbar
 import com.example.konteksto.ui.theme.KontekstoTheme
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 @Composable
 fun CreateSessionScreen(
@@ -66,9 +70,10 @@ fun CreateSessionScreen(
     ) -> Unit,
     modifier: Modifier = Modifier,
     initialSpeakerName: String = "",
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
     val scrollState = rememberScrollState()
-    val context = LocalContext.current
+    val snackbarScope = rememberCoroutineScope()
 
     var selectedBannerId by rememberSaveable {
         mutableStateOf(ConferenceThemeBanner.DefaultCategories.first().id)
@@ -124,7 +129,7 @@ fun CreateSessionScreen(
         startTimeError = if (startTime.isBlank()) "Start time is required" else null
 
         if (titleError != null || codeError != null || speakerError != null || categoryError != null || roomError != null || startTimeError != null) {
-            Toast.makeText(context, "Please fill in all required fields", Toast.LENGTH_SHORT).show()
+            snackbarScope.launch { snackbarHostState.showKontekstoSnackbar("Please fill in all required fields") }
             return
         }
 
@@ -167,15 +172,18 @@ fun CreateSessionScreen(
         )
     }
 
-    Surface(
+    Scaffold(
         modifier = modifier
             .fillMaxSize()
             .safeDrawingPadding(),
-        color = MaterialTheme.colorScheme.background,
-    ) {
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0),
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(innerPadding)
                 .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {

@@ -45,7 +45,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
@@ -60,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
 import com.example.konteksto.ui.theme.KontekstoTheme
+import com.example.konteksto.ui.theme.extendedColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,7 +74,7 @@ fun ExplanationBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xFFF5F6FA),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         dragHandle = {
             BottomSheetDefaults.DragHandle()
         },
@@ -150,13 +150,13 @@ fun ExplanationBottomSheetContent(
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFE2E7FF)),
+                        .background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_sparkle),
                         contentDescription = null,
-                        tint = Color(0xFF2563EB),
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(22.dp),
                     )
                 }
@@ -182,7 +182,7 @@ fun ExplanationBottomSheetContent(
                         // Selected lines badge
                         Surface(
                             shape = CircleShape,
-                            color = Color(0xFFF2F4F7),
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
                         ) {
                             Text(
                                 text = "${displayItems.size} lines",
@@ -191,14 +191,14 @@ fun ExplanationBottomSheetContent(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 11.5.sp,
                                 ),
-                                color = Color(0xFF344054),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
 
                         // Explained by AI badge
                         Surface(
                             shape = CircleShape,
-                            color = Color(0xFFF2F4F7),
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
                         ) {
                             Text(
                                 text = "Explained by AI",
@@ -207,7 +207,7 @@ fun ExplanationBottomSheetContent(
                                     fontWeight = FontWeight.Medium,
                                     fontSize = 11.5.sp,
                                 ),
-                                color = Color(0xFF667085),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -222,7 +222,7 @@ fun ExplanationBottomSheetContent(
                 Icon(
                     painter = painterResource(id = R.drawable.ic_add),
                     contentDescription = "Close",
-                    tint = Color(0xFF667085),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
                         .size(20.dp)
                         .graphicsLayer { rotationZ = 45f },
@@ -243,11 +243,7 @@ fun ExplanationBottomSheetContent(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.White,
-                ),
-                border = BorderStroke(
-                    width = 1.dp,
-                    color = Color(0xFFEAECF0),
+                    containerColor = MaterialTheme.extendedColors.cardContainer,
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             ) {
@@ -270,7 +266,7 @@ fun ExplanationBottomSheetContent(
                                     fontWeight = FontWeight.ExtraBold,
                                     fontSize = 20.sp,
                                 ),
-                                color = Color(0xFF2563EB),
+                                color = MaterialTheme.colorScheme.primary,
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
@@ -296,13 +292,13 @@ fun ExplanationBottomSheetContent(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 12.5.sp,
                                 ),
-                                color = Color(0xFF2563EB),
+                                color = MaterialTheme.colorScheme.primary,
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_arrow_back),
                                 contentDescription = null,
-                                tint = Color(0xFF2563EB),
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier
                                     .size(14.dp)
                                     .graphicsLayer {
@@ -319,11 +315,11 @@ fun ExplanationBottomSheetContent(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = Color(0xFFFAFAFA),
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                             ),
                             border = BorderStroke(
                                 width = 1.dp,
-                                color = Color(0xFFEAECF0),
+                                color = MaterialTheme.colorScheme.outlineVariant,
                             ),
                             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                         ) {
@@ -342,14 +338,14 @@ fun ExplanationBottomSheetContent(
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 12.sp,
                                         ),
-                                        color = Color(0xFF2563EB),
+                                        color = MaterialTheme.colorScheme.primary,
                                     )
 
                                     Spacer(modifier = Modifier.width(6.dp))
 
                                     Surface(
                                         shape = RoundedCornerShape(6.dp),
-                                        color = Color(0xFFF2F4F7),
+                                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
                                     ) {
                                         Text(
                                             text = item.timestamp,
@@ -358,7 +354,7 @@ fun ExplanationBottomSheetContent(
                                                 fontWeight = FontWeight.SemiBold,
                                                 fontSize = 10.5.sp,
                                             ),
-                                            color = Color(0xFF475467),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
                                 }
@@ -386,11 +382,7 @@ fun ExplanationBottomSheetContent(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.White,
-                ),
-                border = BorderStroke(
-                    width = 1.dp,
-                    color = Color(0xFFEAECF0),
+                    containerColor = MaterialTheme.extendedColors.cardContainer,
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             ) {
@@ -437,7 +429,7 @@ fun ExplanationBottomSheetContent(
                                 if (exp.type.isNotBlank()) {
                                     Surface(
                                         shape = CircleShape,
-                                        color = Color(0xFFE0E7FF),
+                                        color = MaterialTheme.colorScheme.primaryContainer,
                                     ) {
                                         Text(
                                             text = exp.type,
@@ -445,7 +437,7 @@ fun ExplanationBottomSheetContent(
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 11.5.sp,
                                             ),
-                                            color = Color(0xFF2563EB),
+                                            color = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                         )
                                     }
@@ -479,8 +471,8 @@ fun ExplanationBottomSheetContent(
                                 if (exp.analogy.isNotBlank()) {
                                     Surface(
                                         shape = RoundedCornerShape(12.dp),
-                                        color = Color(0xFFF8FAFF),
-                                        border = BorderStroke(1.dp, Color(0xFFEAECF0)),
+                                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                                         modifier = Modifier.fillMaxWidth(),
                                     ) {
                                         Row(
@@ -490,7 +482,7 @@ fun ExplanationBottomSheetContent(
                                             Icon(
                                                 painter = painterResource(id = R.drawable.ic_sparkle),
                                                 contentDescription = null,
-                                                tint = Color(0xFF2563EB),
+                                                tint = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.size(16.dp).padding(top = 2.dp),
                                             )
                                             Spacer(modifier = Modifier.width(8.dp))
@@ -499,7 +491,7 @@ fun ExplanationBottomSheetContent(
                                                     text = "Analogy",
                                                     style = MaterialTheme.typography.labelSmall.copy(
                                                         fontWeight = FontWeight.Bold,
-                                                        color = Color(0xFF2563EB),
+                                                        color = MaterialTheme.colorScheme.primary,
                                                         fontSize = 11.5.sp,
                                                     ),
                                                 )
@@ -527,7 +519,7 @@ fun ExplanationBottomSheetContent(
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 11.5.sp,
                                             ),
-                                            color = Color(0xFF667085),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
@@ -560,10 +552,10 @@ fun ExplanationBottomSheetContent(
                     .weight(1f)
                     .height(48.dp),
                 shape = CircleShape,
-                border = BorderStroke(1.dp, Color(0xFFD0D5DD)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color.White,
-                    contentColor = Color(0xFF2563EB),
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    contentColor = MaterialTheme.colorScheme.primary,
                 ),
             ) {
                 Text(
@@ -572,7 +564,7 @@ fun ExplanationBottomSheetContent(
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.5.sp,
                     ),
-                    color = Color(0xFF2563EB),
+                    color = MaterialTheme.colorScheme.primary,
                 )
             }
 
@@ -584,8 +576,8 @@ fun ExplanationBottomSheetContent(
                     .height(48.dp),
                 shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF2563EB),
-                    contentColor = Color.White,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
             ) {
                 Row(
@@ -595,7 +587,7 @@ fun ExplanationBottomSheetContent(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_check),
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(18.dp),
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -605,7 +597,7 @@ fun ExplanationBottomSheetContent(
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.5.sp,
                         ),
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimary,
                     )
                 }
             }
@@ -630,7 +622,7 @@ fun SkeletonItem(modifier: Modifier = Modifier) {
         modifier = modifier
             .height(16.dp)
             .clip(RoundedCornerShape(4.dp))
-            .background(Color.Gray.copy(alpha = alpha)),
+            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha)),
     )
 }
 

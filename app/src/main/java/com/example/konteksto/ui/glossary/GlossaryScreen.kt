@@ -1,7 +1,5 @@
 package com.example.konteksto.ui.glossary
 
-import android.widget.Toast
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,7 +33,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -48,14 +45,15 @@ import com.example.konteksto.data.repository.FirebaseGlossaryRepository
 import com.example.konteksto.data.repository.GlossaryRepository
 import com.example.konteksto.data.repository.GlossaryTermItem
 import com.example.konteksto.ui.theme.KontekstoTheme
+import com.example.konteksto.ui.theme.extendedColors
 import kotlinx.coroutines.launch
 
 @Composable
 fun GlossaryScreen(
     modifier: Modifier = Modifier,
     glossaryRepository: GlossaryRepository = remember { FirebaseGlossaryRepository() },
+    onShowMessage: (String) -> Unit = {},
 ) {
-    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val savedTermsState by glossaryRepository.getSavedGlossaryTermsStream("").collectAsStateWithLifecycle(initialValue = emptyList())
 
@@ -218,7 +216,7 @@ fun GlossaryScreen(
                             onRemoveBookmark = { item ->
                                 scope.launch {
                                     glossaryRepository.removeTermFromGlossary("", item.sessionId, item.id)
-                                    Toast.makeText(context, "Removed ${item.term} from My Glossary", Toast.LENGTH_SHORT).show()
+                                    onShowMessage("Removed ${item.term} from My Glossary")
                                 }
                             },
                         )
@@ -239,11 +237,7 @@ fun SavedGlossaryTermCard(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        ),
-        border = BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+            containerColor = MaterialTheme.extendedColors.cardContainer,
         ),
     ) {
         Column(

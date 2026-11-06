@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
 import com.example.konteksto.ui.host.studio.DomainTermItem
+import com.example.konteksto.ui.theme.extendedColors
 
 @Composable
 fun SessionTermsView(
@@ -61,11 +62,7 @@ fun SessionTermsView(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium,
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                ),
-                border = BorderStroke(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                    containerColor = MaterialTheme.extendedColors.cardContainer,
                 ),
             ) {
                 Column(
@@ -127,11 +124,7 @@ fun SessionTermsView(
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.medium,
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        ),
-                        border = BorderStroke(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            containerColor = MaterialTheme.extendedColors.cardContainer,
                         ),
                     ) {
                         Column(

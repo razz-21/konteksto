@@ -1,118 +1,106 @@
 package com.example.konteksto.ui.sessions.studio
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+enum class SessionStudioTab(val label: String) {
+    LiveCompanion("Live companion"),
+    ConceptExplanation("Concept explanation"),
+    Terms("Terms"),
+    Glossary("Glossary"),
+}
+
+/** Scrollable so all four tabs and their counts fit on narrow phones. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SessionStudioSegmentedTabs(
-    selectedTab: Int,
-    onTabSelected: (Int) -> Unit,
+    selectedTab: SessionStudioTab,
+    onTabSelected: (SessionStudioTab) -> Unit,
     modifier: Modifier = Modifier,
-    termsCount: Int = 49,
-    glossaryCount: Int = 21,
+    conceptCount: Int = 0,
+    termsCount: Int = 0,
+    glossaryCount: Int = 0,
 ) {
-    val effectiveTermsCount = if (termsCount <= 0) 49 else termsCount
-    val effectiveGlossaryCount = if (glossaryCount <= 0) 21 else glossaryCount
+    PrimaryScrollableTabRow(
+        selectedTabIndex = selectedTab.ordinal,
+        modifier = modifier.fillMaxWidth(),
+        containerColor = MaterialTheme.colorScheme.background,
+        edgePadding = 0.dp,
+        indicator = {
+            TabRowDefaults.PrimaryIndicator(
+                modifier = Modifier.tabIndicatorOffset(selectedTab.ordinal, matchContentSize = true),
+                width = Dp.Unspecified,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        },
+        divider = { HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)) },
+    ) {
+        SessionStudioTab.entries.forEach { tab ->
+            val isSelected = tab == selectedTab
+            val count = when (tab) {
+                SessionStudioTab.LiveCompanion -> null
+                SessionStudioTab.ConceptExplanation -> conceptCount
+                SessionStudioTab.Terms -> termsCount
+                SessionStudioTab.Glossary -> glossaryCount
+            }
 
-    val tabs = listOf(
-        TabData("Live companion", count = null),
-        TabData("Terms", count = effectiveTermsCount),
-        TabData("Glossary", count = effectiveGlossaryCount),
-    )
-
-    Column(modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            tabs.forEachIndexed { index, tab ->
-                val isSelected = selectedTab == index
-
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable { onTabSelected(index) }
-                        .padding(top = 10.dp, bottom = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+            Tab(
+                selected = isSelected,
+                onClick = { onTabSelected(tab) },
+                selectedContentColor = MaterialTheme.colorScheme.onBackground,
+                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            ) {
+                Row(
+                    // Custom Tab content gets no built-in padding, so match Material's 16dp tab padding.
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                    ) {
-                        Text(
-                            text = tab.label,
-                            style = MaterialTheme.typography.titleSmall.copy(
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                fontSize = 14.5.sp,
-                            ),
-                            color = if (isSelected) MaterialTheme.colorScheme.onBackground else Color(0xFF667085),
-                        )
+                    Text(
+                        text = tab.label,
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            fontSize = 14.5.sp,
+                        ),
+                    )
 
-                        if (tab.count != null) {
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Surface(
-                                shape = CircleShape,
-                                color = Color(0xFFEAECF0),
-                            ) {
-                                Text(
-                                    text = tab.count.toString(),
-                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 11.5.sp,
-                                    ),
-                                    color = Color(0xFF344054),
-                                )
-                            }
+                    if (count != null) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        ) {
+                            Text(
+                                text = count.toString(),
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.5.sp,
+                                ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Indicator Line under active tab
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.85f)
-                            .height(2.5.dp)
-                            .background(
-                                color = if (isSelected) Color(0xFF2563EB) else Color.Transparent,
-                                shape = CircleShape,
-                            ),
-                    )
                 }
             }
         }
-
-        HorizontalDivider(
-            thickness = 1.dp,
-            color = Color(0xFFEAECF0),
-        )
     }
 }
-
-private data class TabData(
-    val label: String,
-    val count: Int?,
-)
