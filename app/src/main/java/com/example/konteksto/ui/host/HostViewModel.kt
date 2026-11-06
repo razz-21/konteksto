@@ -6,8 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.example.konteksto.data.repository.AuthRepository
 import com.example.konteksto.data.repository.FirebaseAuthRepository
 import com.example.konteksto.data.repository.FirebaseSessionRepository
+import com.example.konteksto.data.repository.FirebaseUserProfileRepository
 import com.example.konteksto.data.repository.SessionRepository
+import com.example.konteksto.data.repository.UserProfileRepository
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.domain.model.UserProfile
+import com.example.konteksto.domain.usecase.ObserveCurrentProfileUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +25,17 @@ import kotlinx.coroutines.launch
 class HostViewModel(
     private val sessionRepository: SessionRepository = FirebaseSessionRepository(),
     private val authRepository: AuthRepository = FirebaseAuthRepository(),
+    userProfileRepository: UserProfileRepository = FirebaseUserProfileRepository(),
 ) : ViewModel() {
+
+    private val observeCurrentProfile = ObserveCurrentProfileUseCase(authRepository, userProfileRepository)
+
+    val currentProfile: StateFlow<UserProfile?> = observeCurrentProfile()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = observeCurrentProfile.currentProfile,
+        )
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
@@ -107,10 +121,11 @@ class HostViewModel(
         fun provideFactory(
             sessionRepository: SessionRepository = FirebaseSessionRepository(),
             authRepository: AuthRepository = FirebaseAuthRepository(),
+            userProfileRepository: UserProfileRepository = FirebaseUserProfileRepository(),
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return HostViewModel(sessionRepository, authRepository) as T
+                return HostViewModel(sessionRepository, authRepository, userProfileRepository) as T
             }
         }
     }

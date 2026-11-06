@@ -1,10 +1,7 @@
 package com.example.konteksto.ui.components
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -31,14 +27,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.domain.model.UserProfile
 import com.example.konteksto.ui.theme.KontekstoTheme
 
 @Composable
 fun KontekstoTopBar(
     modifier: Modifier = Modifier,
     onNewSessionClick: (() -> Unit)? = null,
-    onAttendClick: (() -> Unit)? = null,
-    userInitial: String? = null,
+    currentProfile: UserProfile? = null,
     onProfileClick: (() -> Unit)? = null,
     actionContent: (@Composable () -> Unit)? = null,
 ) {
@@ -72,35 +68,12 @@ fun KontekstoTopBar(
             )
         }
 
-        if (userInitial != null || onProfileClick != null) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer)
-                    .then(
-                        if (onProfileClick != null) {
-                            Modifier.clickable { onProfileClick() }
-                        } else {
-                            Modifier
-                        },
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = userInitial ?: "Z",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                    ),
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-        } else if (onAttendClick != null) {
-            TopBarButton(
-                onClick = onAttendClick,
-                iconRes = R.drawable.ic_qr_code,
-                text = "Attend",
+        if (currentProfile != null) {
+            UserAvatar(
+                initials = currentProfile.initials,
+                gradientColors = currentProfile.avatarGradientColors,
+                contentDescription = stringResource(id = R.string.profile_avatar_description),
+                onClick = onProfileClick,
             )
         } else if (onNewSessionClick != null) {
             TopBarButton(

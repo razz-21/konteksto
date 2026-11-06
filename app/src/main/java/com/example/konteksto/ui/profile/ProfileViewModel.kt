@@ -45,25 +45,11 @@ class ProfileViewModel(
                     _profile.value = null
                 } else {
                     userProfileRepository.getProfileStream(user.uid).collect { savedProfile ->
-                        _profile.value = mergeProfile(user, savedProfile)
+                        _profile.value = UserProfile.merge(user, savedProfile)
                     }
                 }
             }
         }
-    }
-
-    // Firestore is the main source, with Firebase Auth as a fallback.
-    private fun mergeProfile(user: AuthUser, savedProfile: UserProfile?): UserProfile {
-        val authProfile = UserProfile.fromAuthUser(user)
-        if (savedProfile == null) return authProfile
-
-        return savedProfile.copy(
-            name = savedProfile.name.ifBlank { authProfile.name },
-            email = authProfile.email.ifBlank { savedProfile.email },
-            photoUrl = savedProfile.photoUrl ?: authProfile.photoUrl,
-            avatarColorIndex = savedProfile.avatarColorIndex,
-            explanationLanguage = savedProfile.explanationLanguage,
-        )
     }
 
     fun setLoading() {

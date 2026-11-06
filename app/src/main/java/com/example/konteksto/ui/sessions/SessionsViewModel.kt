@@ -5,24 +5,40 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.konteksto.data.repository.AuthRepository
 import com.example.konteksto.data.repository.FirebaseAuthRepository
+import com.example.konteksto.data.repository.FirebaseUserProfileRepository
 import com.example.konteksto.data.repository.SessionRepository
+import com.example.konteksto.data.repository.UserProfileRepository
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.domain.model.UserProfile
+import com.example.konteksto.domain.usecase.ObserveCurrentProfileUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class SessionsViewModel(
     private val sessionRepository: SessionRepository,
     private val authRepository: AuthRepository = FirebaseAuthRepository(),
+    userProfileRepository: UserProfileRepository = FirebaseUserProfileRepository(),
 ) : ViewModel() {
 
     private val userUid: String
         get() = authRepository.currentUser?.uid ?: "guest_user"
+
+    private val observeCurrentProfile = ObserveCurrentProfileUseCase(authRepository, userProfileRepository)
+
+    val currentProfile: StateFlow<UserProfile?> = observeCurrentProfile()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = observeCurrentProfile.currentProfile,
+        )
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
@@ -138,10 +154,11 @@ class SessionsViewModel(
         fun provideFactory(
             sessionRepository: SessionRepository,
             authRepository: AuthRepository = FirebaseAuthRepository(),
+            userProfileRepository: UserProfileRepository = FirebaseUserProfileRepository(),
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return SessionsViewModel(sessionRepository, authRepository) as T
+                return SessionsViewModel(sessionRepository, authRepository, userProfileRepository) as T
             }
         }
     }

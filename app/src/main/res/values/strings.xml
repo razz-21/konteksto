@@ -79,4 +79,5 @@
     <string name="host_studio_audience_format">%1$d audience</string>
     <string name="host_studio_mic_permission_required">Microphone permission is required to stream audio live.</string>
     <string name="firebase_web_client_id" translatable="false">328928803643-0rlsa0e1nul8msn8q0901tmktgtis9ig.apps.googleusercontent.com</string>
+    <string name="profile_avatar_description">Open profile</string>
 </resources>

@@ -24,7 +24,36 @@ data class UserProfile(
     val avatarGradientColors: List<Color>
         get() = AvatarGradients.getOrElse(avatarColorIndex) { AvatarGradients[0] }
 
+    val initials: String
+        get() {
+            val source = name.takeIf { it.isNotBlank() }
+                ?: email.takeIf { it.isNotBlank() }
+                ?: "K"
+
+            return source
+                .trim()
+                .split(" ")
+                .filter { it.isNotBlank() }
+                .take(2)
+                .joinToString("") { it.first().uppercase() }
+                .ifEmpty { "K" }
+        }
+
     companion object {
+
+        // Firestore is the main source, with Firebase Auth as a fallback.
+        fun merge(user: AuthUser, savedProfile: UserProfile?): UserProfile {
+            val authProfile = fromAuthUser(user)
+            if (savedProfile == null) return authProfile
+
+            return savedProfile.copy(
+                name = savedProfile.name.ifBlank { authProfile.name },
+                email = authProfile.email.ifBlank { savedProfile.email },
+                photoUrl = savedProfile.photoUrl ?: authProfile.photoUrl,
+                avatarColorIndex = savedProfile.avatarColorIndex,
+                explanationLanguage = savedProfile.explanationLanguage,
+            )
+        }
 
         // Used when the user has no Firestore profile document yet.
         fun fromAuthUser(user: AuthUser): UserProfile {

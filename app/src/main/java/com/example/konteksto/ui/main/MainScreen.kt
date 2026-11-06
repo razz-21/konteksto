@@ -13,11 +13,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.domain.model.UserProfile
 import com.example.konteksto.ui.components.showKontekstoSnackbar
 import com.example.konteksto.ui.glossary.GlossaryScreen
 import com.example.konteksto.ui.host.HostSessionsScreen
@@ -32,6 +34,7 @@ fun MainScreen(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
     hostSessions: List<HostSession> = emptyList(),
+    currentProfile: UserProfile? = null,
     isHostRefreshing: Boolean = false,
     onHostRefresh: () -> Unit = {},
     onSignOut: () -> Unit = {},
@@ -46,6 +49,15 @@ fun MainScreen(
     val snackbarScope = rememberCoroutineScope()
     val showMessage: (String) -> Unit = { message ->
         snackbarScope.launch { snackbarHostState.showKontekstoSnackbar(message) }
+    }
+    val navigateToProfileTab: () -> Unit = {
+        navController.navigate(MainTab.Profile.route) {
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState = true
+        }
     }
 
     Scaffold(
@@ -69,16 +81,19 @@ fun MainScreen(
             composable(MainTab.Sessions.route) {
                 SessionsScreen(
                     onNavigateToAttendeeRoom = onNavigateToAttendeeRoom,
+                    onProfileClick = navigateToProfileTab,
                 )
             }
             composable(MainTab.HostSessions.route) {
                 HostSessionsScreen(
                     sessions = hostSessions,
+                    currentProfile = currentProfile,
                     isRefreshing = isHostRefreshing,
                     onRefresh = onHostRefresh,
                     onNewSessionClick = onNavigateToCreateSession,
                     onPresentQrClick = onNavigateToPresentQr,
                     onLiveRoomClick = onNavigateToHostStudio,
+                    onProfileClick = navigateToProfileTab,
                     onShowMessage = showMessage,
                 )
             }
