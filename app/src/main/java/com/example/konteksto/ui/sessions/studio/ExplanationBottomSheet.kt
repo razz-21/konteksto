@@ -212,6 +212,67 @@ fun ExplanationBottomSheet(
                                     style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
+                                if (exp.analogy.isNotBlank()) {
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Surface(
+                                        shape = MaterialTheme.shapes.small,
+                                        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(10.dp),
+                                            verticalAlignment = Alignment.Top
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.ic_sparkle),
+                                                contentDescription = null,
+                                                tint = Color(0xFF3B52D4),
+                                                modifier = Modifier.size(16.dp).padding(top = 2.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Column {
+                                                Text(
+                                                    text = "Analogy",
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFF3B52D4)
+                                                    )
+                                                )
+                                                Text(
+                                                    text = exp.analogy,
+                                                    style = MaterialTheme.typography.bodySmall.copy(
+                                                        fontSize = 12.sp,
+                                                        lineHeight = 16.sp,
+                                                        fontStyle = FontStyle.Italic
+                                                    ),
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                if (exp.whyItMatters.isNotBlank()) {
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Column(modifier = Modifier.fillMaxWidth()) {
+                                        Text(
+                                            text = "Why it matters:",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 11.sp
+                                            ),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = exp.whyItMatters,
+                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                fontSize = 12.sp,
+                                                lineHeight = 16.sp
+                                            ),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
