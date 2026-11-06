@@ -106,8 +106,8 @@ internal fun AttendSessionMainContent(
             QrScannerView(
                 isCameraGranted = isCameraGranted,
                 onRequestCameraPermission = { cameraLauncher.launch(Manifest.permission.CAMERA) },
-                onSimulateScan = {
-                    onVerifyCode(DEMO_ROOM_CODE) { result ->
+                onCodeScanned = { scannedCode ->
+                    onVerifyCode(scannedCode) { result ->
                         result.onFailure { error ->
                             errorMessage = error.localizedMessage
                         }

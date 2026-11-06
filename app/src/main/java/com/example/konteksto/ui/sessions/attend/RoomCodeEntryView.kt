@@ -1,6 +1,5 @@
 package com.example.konteksto.ui.sessions.attend
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -24,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,15 +44,8 @@ internal fun RoomCodeEntryView(
             onDone = onVerify,
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        RoomCodeExampleHint(
-            exampleCode = DEMO_ROOM_CODE,
-            onExampleClick = { onRoomCodeChange(DEMO_ROOM_CODE) },
-        )
-
         if (!errorMessage.isNullOrBlank()) {
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Surface(
                 color = MaterialTheme.colorScheme.errorContainer,
                 contentColor = MaterialTheme.colorScheme.onErrorContainer,
@@ -70,7 +60,7 @@ internal fun RoomCodeEntryView(
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Button(
             onClick = onVerify,
@@ -136,39 +126,6 @@ internal fun RoomCodeEntryView(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-    }
-}
-
-@Composable
-private fun RoomCodeExampleHint(
-    exampleCode: String,
-    onExampleClick: () -> Unit,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = "6 letters or numbers, like ",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
-        Surface(
-            shape = RoundedCornerShape(8.dp),
-            color = Color(0xFF3B52D4),
-            modifier = Modifier.clickable(onClick = onExampleClick),
-        ) {
-            Text(
-                text = exampleCode,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 11.sp,
-                ),
-                color = Color.White,
-            )
-        }
     }
 }
 
