@@ -219,7 +219,7 @@ fun AboutYouSectionCard(
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            painter = painterResource(id = R.drawable.ic_text),
+                            painter = painterResource(id = R.drawable.ic_align_left),
                             contentDescription = "Bio",
                             modifier = Modifier.size(20.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
