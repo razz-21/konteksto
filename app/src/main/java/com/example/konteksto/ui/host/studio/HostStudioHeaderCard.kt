@@ -22,6 +22,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -77,7 +79,6 @@ fun HostStudioHeaderCard(
         }
     }
 
-    // Pulsing fade animation for icons when audio broadcast is running
     val infiniteTransition = rememberInfiniteTransition(label = "audio_broadcast_transition")
     val audioIconAlpha by infiniteTransition.animateFloat(
         initialValue = 0.3f,
@@ -91,13 +92,14 @@ fun HostStudioHeaderCard(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
         ),
         border = BorderStroke(
             width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
         ),
     ) {
         Column(
@@ -113,70 +115,57 @@ fun HostStudioHeaderCard(
             ) {
                 // Venue Badge Tag
                 Surface(
-                    shape = MaterialTheme.shapes.extraSmall,
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
                     modifier = Modifier.weight(1f, fill = false),
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_location),
                             contentDescription = "Venue",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(13.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(14.dp),
                         )
-                        Spacer(modifier = Modifier.width(5.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = session.venue.ifBlank { "TECH SUMMIT HALL B" }.uppercase(),
+                            text = session.venue.ifBlank { "CDO AYALA" },
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 10.5.sp,
-                                letterSpacing = 0.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 11.sp,
                             ),
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(8.dp))
 
                 // Audience Counter Badge
                 Surface(
-                    shape = MaterialTheme.shapes.extraSmall,
+                    shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    border = BorderStroke(
-                        1.dp,
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                    ),
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_people),
                             contentDescription = "Audience",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(13.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(14.dp),
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = session.attendeesCount.toString(),
+                            text = "${session.attendeesCount} ${if (session.attendeesCount == 1) "audience" else "audiences"}",
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.Medium,
                                 fontSize = 11.sp,
-                            ),
-                            color = MaterialTheme.colorScheme.onBackground,
-                        )
-                        Spacer(modifier = Modifier.width(3.dp))
-                        Text(
-                            text = "audience",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.5.sp,
                             ),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -184,7 +173,7 @@ fun HostStudioHeaderCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Session Title
             Text(
@@ -192,7 +181,7 @@ fun HostStudioHeaderCard(
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
-                    lineHeight = 25.sp,
+                    lineHeight = 24.sp,
                 ),
                 color = MaterialTheme.colorScheme.onBackground,
             )
@@ -220,14 +209,14 @@ fun HostStudioHeaderCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Start / End Session Button (placed directly above Start Audio Broadcast)
+            // Row 1: Session Live Control Button (Start/End Session - Full Width)
             if (!session.isLive) {
                 Button(
                     onClick = onStartSessionClick,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(44.dp),
-                    shape = MaterialTheme.shapes.small,
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -253,7 +242,7 @@ fun HostStudioHeaderCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(44.dp),
-                    shape = MaterialTheme.shapes.small,
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error,
                         contentColor = MaterialTheme.colorScheme.onError,
@@ -264,7 +253,7 @@ fun HostStudioHeaderCard(
                             .size(10.dp)
                             .background(
                                 color = MaterialTheme.colorScheme.onError,
-                                shape = MaterialTheme.shapes.extraSmall,
+                                shape = CircleShape,
                             ),
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -280,7 +269,7 @@ fun HostStudioHeaderCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Audio Live / Broadcasting Banner Button
+            // Row 2: Audio Broadcast Toggle Button (Full Width)
             Button(
                 onClick = {
                     if (!isPermissionGranted && !isAudioBroadcasting) {
@@ -291,45 +280,39 @@ fun HostStudioHeaderCard(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(46.dp),
-                shape = MaterialTheme.shapes.small,
+                    .height(44.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isAudioBroadcasting) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = if (isAudioBroadcasting) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onSecondaryContainer,
+                    containerColor = if (isAudioBroadcasting) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = if (isAudioBroadcasting) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.primary,
                 ),
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                ) {
-                    // Equalizer / Audio Waveform Icon on the left
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_audio_waveform),
-                        contentDescription = "Audio Waveform",
-                        modifier = Modifier
-                            .size(18.dp)
-                            .graphicsLayer {
-                                alpha = if (isAudioBroadcasting) audioIconAlpha else 1.0f
-                            },
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Text(
-                        text = if (isAudioBroadcasting) {
-                            stringResource(id = R.string.host_studio_audio_live)
-                        } else {
-                            stringResource(id = R.string.host_studio_audio_start)
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_audio_waveform),
+                    contentDescription = "Audio Waveform",
+                    modifier = Modifier
+                        .size(18.dp)
+                        .graphicsLayer {
+                            alpha = if (isAudioBroadcasting) audioIconAlpha else 1.0f
                         },
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                        ),
-                    )
-                }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (isAudioBroadcasting) {
+                        stringResource(id = R.string.host_studio_audio_live)
+                    } else {
+                        stringResource(id = R.string.host_studio_audio_start)
+                    },
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
 
-            // Permission required message below the button if permission is not granted
+            // Permission warning message if permission is not granted
             if (!isPermissionGranted && !isAudioBroadcasting) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(

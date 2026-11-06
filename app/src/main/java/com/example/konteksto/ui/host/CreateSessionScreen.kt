@@ -1,6 +1,7 @@
 package com.example.konteksto.ui.host
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +16,8 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -22,6 +25,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -32,7 +36,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -76,7 +79,9 @@ fun CreateSessionScreen(
     }
     var sessionTitle by rememberSaveable { mutableStateOf("") }
     var talkCode by rememberSaveable { mutableStateOf(generateAlphanumericCode()) }
-    var speakerName by rememberSaveable(initialSpeakerName) { mutableStateOf(initialSpeakerName) }
+    var speakerName by rememberSaveable(initialSpeakerName) {
+        mutableStateOf(initialSpeakerName.ifBlank { "Zhar" })
+    }
     var categoryTrack by rememberSaveable { mutableStateOf(selectedBanner.categoryName) }
     var roomStage by rememberSaveable { mutableStateOf("") }
     var startTime by rememberSaveable { mutableStateOf("10:00 AM") }
@@ -95,12 +100,12 @@ fun CreateSessionScreen(
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MaterialTheme.colorScheme.primary,
         unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        focusedContainerColor = MaterialTheme.colorScheme.surface,
+        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
         focusedTextColor = MaterialTheme.colorScheme.onBackground,
         unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
         disabledBorderColor = MaterialTheme.colorScheme.outlineVariant,
-        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        disabledContainerColor = MaterialTheme.colorScheme.surface,
         disabledTextColor = MaterialTheme.colorScheme.onBackground,
         errorBorderColor = MaterialTheme.colorScheme.error,
         errorContainerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f),
@@ -119,7 +124,7 @@ fun CreateSessionScreen(
         startTimeError = if (startTime.isBlank()) "Start time is required" else null
 
         if (titleError != null || codeError != null || speakerError != null || categoryError != null || roomError != null || startTimeError != null) {
-            Toast.makeText(context, "Please fill in all required fields (*)", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Please fill in all required fields", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -177,12 +182,15 @@ fun CreateSessionScreen(
             // Top Bar
             CreateSessionTopBar(
                 onBackClick = onBackClick,
-                onCreateClick = { validateAndSubmit() },
             )
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Cover Photo Selector Card (main preview + 12 categories)
+            // Section 1: Cover
+            SectionHeader(title = "Cover")
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             CoverPhotoSelectorCard(
                 selectedBanner = selectedBanner,
                 sessionTitle = sessionTitle,
@@ -195,9 +203,14 @@ fun CreateSessionScreen(
                 onUploadClick = { /* Handle custom image upload */ },
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Field 1: Session Title (*)
+            // Section 2: Details
+            SectionHeader(title = "Details")
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Field 1: Session Title
             OutlinedTextField(
                 value = sessionTitle,
                 onValueChange = {
@@ -205,23 +218,18 @@ fun CreateSessionScreen(
                     if (it.isNotBlank()) titleError = null
                 },
                 modifier = Modifier.fillMaxWidth(),
-                label = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = stringResource(id = R.string.field_session_title))
-                        Text(text = " *", color = MaterialTheme.colorScheme.error)
-                    }
-                },
+                label = { Text(text = "Session title") },
                 leadingIcon = {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_text),
                         contentDescription = null,
                         modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 },
                 placeholder = {
                     Text(
-                        text = stringResource(id = R.string.field_session_title_placeholder),
+                        text = "e.g. Object Oriented Programming",
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     )
                 },
@@ -230,13 +238,221 @@ fun CreateSessionScreen(
                     { Text(text = err, color = MaterialTheme.colorScheme.error) }
                 },
                 singleLine = true,
-                shape = MaterialTheme.shapes.small,
+                shape = RoundedCornerShape(12.dp),
                 colors = textFieldColors,
             )
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // Field 2: Code (*) (6-character alphanumeric auto-filled)
+            // Field 2: Speaker
+            OutlinedTextField(
+                value = speakerName,
+                onValueChange = {
+                    speakerName = it
+                    if (it.isNotBlank()) speakerError = null
+                },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text(text = "Speaker") },
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_speaker),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                placeholder = {
+                    Text(
+                        text = "e.g. Zhar",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    )
+                },
+                isError = speakerError != null,
+                supportingText = speakerError?.let { err ->
+                    { Text(text = err, color = MaterialTheme.colorScheme.error) }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = textFieldColors,
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Field 3: Category or track
+            OutlinedTextField(
+                value = categoryTrack,
+                onValueChange = {
+                    categoryTrack = it
+                    if (it.isNotBlank()) categoryError = null
+                },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text(text = "Category or track") },
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_tag),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                placeholder = {
+                    Text(
+                        text = "e.g. Business & Leadership",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    )
+                },
+                isError = categoryError != null,
+                supportingText = categoryError?.let { err ->
+                    { Text(text = err, color = MaterialTheme.colorScheme.error) }
+                } ?: {
+                    Text(
+                        text = "Fills in from the cover theme. Type your own if it's different.",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = textFieldColors,
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Section 3: When & where
+            SectionHeader(title = "When & where")
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Field 1: Room or stage
+            OutlinedTextField(
+                value = roomStage,
+                onValueChange = {
+                    roomStage = it
+                    if (it.isNotBlank()) roomError = null
+                },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text(text = "Room or stage") },
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_location),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                placeholder = {
+                    Text(
+                        text = "e.g. CDO Ayala, Hall B",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    )
+                },
+                isError = roomError != null,
+                supportingText = roomError?.let { err ->
+                    { Text(text = err, color = MaterialTheme.colorScheme.error) }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = textFieldColors,
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Fields 2 & 3: Starts & Ends Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                // Starts Field
+                Box(
+                    modifier = Modifier.weight(1f),
+                ) {
+                    OutlinedTextField(
+                        value = startTime,
+                        onValueChange = {},
+                        readOnly = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text(text = "Starts") },
+                        placeholder = {
+                            Text(
+                                text = "10:00 AM",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            )
+                        },
+                        isError = startTimeError != null,
+                        trailingIcon = {
+                            IconButton(onClick = { showStartTimePicker = true }) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_clock),
+                                    contentDescription = "Pick Start Time",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = textFieldColors,
+                    )
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clickable { showStartTimePicker = true },
+                    )
+                }
+
+                // Ends Field
+                Box(
+                    modifier = Modifier.weight(1f),
+                ) {
+                    OutlinedTextField(
+                        value = endTime,
+                        onValueChange = {},
+                        readOnly = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text(text = "Ends") },
+                        placeholder = {
+                            Text(
+                                text = "Add time",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            )
+                        },
+                        supportingText = {
+                            Text(
+                                text = "Optional",
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { showEndTimePicker = true }) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_clock),
+                                    contentDescription = "Pick End Time",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = textFieldColors,
+                    )
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clickable { showEndTimePicker = true },
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Section 4: Joining
+            SectionHeader(title = "Joining")
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Field: Join code with Regenerate button
             OutlinedTextField(
                 value = talkCode,
                 onValueChange = { input ->
@@ -246,33 +462,37 @@ fun CreateSessionScreen(
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                label = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = stringResource(id = R.string.field_code))
-                        Text(text = " *", color = MaterialTheme.colorScheme.error)
-                    }
-                },
+                label = { Text(text = "Join code") },
                 leadingIcon = {
                     Icon(
-                        painter = painterResource(id = R.drawable.ic_qr_code),
+                        painter = painterResource(id = R.drawable.ic_key),
                         contentDescription = null,
                         modifier = Modifier.size(20.dp),
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 },
-                placeholder = {
-                    Text(
-                        text = stringResource(id = R.string.field_code_placeholder),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    )
+                trailingIcon = {
+                    IconButton(
+                        onClick = {
+                            talkCode = generateAlphanumericCode()
+                            codeError = null
+                        },
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_refresh),
+                            contentDescription = "Regenerate code",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
                 },
                 isError = codeError != null,
                 supportingText = codeError?.let { err ->
                     { Text(text = err, color = MaterialTheme.colorScheme.error) }
                 } ?: {
                     Text(
-                        text = stringResource(id = R.string.field_code_hint),
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                        text = "6 letters or numbers. Attendees type this or scan your QR.",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 },
@@ -281,270 +501,41 @@ fun CreateSessionScreen(
                     keyboardType = KeyboardType.Ascii,
                 ),
                 singleLine = true,
-                shape = MaterialTheme.shapes.small,
+                shape = RoundedCornerShape(12.dp),
                 colors = textFieldColors,
             )
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
-            // Field 3: Speaker Name (*)
-            OutlinedTextField(
-                value = speakerName,
-                onValueChange = {
-                    speakerName = it
-                    if (it.isNotBlank()) speakerError = null
-                },
-                modifier = Modifier.fillMaxWidth(),
-                label = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = stringResource(id = R.string.field_speaker_name))
-                        Text(text = " *", color = MaterialTheme.colorScheme.error)
-                    }
-                },
-                leadingIcon = {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_speaker),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                },
-                placeholder = {
-                    Text(
-                        text = stringResource(id = R.string.field_speaker_name_placeholder),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    )
-                },
-                isError = speakerError != null,
-                supportingText = speakerError?.let { err ->
-                    { Text(text = err, color = MaterialTheme.colorScheme.error) }
-                },
-                singleLine = true,
-                shape = MaterialTheme.shapes.small,
-                colors = textFieldColors,
-            )
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            // Field 4: Category / Track (*)
-            OutlinedTextField(
-                value = categoryTrack,
-                onValueChange = {
-                    categoryTrack = it
-                    if (it.isNotBlank()) categoryError = null
-                },
-                modifier = Modifier.fillMaxWidth(),
-                label = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = stringResource(id = R.string.field_category_track))
-                        Text(text = " *", color = MaterialTheme.colorScheme.error)
-                    }
-                },
-                leadingIcon = {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_tag),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                },
-                placeholder = {
-                    Text(
-                        text = stringResource(id = R.string.field_category_track_placeholder),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    )
-                },
-                isError = categoryError != null,
-                supportingText = categoryError?.let { err ->
-                    { Text(text = err, color = MaterialTheme.colorScheme.error) }
-                } ?: {
-                    Text(
-                        text = stringResource(id = R.string.field_category_track_hint),
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                singleLine = true,
-                shape = MaterialTheme.shapes.small,
-                colors = textFieldColors,
-            )
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            // Field 5: Room / Stage (*)
-            OutlinedTextField(
-                value = roomStage,
-                onValueChange = {
-                    roomStage = it
-                    if (it.isNotBlank()) roomError = null
-                },
-                modifier = Modifier.fillMaxWidth(),
-                label = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = stringResource(id = R.string.field_room_stage))
-                        Text(text = " *", color = MaterialTheme.colorScheme.error)
-                    }
-                },
-                leadingIcon = {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_location),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                },
-                placeholder = {
-                    Text(
-                        text = stringResource(id = R.string.field_room_stage_placeholder),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    )
-                },
-                isError = roomError != null,
-                supportingText = roomError?.let { err ->
-                    { Text(text = err, color = MaterialTheme.colorScheme.error) }
-                },
-                singleLine = true,
-                shape = MaterialTheme.shapes.small,
-                colors = textFieldColors,
-            )
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            // Field 6: Start Time (*)
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                OutlinedTextField(
-                    value = startTime,
-                    onValueChange = {},
-                    readOnly = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = stringResource(id = R.string.field_start_time))
-                            Text(text = " *", color = MaterialTheme.colorScheme.error)
-                        }
-                    },
-                    leadingIcon = {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_clock),
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    },
-                    placeholder = {
-                        Text(
-                            text = stringResource(id = R.string.field_start_time_placeholder),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        )
-                    },
-                    isError = startTimeError != null,
-                    supportingText = startTimeError?.let { err ->
-                        { Text(text = err, color = MaterialTheme.colorScheme.error) }
-                    },
-                    trailingIcon = {
-                        IconButton(onClick = { showStartTimePicker = true }) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_clock),
-                                contentDescription = "Pick Start Time",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                    },
-                    singleLine = true,
-                    shape = MaterialTheme.shapes.small,
-                    colors = textFieldColors,
-                )
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clickable { showStartTimePicker = true },
-                )
-            }
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            // Field 7: End Time (Optional - isRequired = false)
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                OutlinedTextField(
-                    value = endTime,
-                    onValueChange = {},
-                    readOnly = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = {
-                        Text(text = stringResource(id = R.string.field_end_time))
-                    },
-                    leadingIcon = {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_clock),
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    },
-                    placeholder = {
-                        Text(
-                            text = stringResource(id = R.string.field_end_time_placeholder),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        )
-                    },
-                    trailingIcon = {
-                        IconButton(onClick = { showEndTimePicker = true }) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_clock),
-                                contentDescription = "Pick End Time",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                    },
-                    singleLine = true,
-                    shape = MaterialTheme.shapes.small,
-                    colors = textFieldColors,
-                )
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clickable { showEndTimePicker = true },
-                )
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Bottom Action Buttons: Cancel & + Create Session
+            // Bottom Action Buttons: Back & + Create session
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Button(
+                OutlinedButton(
                     onClick = onBackClick,
                     modifier = Modifier
                         .weight(1f)
-                        .height(42.dp),
-                    shape = MaterialTheme.shapes.small,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    ),
+                        .height(48.dp),
+                    shape = CircleShape,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 ) {
                     Text(
-                        text = stringResource(id = R.string.action_cancel),
+                        text = "Back",
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
                         ),
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
 
                 Button(
                     onClick = { validateAndSubmit() },
                     modifier = Modifier
-                        .weight(1f)
-                        .height(42.dp),
-                    shape = MaterialTheme.shapes.small,
+                        .weight(1.5f)
+                        .height(48.dp),
+                    shape = CircleShape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -553,14 +544,15 @@ fun CreateSessionScreen(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_add),
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(18.dp),
                         tint = MaterialTheme.colorScheme.onPrimary,
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = stringResource(id = R.string.action_create_session),
+                        text = "Create session",
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
                         ),
                     )
                 }
@@ -569,6 +561,22 @@ fun CreateSessionScreen(
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
+}
+
+@Composable
+private fun SectionHeader(
+    title: String,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleMedium.copy(
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp,
+        ),
+        color = MaterialTheme.colorScheme.primary,
+        modifier = modifier,
+    )
 }
 
 private fun generateAlphanumericCode(length: Int = 6): String {

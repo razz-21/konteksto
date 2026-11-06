@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -42,9 +43,9 @@ fun HostStudioTopBar(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .clip(MaterialTheme.shapes.small)
+                .clip(RoundedCornerShape(8.dp))
                 .clickable { onBackClick() }
-                .padding(end = 4.dp, top = 4.dp, bottom = 4.dp),
+                .padding(end = 6.dp, top = 4.dp, bottom = 4.dp),
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_arrow_back),
@@ -66,7 +67,7 @@ fun HostStudioTopBar(
         // Talk Code Badge button
         Surface(
             onClick = { onPresentQrClick(session) },
-            shape = MaterialTheme.shapes.small,
+            shape = RoundedCornerShape(10.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             border = BorderStroke(
                 1.dp,
@@ -85,7 +86,7 @@ fun HostStudioTopBar(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = session.talkCode.ifBlank { "TALK–415" },
+                    text = session.talkCode.ifBlank { "4VY4N6" },
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = 0.5.sp,

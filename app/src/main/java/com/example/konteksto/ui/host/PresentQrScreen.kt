@@ -6,6 +6,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,26 +19,29 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -46,6 +52,7 @@ import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.theme.KontekstoTheme
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PresentQrScreen(
     session: HostSession,
@@ -55,6 +62,8 @@ fun PresentQrScreen(
 ) {
     val scrollState = rememberScrollState()
     val context = LocalContext.current
+    @Suppress("DEPRECATION")
+    val clipboardManager = LocalClipboardManager.current
     val qrDownloadedMessage = stringResource(id = R.string.qr_downloaded_toast)
 
     val qrApiUrl = "https://api.qrserver.com/v1/create-qr-code/?size=450x450&data=${session.talkCode}"
@@ -85,25 +94,25 @@ fun PresentQrScreen(
                             painter = painterResource(id = R.drawable.ic_arrow_back),
                             contentDescription = "Back",
                             tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier.size(22.dp),
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(2.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
 
                     Column {
                         Text(
                             text = stringResource(id = R.string.present_qr_title),
-                            style = MaterialTheme.typography.titleMedium.copy(
+                            style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp,
+                                fontSize = 18.sp,
                             ),
                             color = MaterialTheme.colorScheme.onBackground,
                         )
                         Text(
                             text = stringResource(id = R.string.present_qr_subtitle),
                             style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 11.sp,
+                                fontSize = 12.sp,
                             ),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -112,66 +121,31 @@ fun PresentQrScreen(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Main Present QR Card
+                // Card 1: QR Code & Join Code Card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
+                    shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        contentColor = MaterialTheme.colorScheme.onBackground,
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
                     ),
                     border = BorderStroke(
                         width = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
                     ),
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(20.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        // Join Code Banner Box
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(MaterialTheme.shapes.small)
-                                .background(MaterialTheme.colorScheme.primaryContainer)
-                                .padding(vertical = 10.dp, horizontal = 14.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = stringResource(id = R.string.present_qr_join_code_label),
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 10.sp,
-                                        letterSpacing = 1.sp,
-                                    ),
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = session.talkCode,
-                                    style = MaterialTheme.typography.headlineLarge.copy(
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 24.sp,
-                                        letterSpacing = 2.sp,
-                                    ),
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
                         // QR Code Image Container
                         Box(
                             modifier = Modifier
-                                .size(190.dp)
-                                .clip(MaterialTheme.shapes.medium)
+                                .size(210.dp)
                                 .background(Color.White)
-                                .padding(10.dp),
+                                .padding(8.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             AsyncImage(
@@ -182,42 +156,10 @@ fun PresentQrScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         Text(
                             text = stringResource(id = R.string.present_qr_scan_hint),
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 11.sp,
-                            ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                        )
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Talk Title
-                        Text(
-                            text = session.title,
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp,
-                                lineHeight = 20.sp,
-                            ),
-                            color = MaterialTheme.colorScheme.onBackground,
-                            textAlign = TextAlign.Center,
-                        )
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        // Speaker Name
-                        Text(
-                            text = session.speakerName,
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 fontSize = 13.sp,
                             ),
@@ -225,45 +167,144 @@ fun PresentQrScreen(
                             textAlign = TextAlign.Center,
                         )
 
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
 
-                        // Venue & Time
+                        // Join Code Box
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainer,
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Join code",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium,
+                                        ),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = session.talkCode,
+                                        style = MaterialTheme.typography.titleLarge.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 22.sp,
+                                            letterSpacing = 2.sp,
+                                        ),
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = {
+                                        clipboardManager.setText(AnnotatedString(session.talkCode))
+                                        Toast.makeText(context, "Join code copied!", Toast.LENGTH_SHORT).show()
+                                    },
+                                    modifier = Modifier.size(32.dp),
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_copy),
+                                        contentDescription = "Copy join code",
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Card 2: Session Details Summary Card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                    ),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                    ) {
                         Text(
-                            text = "${session.venue}  ·  ${session.time}",
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 12.sp,
+                            text = session.title,
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                lineHeight = 24.sp,
                             ),
-                            color = MaterialTheme.colorScheme.primary,
-                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            if (session.speakerName.isNotBlank()) {
+                                PresentQrBadge(
+                                    iconRes = R.drawable.ic_speaker,
+                                    text = session.speakerName,
+                                )
+                            }
+
+                            if (session.time.isNotBlank()) {
+                                PresentQrBadge(
+                                    iconRes = R.drawable.ic_clock,
+                                    text = session.time,
+                                )
+                            }
+
+                            if (session.venue.isNotBlank()) {
+                                PresentQrBadge(
+                                    iconRes = R.drawable.ic_location,
+                                    text = session.venue,
+                                )
+                            }
+                        }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Bottom Action Buttons: Back & Download QR
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Button(
+                OutlinedButton(
                     onClick = onBackClick,
                     modifier = Modifier
                         .weight(1f)
-                        .height(42.dp),
-                    shape = MaterialTheme.shapes.small,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    ),
+                        .height(48.dp),
+                    shape = CircleShape,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 ) {
                     Text(
                         text = stringResource(id = R.string.action_back),
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
                         ),
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
 
@@ -277,18 +318,19 @@ fun PresentQrScreen(
                             ).show()
                     },
                     modifier = Modifier
-                        .weight(1f)
-                        .height(42.dp),
-                    shape = MaterialTheme.shapes.small,
+                        .weight(1.5f)
+                        .height(48.dp),
+                    shape = CircleShape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
                     ),
+                    contentPadding = PaddingValues(horizontal = 12.dp),
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_download),
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(18.dp),
                         tint = MaterialTheme.colorScheme.onPrimary,
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -296,10 +338,45 @@ fun PresentQrScreen(
                         text = stringResource(id = R.string.action_download_qr),
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
                         ),
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PresentQrBadge(
+    iconRes: Int,
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                painter = painterResource(id = iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.width(5.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 12.sp,
+                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -309,13 +386,13 @@ fun PresentQrScreen(
 fun PresentQrScreenLightPreview() {
     val sampleSession = HostSession(
         id = "1",
-        venue = "Tech Summit Hall B",
-        time = "10:00 AM",
-        talkCode = "MWJSML",
-        title = "Edge AI & Distributed Cloud Architecture: Scaling to Zero Latency",
-        speakerName = "Engr. Marco Valerio",
-        attendeesCount = 890,
-        isLive = true,
+        venue = "WAC Building 203, West Academic Sector",
+        time = "10:00 AM – 11:00 PM",
+        talkCode = "7EJCD2",
+        title = "Literacy in AI Era",
+        speakerName = "Zhar",
+        attendeesCount = 1,
+        isLive = false,
     )
     KontekstoTheme(darkTheme = false) {
         PresentQrScreen(
@@ -330,12 +407,12 @@ fun PresentQrScreenLightPreview() {
 fun PresentQrScreenDarkPreview() {
     val sampleSession = HostSession(
         id = "1",
-        venue = "Tech Summit Hall B",
-        time = "10:00 AM",
-        talkCode = "MWJSML",
-        title = "Edge AI & Distributed Cloud Architecture: Scaling to Zero Latency",
-        speakerName = "Engr. Marco Valerio",
-        attendeesCount = 890,
+        venue = "WAC Building 203, West Academic Sector",
+        time = "10:00 AM – 11:00 PM",
+        talkCode = "7EJCD2",
+        title = "Literacy in AI Era",
+        speakerName = "Zhar",
+        attendeesCount = 1,
         isLive = true,
     )
     KontekstoTheme(darkTheme = true) {

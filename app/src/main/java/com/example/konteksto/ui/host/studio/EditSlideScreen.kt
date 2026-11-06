@@ -1,9 +1,11 @@
 package com.example.konteksto.ui.host.studio
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,11 +15,13 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,10 +33,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
-import com.example.konteksto.ui.theme.KontekstoTheme
 
 @Composable
 fun EditSlideScreen(
@@ -83,7 +86,7 @@ fun EditSlideScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             EditFormTopBar(
                 title = "Edit Slide",
@@ -106,7 +109,7 @@ fun EditSlideScreen(
                 }
             } else {
                 EditFormField(
-                    label = "Title *",
+                    label = "Title",
                     value = title,
                     onValueChange = {
                         title = it
@@ -131,65 +134,65 @@ fun EditSlideScreen(
                     onValueChange = { keyTakeaway = it },
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                Button(
-                    onClick = {
-                        if (title.isBlank()) {
-                            titleError = "Title is required"
-                        } else {
-                            onSaveClick(slide.withEdits(title, summary, explanation, keyTakeaway))
-                        }
-                    },
-                    enabled = hasChanges,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    shape = MaterialTheme.shapes.small,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
+                // Bottom Action Buttons: Back & Save
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_check),
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Save",
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.Bold,
+                    OutlinedButton(
+                        onClick = onBackRequested,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
+                        shape = CircleShape,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    ) {
+                        Text(
+                            text = "Back",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                            ),
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+
+                    Button(
+                        onClick = {
+                            if (title.isBlank()) {
+                                titleError = "Title is required"
+                            } else {
+                                onSaveClick(slide.withEdits(title, summary, explanation, keyTakeaway))
+                            }
+                        },
+                        enabled = hasChanges,
+                        modifier = Modifier
+                            .weight(1.5f)
+                            .height(48.dp),
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
                         ),
-                    )
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_check),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Save",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                            ),
+                        )
+                    }
                 }
             }
         }
-    }
-}
-
-private val previewSlide = AnalyzedSlideItem(
-    id = "s_1",
-    slideNumber = 1,
-    title = "Edge Buffer Thresholds",
-    summary = "Covers the latency targets for local frame processing.",
-    explanation = "Batching frames at the edge keeps processing overhead below the target.",
-    keyTakeaway = "Keep the edge buffer small to protect latency.",
-)
-
-@Preview(showBackground = true)
-@Composable
-fun EditSlideScreenLightPreview() {
-    KontekstoTheme(darkTheme = false) {
-        EditSlideScreen(slide = previewSlide, onBackClick = {}, onSaveClick = {})
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun EditSlideScreenDarkPreview() {
-    KontekstoTheme(darkTheme = true) {
-        EditSlideScreen(slide = previewSlide, onBackClick = {}, onSaveClick = {})
     }
 }
