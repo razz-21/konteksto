@@ -1,14 +1,12 @@
 package com.example.konteksto.ui.profile
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,12 +15,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -31,18 +28,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.UserProfile
 
 @Composable
-fun SignedInProfileCard(
+fun SignedInProfileHeaderCard(
     profile: UserProfile,
     modifier: Modifier = Modifier,
     onEditClick: () -> Unit = {},
@@ -61,137 +55,250 @@ fun SignedInProfileCard(
             .ifEmpty { "K" }
     }
 
-    Card(
+    Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.small,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-            contentColor = MaterialTheme.colorScheme.onBackground,
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
+                .padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                ProfileAvatar(profile = profile, initials = initials)
+            ProfileAvatar(profile = profile, initials = initials)
 
-                Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
-                Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = profile.name.ifBlank { "Konteksto User" },
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                    ),
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text(
+                    text = profile.email.ifBlank { "No email available" },
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 13.sp,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Surface(
+                onClick = onEditClick,
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier.size(40.dp),
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_edit),
+                        contentDescription = "Edit Profile",
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AboutYouSectionCard(
+    profile: UserProfile,
+    onEditClick: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = "About you",
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+            ),
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+        )
+
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // Item 1: Role Row (Aligned right, no arrow)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_badge),
+                            contentDescription = "Role",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(14.dp))
+
                     Text(
-                        text = profile.name.ifBlank { "Konteksto User" },
-                        style = MaterialTheme.typography.titleLarge.copy(
+                        text = "Role",
+                        style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 17.sp,
+                            fontSize = 15.sp,
                         ),
                         color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.weight(1f),
                     )
-
-                    Spacer(modifier = Modifier.height(2.dp))
 
                     Text(
                         text = profile.role.ifBlank { "Attendee" },
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp,
                         ),
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                // Item 2: Organization Row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onEditClick)
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                        contentAlignment = Alignment.Center,
+                    ) {
                         Icon(
-                            painter = painterResource(id = R.drawable.ic_email),
-                            contentDescription = "Email",
-                            modifier = Modifier.size(14.dp),
+                            painter = painterResource(id = R.drawable.ic_business),
+                            contentDescription = "Organization",
+                            modifier = Modifier.size(20.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+
+                    Spacer(modifier = Modifier.width(14.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = profile.email.ifBlank { "No email available" },
-                            style = MaterialTheme.typography.bodySmall,
+                            text = "Organization",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                            ),
+                            color = MaterialTheme.colorScheme.onBackground,
+                        )
+
+                        Spacer(modifier = Modifier.height(2.dp))
+
+                        Text(
+                            text = profile.organization.ifBlank { "Add where you work or study" },
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 13.sp,
+                            ),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                }
-            }
 
-            Spacer(modifier = Modifier.height(14.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant,
-                        shape = MaterialTheme.shapes.small,
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_arrow_forward),
+                        contentDescription = "Edit",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     )
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_business),
-                    contentDescription = "Organization",
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = profile.organization.ifBlank { "No organization added yet" },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (profile.organization.isBlank()) {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    } else {
-                        MaterialTheme.colorScheme.onBackground
-                    },
-                )
-            }
+                }
 
-            Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
 
-            Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-                Box(
+                // Item 3: Bio Row
+                Row(
                     modifier = Modifier
-                        .width(3.dp)
-                        .fillMaxHeight()
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
-                )
+                        .fillMaxWidth()
+                        .clickable(onClick = onEditClick)
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_align_left),
+                            contentDescription = "Bio",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
 
-                Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(14.dp))
 
-                Text(
-                    text = if (profile.bio.isNotBlank()) {
-                        "\"${profile.bio}\""
-                    } else {
-                        "No bio added yet."
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontStyle = FontStyle.Italic,
-                )
-            }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Bio",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                            ),
+                            color = MaterialTheme.colorScheme.onBackground,
+                        )
 
-            Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(modifier = Modifier.height(2.dp))
 
-            Button(
-                onClick = onEditClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(42.dp),
-                shape = MaterialTheme.shapes.small,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    contentColor = MaterialTheme.colorScheme.primary,
-                ),
-            ) {
-                Text(
-                    text = "Edit Profile Details",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp,
-                )
+                        Text(
+                            text = profile.bio.ifBlank { "Tell speakers a little about yourself" },
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 13.sp,
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_arrow_forward),
+                        contentDescription = "Edit",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    )
+                }
             }
         }
     }
@@ -202,31 +309,22 @@ private fun ProfileAvatar(
     profile: UserProfile,
     initials: String,
 ) {
-    Box(modifier = Modifier.size(68.dp)) {
+    Box(modifier = Modifier.size(64.dp)) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .clip(MaterialTheme.shapes.small)
+                .clip(CircleShape)
                 .background(
                     Brush.linearGradient(profile.avatarGradientColors),
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            if (!profile.photoUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = profile.photoUrl,
-                    contentDescription = "Profile photo",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
-                Text(
-                    text = initials,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp,
-                )
-            }
+            Text(
+                text = initials,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 22.sp,
+            )
         }
 
         Box(

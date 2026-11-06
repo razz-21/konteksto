@@ -359,7 +359,7 @@ fun EditProfileScreen(
                 label = { Text("Bio") },
                 leadingIcon = {
                     Icon(
-                        painter = painterResource(id = R.drawable.ic_text),
+                        painter = painterResource(id = R.drawable.ic_align_left),
                         contentDescription = null,
                         modifier = Modifier.size(20.dp),
                     )

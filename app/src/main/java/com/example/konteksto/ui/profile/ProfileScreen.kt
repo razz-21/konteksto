@@ -25,20 +25,32 @@ import kotlinx.coroutines.launch
 fun ProfileScreen(
     modifier: Modifier = Modifier,
     authRepository: AuthRepository = remember { FirebaseAuthRepository() },
-    userProfileRepository: UserProfileRepository = remember { FirebaseUserProfileRepository() },
-    viewModel: ProfileViewModel = viewModel(
-        factory = ProfileViewModel.provideFactory(authRepository, userProfileRepository),
-    ),
+    userProfileRepository: UserProfileRepository = remember {
+        FirebaseUserProfileRepository()
+    },
     isDarkMode: Boolean = false,
     onDarkModeChange: (Boolean) -> Unit = {},
     onSignOutClick: () -> Unit = {},
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    val actualRepository = remember(context, userProfileRepository) {
+        if (userProfileRepository is FirebaseUserProfileRepository) {
+            FirebaseUserProfileRepository(context.applicationContext)
+        } else {
+            userProfileRepository
+        }
+    }
+
+    val viewModel: ProfileViewModel = viewModel(
+        factory = ProfileViewModel.provideFactory(authRepository, actualRepository),
+    )
+
     val currentUser by viewModel.authStateStream
         .collectAsStateWithLifecycle(initialValue = viewModel.currentUser)
     val profile by viewModel.profile.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
 
     var showEditProfile by rememberSaveable { mutableStateOf(false) }
 
