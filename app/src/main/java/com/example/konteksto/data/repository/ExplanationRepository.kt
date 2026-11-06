@@ -75,7 +75,7 @@ class FirebaseExplanationRepository(
                         timestamp = responseData["timestamp"] as? String ?: "Live",
                         percentGrounded = (responseData["percentGrounded"] as? Number)?.toInt() ?: 95,
                         title = responseData["title"] as? String ?: "Concept Explanation",
-                        definition = responseData["definition"] as? String ?: "",
+                        definition = stripContextIdReferences(responseData["definition"] as? String ?: ""),
                         analogy = responseData["analogy"] as? String ?: "",
                         whyItMatters = responseData["whyItMatters"] as? String ?: "",
                         isBookmarked = false,
@@ -296,3 +296,14 @@ class FirebaseExplanationRepository(
         Result.success(emptyList())
     }
 }
+
+private const val CONTEXT_ID_TOKEN = """(?:ID:\s*)?(?:term|tr|note|slide|concept|seg|segment|glossary)_[A-Za-z0-9_\-]+"""
+private val contextIdGroupRegex = Regex("""[ \t]*[(\[]\s*$CONTEXT_ID_TOKEN(?:\s*[,;]\s*$CONTEXT_ID_TOKEN)*\s*[)\]]""")
+private val bracketedIdTagRegex = Regex("""[ \t]*\[ID:[^\]]*]""")
+
+/**
+ * Removes grounding IDs (e.g. "(term_1793882650749_25, term_oop)") that Gemini sometimes echoes
+ * from its context tags into the user-facing explanation text.
+ */
+internal fun stripContextIdReferences(text: String): String =
+    text.replace(contextIdGroupRegex, "").replace(bracketedIdTagRegex, "")

@@ -8,6 +8,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -37,20 +39,27 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.ui.theme.KontekstoTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,282 +67,546 @@ fun ExplanationBottomSheet(
     request: ActiveExplanationRequest,
     onDismiss: () -> Unit,
     onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = Color(0xFFF5F6FA),
         dragHandle = {
             BottomSheetDefaults.DragHandle()
         },
+        modifier = modifier,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .padding(bottom = 24.dp),
+        ExplanationBottomSheetContent(
+            request = request,
+            onDismiss = onDismiss,
+            onRetry = onRetry,
+        )
+    }
+}
+
+@Composable
+fun ExplanationBottomSheetContent(
+    request: ActiveExplanationRequest,
+    onDismiss: () -> Unit,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var showAllSelectedLines by remember { mutableStateOf(false) }
+
+    val displayItems = remember(request.selectedItems) {
+        request.selectedItems.ifEmpty {
+            listOf(
+                CompanionTranscriptItem(
+                    id = "demo_1",
+                    speakerName = "Ernesto Razo",
+                    timestamp = "7:34 PM",
+                    text = "to try it in the intel age idea you can project and then create a class and then add add th...",
+                ),
+                CompanionTranscriptItem(
+                    id = "demo_2",
+                    speakerName = "Ernesto Razo",
+                    timestamp = "7:35 PM",
+                    text = "so here is the take a key takeaways first oop organized organizes program around object...",
+                ),
+            )
+        }
+    }
+
+    val displayExplanation = remember(request.explanation) {
+        request.explanation ?: LiveConceptExplanationItem(
+            id = "demo_exp",
+            type = "Programming workflow & core concepts",
+            title = "IntelliJ IDEA workflow and core OOP takeaways",
+            definition = "The speaker showed how to put Object-Oriented Programming (OOP) into practice in an IDE, then summed up its main ideas.\n\n**IntelliJ IDEA workflow**\nTo apply OOP, the speaker used IntelliJ IDEA, a popular IDE for Java. The steps:\n\n1. **Create a project.** Start a new project in the IDE.",
+            analogy = "Like using a blueprint to construct a real house in a modern virtual workshop.",
+            whyItMatters = "Understanding the IDE execution flow bridges abstract OOP theory with working executable software.",
+            percentGrounded = 98,
+        )
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .padding(bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        // Header Row: Sparkle Icon + Title & Badges + Close X Button
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            // Header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.weight(1f),
             ) {
+                // Sparkle Circle Avatar
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
-                        .background(Color(0xFFE8EAFF), CircleShape),
-                    contentAlignment = Alignment.Center
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFE2E7FF)),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_sparkle),
                         contentDescription = null,
-                        tint = Color(0xFF3B52D4),
-                        modifier = Modifier.size(16.dp)
+                        tint = Color(0xFF2563EB),
+                        modifier = Modifier.size(22.dp),
                     )
                 }
+
                 Spacer(modifier = Modifier.width(12.dp))
+
                 Column {
                     Text(
-                        text = "What Did They Mean? (${request.selectedItems.size} Selected)",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        text = "What did they mean?",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 19.sp,
+                        ),
+                        color = MaterialTheme.colorScheme.onBackground,
                     )
-                    Text(
-                        text = "Explained by AI",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        // Selected lines badge
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFFF2F4F7),
+                        ) {
+                            Text(
+                                text = "${displayItems.size} lines",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.5.sp,
+                                ),
+                                color = Color(0xFF344054),
+                            )
+                        }
+
+                        // Explained by AI badge
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFFF2F4F7),
+                        ) {
+                            Text(
+                                text = "Explained by AI",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 11.5.sp,
+                                ),
+                                color = Color(0xFF667085),
+                            )
+                        }
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Scrollable Content
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f, fill = false)
-                    .verticalScroll(rememberScrollState()),
+            // Close X Button
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.size(36.dp),
             ) {
-                // Selected Statements Card
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                    shape = MaterialTheme.shapes.small,
-                    modifier = Modifier.fillMaxWidth()
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_add),
+                    contentDescription = "Close",
+                    tint = Color(0xFF667085),
+                    modifier = Modifier
+                        .size(20.dp)
+                        .graphicsLayer { rotationZ = 45f },
+                )
+            }
+        }
+
+        // Scrollable Body Content
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f, fill = false)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            // SECTION 1: SELECTED LINES CARD
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White,
+                ),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = Color(0xFFEAECF0),
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text(
-                            text = "SELECTED STATEMENTS (${request.selectedItems.size}):",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp),
-                            color = Color(0xFF3B52D4),
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-                        
-                        request.selectedItems.forEachIndexed { index, item ->
-                            Row(modifier = Modifier.fillMaxWidth()) {
-                                // Blue left border
-                                Box(
-                                    modifier = Modifier
-                                        .width(3.dp)
-                                        .height(36.dp)
-                                        .background(Color(0xFF3B52D4))
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Column(modifier = Modifier.padding(bottom = if (index == request.selectedItems.size - 1) 0.dp else 12.dp)) {
+                    // Header Row: Selected lines label + Show all toggle
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "”",
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 20.sp,
+                                ),
+                                color = Color(0xFF2563EB),
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Selected lines",
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                ),
+                                color = MaterialTheme.colorScheme.onBackground,
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable { showAllSelectedLines = !showAllSelectedLines }
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = if (showAllSelectedLines) "Collapse" else "Show all",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.5.sp,
+                                ),
+                                color = Color(0xFF2563EB),
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_arrow_back),
+                                contentDescription = null,
+                                tint = Color(0xFF2563EB),
+                                modifier = Modifier
+                                    .size(14.dp)
+                                    .graphicsLayer {
+                                        rotationZ = if (showAllSelectedLines) 90f else -90f
+                                    },
+                            )
+                        }
+                    }
+
+                    // Display selected line cards
+                    val visibleLines = if (showAllSelectedLines) displayItems else displayItems.take(2)
+                    visibleLines.forEach { item ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color(0xFFFAFAFA),
+                            ),
+                            border = BorderStroke(
+                                width = 1.dp,
+                                color = Color(0xFFEAECF0),
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(10.dp),
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
                                     Text(
-                                        text = "${item.speakerName} (${item.timestamp})",
-                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                        text = item.speakerName,
+                                        style = MaterialTheme.typography.labelLarge.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp,
+                                        ),
+                                        color = Color(0xFF2563EB),
                                     )
-                                    Text(
-                                        text = "\"${item.text}\"",
-                                        style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+
+                                    Spacer(modifier = Modifier.width(6.dp))
+
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Color(0xFFF2F4F7),
+                                    ) {
+                                        Text(
+                                            text = item.timestamp,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontSize = 10.5.sp,
+                                            ),
+                                            color = Color(0xFF475467),
+                                        )
+                                    }
                                 }
+
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                Text(
+                                    text = item.text,
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontSize = 12.5.sp,
+                                        lineHeight = 17.sp,
+                                    ),
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    maxLines = if (showAllSelectedLines) Int.MAX_VALUE else 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
                             }
                         }
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Result, Loading, or Error Card
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                    shape = MaterialTheme.shapes.small,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Box(modifier = Modifier.padding(16.dp)) {
-                        when {
-                            request.isLoading -> {
-                                Column(modifier = Modifier.fillMaxWidth()) {
-                                    Text("Analyzing selected statements...", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp))
-                                    SkeletonItem(modifier = Modifier.fillMaxWidth())
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    SkeletonItem(modifier = Modifier.fillMaxWidth())
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    SkeletonItem(modifier = Modifier.fillMaxWidth(0.7f))
+            // SECTION 2: AI EXPLANATION RESULT CARD
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White,
+                ),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = Color(0xFFEAECF0),
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            ) {
+                Box(modifier = Modifier.padding(16.dp)) {
+                    when {
+                        request.isLoading -> {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Text(
+                                    text = "Analyzing selected statements...",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                                )
+                                SkeletonItem(modifier = Modifier.fillMaxWidth())
+                                Spacer(modifier = Modifier.height(8.dp))
+                                SkeletonItem(modifier = Modifier.fillMaxWidth())
+                                Spacer(modifier = Modifier.height(8.dp))
+                                SkeletonItem(modifier = Modifier.fillMaxWidth(0.7f))
+                            }
+                        }
+                        request.error != null -> {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(
+                                    text = request.error,
+                                    color = MaterialTheme.colorScheme.error,
+                                    textAlign = TextAlign.Center,
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(onClick = onRetry) {
+                                    Text("Retry")
                                 }
                             }
-                            request.error != null -> {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                                    Text(request.error, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Button(onClick = onRetry) {
-                                        Text("Retry")
-                                    }
-                                }
-                            }
-                            request.explanation != null -> {
-                                val exp = request.explanation
-                                Column(modifier = Modifier.fillMaxWidth()) {
-                                    if (exp.type.isNotBlank()) {
-                                        Surface(
-                                            shape = RoundedCornerShape(4.dp),
-                                            color = Color(0xFFE8EAFF),
-                                            modifier = Modifier.padding(bottom = 8.dp)
-                                        ) {
-                                            Text(
-                                                text = exp.type.uppercase(),
-                                                style = MaterialTheme.typography.labelSmall.copy(
-                                                    fontWeight = FontWeight.Bold,
-                                                    letterSpacing = 0.5.sp
-                                                ),
-                                                color = Color(0xFF3B52D4),
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                            )
-                                        }
-                                    }
-                                    if (exp.title.isNotBlank()) {
+                        }
+                        else -> {
+                            val exp = displayExplanation
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                // Category Pill Tag Chip
+                                if (exp.type.isNotBlank()) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = Color(0xFFE0E7FF),
+                                    ) {
                                         Text(
-                                            text = exp.title,
-                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            modifier = Modifier.padding(bottom = 8.dp)
+                                            text = exp.type,
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 11.5.sp,
+                                            ),
+                                            color = Color(0xFF2563EB),
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                         )
                                     }
-                                    val breakdown = parseMarkdownToAnnotatedString(exp.definition)
+                                }
+
+                                // Main Title
+                                if (exp.title.isNotBlank()) {
                                     Text(
-                                        text = breakdown,
-                                        style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        text = exp.title,
+                                        style = MaterialTheme.typography.titleLarge.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 19.sp,
+                                            lineHeight = 24.sp,
+                                        ),
+                                        color = MaterialTheme.colorScheme.onBackground,
                                     )
-                                    if (exp.analogy.isNotBlank()) {
-                                        Spacer(modifier = Modifier.height(10.dp))
-                                        Surface(
-                                            shape = MaterialTheme.shapes.small,
-                                            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
-                                            modifier = Modifier.fillMaxWidth()
+                                }
+
+                                // Definition Body Text
+                                val breakdown = parseMarkdownToAnnotatedString(exp.definition)
+                                Text(
+                                    text = breakdown,
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontSize = 13.5.sp,
+                                        lineHeight = 19.sp,
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+
+                                // Analogy Block
+                                if (exp.analogy.isNotBlank()) {
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = Color(0xFFF8FAFF),
+                                        border = BorderStroke(1.dp, Color(0xFFEAECF0)),
+                                        modifier = Modifier.fillMaxWidth(),
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(12.dp),
+                                            verticalAlignment = Alignment.Top,
                                         ) {
-                                            Row(
-                                                modifier = Modifier.padding(10.dp),
-                                                verticalAlignment = Alignment.Top
-                                            ) {
-                                                Icon(
-                                                    painter = painterResource(id = R.drawable.ic_sparkle),
-                                                    contentDescription = null,
-                                                    tint = Color(0xFF3B52D4),
-                                                    modifier = Modifier.size(16.dp).padding(top = 2.dp)
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.ic_sparkle),
+                                                contentDescription = null,
+                                                tint = Color(0xFF2563EB),
+                                                modifier = Modifier.size(16.dp).padding(top = 2.dp),
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Column {
+                                                Text(
+                                                    text = "Analogy",
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFF2563EB),
+                                                        fontSize = 11.5.sp,
+                                                    ),
                                                 )
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Column {
-                                                    Text(
-                                                        text = "Analogy",
-                                                        style = MaterialTheme.typography.labelSmall.copy(
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = Color(0xFF3B52D4)
-                                                        )
-                                                    )
-                                                    Text(
-                                                        text = exp.analogy,
-                                                        style = MaterialTheme.typography.bodySmall.copy(
-                                                            fontSize = 12.sp,
-                                                            lineHeight = 16.sp,
-                                                            fontStyle = FontStyle.Italic
-                                                        ),
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                    )
-                                                }
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Text(
+                                                    text = exp.analogy,
+                                                    style = MaterialTheme.typography.bodySmall.copy(
+                                                        fontSize = 12.sp,
+                                                        lineHeight = 16.5.sp,
+                                                        fontStyle = FontStyle.Italic,
+                                                    ),
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                )
                                             }
                                         }
                                     }
-                                    if (exp.whyItMatters.isNotBlank()) {
-                                        Spacer(modifier = Modifier.height(10.dp))
-                                        Column(modifier = Modifier.fillMaxWidth()) {
-                                            Text(
-                                                text = "Why it matters:",
-                                                style = MaterialTheme.typography.labelSmall.copy(
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 11.sp
-                                                ),
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                            Spacer(modifier = Modifier.height(2.dp))
-                                            Text(
-                                                text = exp.whyItMatters,
-                                                style = MaterialTheme.typography.bodySmall.copy(
-                                                    fontSize = 12.sp,
-                                                    lineHeight = 16.sp
-                                                ),
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                        }
+                                }
+
+                                // Why It Matters Block
+                                if (exp.whyItMatters.isNotBlank()) {
+                                    Column(modifier = Modifier.fillMaxWidth()) {
+                                        Text(
+                                            text = "Why it matters:",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 11.5.sp,
+                                            ),
+                                            color = Color(0xFF667085),
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = exp.whyItMatters,
+                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                fontSize = 12.sp,
+                                                lineHeight = 16.5.sp,
+                                            ),
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                        )
                                     }
                                 }
                             }
                         }
                     }
                 }
+            }
+        }
 
-                if (request.explanation != null) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Source: Audio stream segment",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "${request.explanation.percentGrounded}% Grounded",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = Color(0xFF00875A)
-                        )
-                    }
-                }
+        // SECTION 3: BOTTOM BUTTONS ROW
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Clear selection Outlined Button
+            OutlinedButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp),
+                shape = CircleShape,
+                border = BorderStroke(1.dp, Color(0xFFD0D5DD)),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = Color.White,
+                    contentColor = Color(0xFF2563EB),
+                ),
+            ) {
+                Text(
+                    text = "Clear selection",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.5.sp,
+                    ),
+                    color = Color(0xFF2563EB),
+                )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Buttons
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.weight(1f),
-                    shape = MaterialTheme.shapes.small,
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    ),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            // Got it Primary Button
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp),
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF2563EB),
+                    contentColor = Color.White,
+                ),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
                 ) {
-                    Text("Clear Selection & Close")
-                }
-                
-                Button(
-                    onClick = onDismiss,
-                    modifier = Modifier.weight(1f),
-                    shape = MaterialTheme.shapes.small,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF3B52D4)
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_check),
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp),
                     )
-                ) {
-                    Text("Got it, back to session")
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Got it",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.5.sp,
+                        ),
+                        color = Color.White,
+                    )
                 }
             }
         }
@@ -348,31 +621,30 @@ fun SkeletonItem(modifier: Modifier = Modifier) {
         targetValue = 0.5f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
+            repeatMode = RepeatMode.Reverse,
         ),
-        label = "skeleton_alpha"
+        label = "skeleton_alpha",
     )
 
     Box(
         modifier = modifier
             .height(16.dp)
             .clip(RoundedCornerShape(4.dp))
-            .background(Color.Gray.copy(alpha = alpha))
+            .background(Color.Gray.copy(alpha = alpha)),
     )
 }
 
 fun parseMarkdownToAnnotatedString(text: String) = buildAnnotatedString {
     val tokens = mutableListOf<Token>()
-    
-    // Match **bold** or *italic* (ensuring * italic * isn't confused with bullet points or spaces)
+
     val combinedRegex = "(\\*\\*(.*?)\\*\\*)|(\\*([^\\s*].*?[^\\s*]|[^\\s*])\\*)".toRegex()
-    
+
     var lastIndex = 0
     combinedRegex.findAll(text).forEach { matchResult ->
         if (matchResult.range.first > lastIndex) {
             tokens.add(Token.Text(text.substring(lastIndex, matchResult.range.first)))
         }
-        
+
         val value = matchResult.value
         if (value.startsWith("**")) {
             tokens.add(Token.Bold(value.removeSurrounding("**")))
@@ -381,11 +653,11 @@ fun parseMarkdownToAnnotatedString(text: String) = buildAnnotatedString {
         }
         lastIndex = matchResult.range.last + 1
     }
-    
+
     if (lastIndex < text.length) {
         tokens.add(Token.Text(text.substring(lastIndex)))
     }
-    
+
     tokens.forEach { token ->
         when (token) {
             is Token.Text -> append(token.content)
@@ -399,4 +671,39 @@ private sealed class Token {
     data class Text(val content: String) : Token()
     data class Bold(val content: String) : Token()
     data class Italic(val content: String) : Token()
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ExplanationBottomSheetPreview() {
+    KontekstoTheme {
+        ExplanationBottomSheetContent(
+            request = ActiveExplanationRequest(
+                selectedItems = listOf(
+                    CompanionTranscriptItem(
+                        id = "1",
+                        speakerName = "Ernesto Razo",
+                        timestamp = "7:34 PM",
+                        text = "to try it in the intel age idea you can project and then create a class and then add add th...",
+                    ),
+                    CompanionTranscriptItem(
+                        id = "2",
+                        speakerName = "Ernesto Razo",
+                        timestamp = "7:35 PM",
+                        text = "so here is the take a key takeaways first oop organized organizes program around object...",
+                    ),
+                ),
+                explanation = LiveConceptExplanationItem(
+                    id = "exp1",
+                    type = "Programming workflow & core concepts",
+                    title = "IntelliJ IDEA workflow and core OOP takeaways",
+                    definition = "The speaker showed how to put Object-Oriented Programming (OOP) into practice in an IDE, then summed up its main ideas.\n\n**IntelliJ IDEA workflow**\nTo apply OOP, the speaker used IntelliJ IDEA, a popular IDE for Java. The steps:\n\n1. **Create a project.** Start a new project in the IDE.",
+                    analogy = "Like using a blueprint to construct a real house in a modern virtual workshop.",
+                    whyItMatters = "Understanding the IDE execution flow bridges abstract OOP theory with working executable software.",
+                ),
+            ),
+            onDismiss = {},
+            onRetry = {},
+        )
+    }
 }

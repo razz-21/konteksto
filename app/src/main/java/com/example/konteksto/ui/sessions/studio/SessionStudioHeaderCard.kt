@@ -14,9 +14,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -26,11 +29,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
 
 private const val DEFAULT_HERO_IMAGE_URL =
@@ -43,60 +48,59 @@ fun SessionStudioHeaderCard(
 ) {
     // Calculate speaker initials
     val speakerInitials = remember(session.speakerName) {
-        session.speakerName
-            .trim()
+        val name = session.speakerName.ifBlank { "Ernesto Razo" }
+        name.trim()
             .split(" ")
             .filter { it.isNotBlank() }
             .take(2)
             .joinToString("") { it.first().uppercase() }
-            .ifEmpty { "ES" }
+            .ifEmpty { "ER" }
     }
 
-    // Subtitle line (Category · Venue / Stage)
-    val subtitleText = remember(session.category, session.venue) {
-        val cat = session.category?.takeIf { it.isNotBlank() } ?: "Frontier"
-        val ven = session.venue.ifBlank { "Main Auditorium · Stage A" }
-        "$cat · $ven"
-    }
+    val speakerName = session.speakerName.ifBlank { "Ernesto Razo" }
+    val titleText = session.title.ifBlank { "Object Oriented Programming" }
+    val categoryText = session.category?.takeIf { it.isNotBlank() } ?: "Technology & digital"
+    val venueText = session.venue.ifBlank { "CDO Ayala" }
 
-    // Duration or session time label
     val timeLabel = remember(session.time, session.startTime, session.endTime) {
         if (session.time.isNotBlank()) {
             session.time
         } else if (!session.startTime.isNullOrBlank() && !session.endTime.isNullOrBlank()) {
-            "${session.startTime} - ${session.endTime}"
+            "${session.startTime} – ${session.endTime}"
         } else {
-            "75 min"
+            "10:00 – 11:30 AM"
         }
     }
 
-    Column(
+    Card(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White,
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = Color(0xFFEAECF0),
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        // CARD 1: Hero Banner Image Card with Dark Gradient & Title Overlay
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.medium,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Top Section: Banner Image Card with Category Tag Chip & Overlay Title
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(150.dp),
+                    .height(150.dp)
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
             ) {
                 // Background Banner Image
                 AsyncImage(
                     model = session.bannerImageUrl?.takeIf { it.isNotBlank() } ?: DEFAULT_HERO_IMAGE_URL,
-                    contentDescription = session.title,
+                    contentDescription = titleText,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
 
-                // Dark Gradient Shadow Overlay at the bottom half
+                // Dark Gradient Shadow Overlay at the bottom
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -106,124 +110,164 @@ fun SessionStudioHeaderCard(
                             Brush.verticalGradient(
                                 colors = listOf(
                                     Color.Transparent,
-                                    Color.Black.copy(alpha = 0.5f),
-                                    Color.Black.copy(alpha = 0.92f),
+                                    Color.Black.copy(alpha = 0.45f),
+                                    Color.Black.copy(alpha = 0.88f),
                                 ),
                             ),
                         ),
                 )
 
-                // Overlay Text (Category / Venue Subtitle & Main Session Title)
-                Column(
+                // Top-Left Category Tag Chip Pill
+                Surface(
+                    shape = CircleShape,
+                    color = Color.Black.copy(alpha = 0.65f),
                     modifier = Modifier
-                        .align(Alignment.BottomStart)
+                        .align(Alignment.TopStart)
                         .padding(12.dp),
                 ) {
                     Text(
-                        text = subtitleText,
+                        text = categoryText,
                         style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 12.sp,
-                            letterSpacing = 0.3.sp,
-                        ),
-                        color = Color.White.copy(alpha = 0.9f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    Text(
-                        text = session.title.ifBlank { "Revolutionizing Deep Learning: Advancements in Neural Architectures" },
-                        style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 17.sp,
-                            lineHeight = 22.sp,
+                            fontSize = 12.sp,
                         ),
                         color = Color.White,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                     )
                 }
-            }
-        }
 
-        // CARD 2: Speaker & Session Details Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.small,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-            ),
-            border = BorderStroke(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-            ),
-        ) {
-            Row(
+                // Bottom Session Title
+                Text(
+                    text = titleText,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        lineHeight = 25.sp,
+                    ),
+                    color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(14.dp),
+                )
+            }
+
+            // Bottom Section: Speaker Details & Venue / Time Pills
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                // Speaker Avatar Initials Circle
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF3B52D4)),
-                    contentAlignment = Alignment.Center,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(
-                        text = speakerInitials,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
-                        ),
-                        color = Color.White,
-                    )
+                    // Speaker Avatar Initials Circle
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFDCE2FF)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = speakerInitials,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                            ),
+                            color = Color(0xFF152270),
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column {
+                        Text(
+                            text = speakerName,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                            ),
+                            color = MaterialTheme.colorScheme.onBackground,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+
+                        Spacer(modifier = Modifier.height(2.dp))
+
+                        Text(
+                            text = "Speaker",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Normal,
+                            ),
+                            color = Color(0xFF667085),
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.width(14.dp))
+                // Venue & Time Pill Badges Row
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // Venue Pill
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFF2F4F7),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_location),
+                                contentDescription = "Venue",
+                                tint = Color(0xFF475467),
+                                modifier = Modifier.size(14.dp),
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = venueText,
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.5.sp,
+                                ),
+                                color = Color(0xFF344054),
+                            )
+                        }
+                    }
 
-                // Speaker Name & Subtitle Role
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = session.speakerName.ifBlank { "Dr. Elena Santos" },
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                        ),
-                        color = MaterialTheme.colorScheme.onBackground,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    Text(
-                        text = session.category?.takeIf { it.isNotBlank() } ?: "Principal AI Research Scientist",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = 12.5.sp,
-                            fontWeight = FontWeight.Normal,
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    // Time Pill
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFF2F4F7),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_clock),
+                                contentDescription = "Time",
+                                tint = Color(0xFF475467),
+                                modifier = Modifier.size(14.dp),
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = timeLabel,
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.5.sp,
+                                ),
+                                color = Color(0xFF344054),
+                            )
+                        }
+                    }
                 }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Session Duration / Time
-                Text(
-                    text = timeLabel,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         }
     }

@@ -27,6 +27,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -163,7 +164,7 @@ fun SessionStudioScreen(
         modifier = modifier
             .fillMaxSize()
             .safeDrawingPadding(),
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color(0xFFF5F6FA),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
     ) { innerPadding ->
         Column(
@@ -255,13 +256,13 @@ fun SessionStudioScreen(
 fun SessionStudioScreenLightPreview() {
     val sampleSession = HostSession(
         id = "1",
-        venue = "Main Auditorium · Stage A",
-        time = "75 min",
-        talkCode = "TALK–892",
-        title = "Revolutionizing Deep Learning: Advancements in Neural Architectures",
-        speakerName = "Dr. Elena Santos",
-        category = "Frontier",
-        attendeesCount = 892,
+        venue = "CDO Ayala",
+        time = "10:00 – 11:30 AM",
+        talkCode = "4VY4N6",
+        title = "Object Oriented Programming",
+        speakerName = "Ernesto Razo",
+        category = "Technology & digital",
+        attendeesCount = 42,
         isLive = true,
     )
     KontekstoTheme(darkTheme = false) {
@@ -279,13 +280,13 @@ fun SessionStudioScreenLightPreview() {
 fun SessionStudioScreenDarkPreview() {
     val sampleSession = HostSession(
         id = "1",
-        venue = "Main Auditorium · Stage A",
-        time = "75 min",
-        talkCode = "TALK–892",
-        title = "Revolutionizing Deep Learning: Advancements in Neural Architectures",
-        speakerName = "Dr. Elena Santos",
-        category = "Frontier",
-        attendeesCount = 892,
+        venue = "CDO Ayala",
+        time = "10:00 – 11:30 AM",
+        talkCode = "4VY4N6",
+        title = "Object Oriented Programming",
+        speakerName = "Ernesto Razo",
+        category = "Technology & digital",
+        attendeesCount = 42,
         isLive = true,
     )
     KontekstoTheme(darkTheme = true) {

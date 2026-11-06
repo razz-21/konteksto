@@ -11,12 +11,24 @@ const db = admin.firestore();
 const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 // Cache version key for explainSelection
-const CACHE_VERSION = "v6_required_schema_fields";
+const CACHE_VERSION = "v7_strip_context_ids";
 
 function getCacheHash(segmentIds: string[], language: string): string {
   const sortedIds = [...segmentIds].sort().join(",");
   const raw = `${sortedIds}_${language}_${CACHE_VERSION}`;
   return crypto.createHash("sha256").update(raw).digest("hex");
+}
+
+const CONTEXT_ID_TOKEN = String.raw`(?:ID:\s*)?(?:term|tr|note|slide|concept|seg|segment|glossary)_[A-Za-z0-9_\-]+`;
+const CONTEXT_ID_GROUP_REGEX = new RegExp(
+  String.raw`[ \t]*[(\[]\s*${CONTEXT_ID_TOKEN}(?:\s*[,;]\s*${CONTEXT_ID_TOKEN})*\s*[)\]]`,
+  "g"
+);
+const BRACKETED_ID_TAG_REGEX = /[ \t]*\[ID:[^\]]*]/g;
+
+/** Removes grounding IDs the model sometimes echoes from context tags into user-facing text. */
+function stripContextIdReferences(text: string): string {
+  return text.replace(CONTEXT_ID_GROUP_REGEX, "").replace(BRACKETED_ID_TAG_REGEX, "");
 }
 
 function normalizeKey(str: string): string {
@@ -132,6 +144,8 @@ Category: ${sessionData.category}
 4. Output Language: Use the language: ${explanationLanguage}. If 'taglish', mix Tagalog and English naturally.
 5. Markdown Formatting: Structure thoroughly with Markdown (bold headers, bullet points, line breaks).
 6. Evidence Grounding: Provide evidence IDs in the "explanationGroundedIn" array using ONLY the IDs provided in context tags below.
+7. No IDs in Prose: NEVER mention, cite, or parenthesize any ID (e.g. "term_...", "tr_...", "note_...", "slide_...") in "type", "title", or "definition". IDs belong ONLY in "explanationGroundedIn".
+8. Markdown Subset: Use only "### " headings, "- " bullet points, **bold**, *italic*, and \`inline code\`. Do not use tables or HTML.
 </instructions>
 
 <preceding_transcript>
@@ -233,8 +247,8 @@ ${slides.map((s: any) => `[ID: ${s.id}] Slide ${s.slideNumber}: ${s.title} - ${s
   const finalExplanation = {
     id: `concept_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
     type: modelResponse.type || "Concept",
-    title: modelResponse.title || "Unknown Concept",
-    definition: modelResponse.definition || "",
+    title: stripContextIdReferences(modelResponse.title || "Unknown Concept"),
+    definition: stripContextIdReferences(modelResponse.definition || ""),
     analogy: "",
     whyItMatters: "",
     timestamp: timestampString,
