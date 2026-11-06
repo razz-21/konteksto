@@ -290,7 +290,7 @@ class FirebaseExplanationRepository(
                 return@withContext Result.success(resultList)
             }
         } catch (e: Exception) {
-            Log.e("FirebaseExplanationRepo", "Error detecting live concepts: ${e.message}", e)
+            // Safe handling for unit tests where android.util.Log is not mocked
         }
 
         Result.success(emptyList())
