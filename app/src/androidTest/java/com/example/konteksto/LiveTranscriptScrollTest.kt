@@ -53,7 +53,6 @@ class LiveTranscriptScrollTest {
                     session = session,
                     customTranscripts = transcripts,
                     livePartialText = partial,
-                    conceptExplanations = emptyList(),
                 )
             }
         }
