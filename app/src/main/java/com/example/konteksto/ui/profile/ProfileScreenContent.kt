@@ -1,16 +1,23 @@
 package com.example.konteksto.ui.profile
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -20,11 +27,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.konteksto.R
 import com.example.konteksto.domain.model.AuthUser
 import com.example.konteksto.domain.model.UserProfile
 import com.example.konteksto.ui.login.GoogleSignInButton
@@ -115,13 +126,13 @@ fun ProfileScreenContent(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 20.dp, vertical = 20.dp),
         ) {
             Text(
-                text = "Profile & Settings",
+                text = "Profile & settings",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
+                    fontSize = 28.sp,
                 ),
                 color = MaterialTheme.colorScheme.onBackground,
             )
@@ -129,35 +140,38 @@ fun ProfileScreenContent(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Manage your attendee identity and app preferences",
-                style = MaterialTheme.typography.bodyMedium,
+                text = "Your attendee identity and app preferences",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 14.sp,
+                ),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Use Firestore profile, then fall back to Firebase Auth.
             val shownProfile = profile ?: currentUser?.let { UserProfile.fromAuthUser(it) }
 
             if (shownProfile != null) {
-                SignedInProfileCard(
+                SignedInProfileHeaderCard(
                     profile = shownProfile,
                     onEditClick = onEditProfileClick,
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                AboutYouSectionCard(
+                    profile = shownProfile,
                 )
             } else {
                 SignedOutProfileCard()
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            ThemeAppearanceCard(
+            PreferencesSectionCard(
                 isDarkMode = isDarkMode,
                 onDarkModeChange = onDarkModeChange,
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            ExplanationLanguageCard(
                 isTaglish = isTaglish,
                 onLanguageChange = onLanguageChange,
             )
@@ -180,29 +194,38 @@ fun ProfileScreenContent(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             if (currentUser != null) {
-                Button(
-                    onClick = { showSignOutDialog = true },
-                    enabled = !isLoading,
-                    shape = MaterialTheme.shapes.medium,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
-                        contentColor = MaterialTheme.colorScheme.error,
-                    ),
+                Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(46.dp),
+                        .height(56.dp)
+                        .clickable(enabled = !isLoading) { showSignOutDialog = true },
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
                 ) {
-                    Text(
-                        text = "Sign Out",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                        ),
-                        color = MaterialTheme.colorScheme.error,
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_logout),
+                            contentDescription = "Sign out",
+                            modifier = Modifier.size(18.dp),
+                            tint = Color(0xFFDC2626),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Sign out",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                            ),
+                            color = Color(0xFFDC2626),
+                        )
+                    }
                 }
             } else {
                 GoogleSignInButton(
@@ -212,7 +235,7 @@ fun ProfileScreenContent(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
