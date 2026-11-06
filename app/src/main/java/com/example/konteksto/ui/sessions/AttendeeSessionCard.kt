@@ -1,7 +1,7 @@
 package com.example.konteksto.ui.sessions
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,10 +13,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -39,8 +38,6 @@ import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.theme.KontekstoTheme
 
-import androidx.compose.foundation.clickable
-
 @Composable
 fun AttendeeSessionCard(
     session: HostSession,
@@ -59,25 +56,22 @@ fun AttendeeSessionCard(
     }
 
     val tagText = remember(session.category, session.venue) {
-        session.category?.takeIf { it.isNotBlank() } ?: session.venue
+        session.category?.takeIf { it.isNotBlank() } ?: "Technology & digital"
     }
 
-    Card(
+    Surface(
         modifier = modifier
             .fillMaxWidth()
             .clickable { onActionClick() },
-        shape = MaterialTheme.shapes.small,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
     ) {
         Column {
             // Banner Image Box
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp),
+                    .height(160.dp),
             ) {
                 AsyncImage(
                     model = session.bannerImageUrl ?: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1000",
@@ -86,42 +80,20 @@ fun AttendeeSessionCard(
                     modifier = Modifier.fillMaxWidth(),
                 )
 
-                // Category / Venue Pill Badge in Vibrant Blue
-                if (tagText.isNotBlank()) {
-                    Surface(
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(12.dp),
-                        shape = MaterialTheme.shapes.extraSmall,
-                        color = Color(0xFF3B52D4),
-                    ) {
-                        Text(
-                            text = tagText.uppercase(),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.5.sp,
-                            ),
-                            color = Color.White,
-                        )
-                    }
-                }
-
-                // Talk Code Badge in Vibrant Blue
+                // Category Tag Pill
                 Surface(
                     modifier = Modifier
-                        .align(Alignment.BottomEnd)
+                        .align(Alignment.TopStart)
                         .padding(12.dp),
-                    shape = MaterialTheme.shapes.extraSmall,
-                    color = Color(0xFF3B52D4),
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xCC000000),
                 ) {
                     Text(
-                        text = session.talkCode,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        text = tagText,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelSmall.copy(
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 12.sp,
                         ),
                         color = Color.White,
                     )
@@ -129,28 +101,8 @@ fun AttendeeSessionCard(
             }
 
             // Card Content
-            Column(modifier = Modifier.padding(18.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = session.venue,
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.SemiBold,
-                        ),
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(
-                        text = session.time,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(6.dp))
-
+            Column(modifier = Modifier.padding(16.dp)) {
+                // Session Title
                 Text(
                     text = session.title,
                     style = MaterialTheme.typography.titleMedium.copy(
@@ -158,15 +110,16 @@ fun AttendeeSessionCard(
                         fontSize = 18.sp,
                         lineHeight = 24.sp,
                     ),
+                    color = MaterialTheme.colorScheme.onBackground,
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Speaker Row
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(28.dp)
+                            .size(26.dp)
                             .clip(CircleShape)
                             .background(Color(0xFF3B52D4)),
                         contentAlignment = Alignment.Center,
@@ -175,7 +128,7 @@ fun AttendeeSessionCard(
                             text = speakerInitials,
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                         )
                     }
 
@@ -185,103 +138,159 @@ fun AttendeeSessionCard(
                         text = session.speakerName,
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp,
                         ),
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Audiences count & Status Live on air Row
+                // Info Chips Row 1: Location & Time
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // Audiences / Joined count
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_people),
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = Color(0xFF3B52D4),
-                        )
-
-                        Spacer(modifier = Modifier.width(6.dp))
-
-                        Text(
-                            text = session.attendeesCount.toString(),
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-
-                        Spacer(modifier = Modifier.width(4.dp))
-
-                        Text(
-                            text = if (session.attendeesCount == 1) "audience" else "audiences",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                    // Location Chip
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_location),
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = session.venue,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontSize = 12.sp,
+                                ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
 
-                    // Live Status Indicator
-                    if (session.isLive || session.status.equals("live", ignoreCase = true)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(7.dp)
-                                    .background(
-                                        color = Color(0xFFDC2626),
-                                        shape = CircleShape,
-                                    ),
+                    // Time Chip
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_clock),
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-
-                            Spacer(modifier = Modifier.width(5.dp))
-
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "LIVE ON AIR",
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = FontWeight.Bold,
+                                text = session.time,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontSize = 12.sp,
                                 ),
-                                color = Color(0xFFDC2626),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
                 }
 
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Info Chips Row 2: Attendees Count
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_people),
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "${session.attendeesCount} ${if (session.attendeesCount == 1) "attendee" else "attendees"}",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 12.sp,
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Enter Room Action Button
-                Button(
-                    onClick = onActionClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    shape = MaterialTheme.shapes.small,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF3B52D4),
-                        contentColor = Color.White,
-                    ),
+                // Bottom Action Row: Code Badge & Enter Room Button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_live_broadcast),
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Enter Room",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                    )
-                    Spacer(modifier = Modifier.weight(1f))
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_arrow_forward),
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
+                    // Code Badge Pill
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_key),
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = session.talkCode,
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp,
+                                    fontSize = 12.sp,
+                                ),
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+
+                    // Enter Room Button
+                    Button(
+                        onClick = onActionClick,
+                        modifier = Modifier.height(40.dp),
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                    ) {
+                        Text(
+                            text = "Enter room",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_arrow_forward),
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
                 }
             }
         }
@@ -293,14 +302,14 @@ fun AttendeeSessionCard(
 fun AttendeeSessionCardLightPreview() {
     val sampleSession = HostSession(
         id = "1",
-        venue = "Tech Summit Hall B",
-        time = "10:00 AM",
-        talkCode = "TALK-415",
-        title = "Edge AI & Distributed Cloud Architecture",
-        speakerName = "Engr. Marco Valerio",
-        attendeesCount = 120,
+        venue = "CDO Ayala",
+        time = "10:00 – 11:30 AM",
+        talkCode = "4VY4N6",
+        title = "Object Oriented Programming",
+        speakerName = "Ernesto Razo",
+        attendeesCount = 1,
         isLive = true,
-        category = "Technology & Digital",
+        category = "Technology & digital",
     )
     KontekstoTheme(darkTheme = false) {
         AttendeeSessionCard(
@@ -317,14 +326,14 @@ fun AttendeeSessionCardLightPreview() {
 fun AttendeeSessionCardDarkPreview() {
     val sampleSession = HostSession(
         id = "1",
-        venue = "Tech Summit Hall B",
-        time = "10:00 AM",
-        talkCode = "TALK-415",
-        title = "Edge AI & Distributed Cloud Architecture",
-        speakerName = "Engr. Marco Valerio",
-        attendeesCount = 120,
+        venue = "CDO Ayala",
+        time = "10:00 – 11:30 AM",
+        talkCode = "4VY4N6",
+        title = "Object Oriented Programming",
+        speakerName = "Ernesto Razo",
+        attendeesCount = 1,
         isLive = true,
-        category = "Technology & Digital",
+        category = "Technology & digital",
     )
     KontekstoTheme(darkTheme = true) {
         AttendeeSessionCard(

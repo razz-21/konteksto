@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,26 +18,25 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -46,6 +44,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -55,7 +55,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -87,6 +86,7 @@ fun AttendSessionSheet(
             SessionConfirmationContent(
                 session = sessionToConfirm,
                 onDismiss = onDismiss,
+                onBackToCode = { onVerifyCode("") { } },
                 onConfirmJoin = { onConfirmJoin(sessionToConfirm) },
             )
         } else {
@@ -106,10 +106,12 @@ private fun AttendSessionMainContent(
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    var activeTab by rememberSaveable { mutableIntStateOf(0) } // 0: Enter Code, 1: Scan QR
     var roomCode by rememberSaveable { mutableStateOf("") }
     var isVerifying by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var showQrScanner by rememberSaveable { mutableStateOf(false) }
+
+    val focusRequester = remember { FocusRequester() }
 
     var isCameraGranted by remember {
         mutableStateOf(
@@ -124,7 +126,7 @@ private fun AttendSessionMainContent(
     }
 
     val handleVerify = {
-        if (roomCode.isNotBlank() && !isVerifying) {
+        if (roomCode.length >= 6 && !isVerifying) {
             isVerifying = true
             errorMessage = null
             keyboardController?.hide()
@@ -140,7 +142,7 @@ private fun AttendSessionMainContent(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 8.dp),
+            .padding(horizontal = 20.dp, vertical = 8.dp),
     ) {
         // Header Row: Title & Close Icon
         Row(
@@ -148,159 +150,133 @@ private fun AttendSessionMainContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column {
-                Text(
-                    text = "Attend Session",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp,
-                    ),
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "Scan host QR or enter session code",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(
+                text = "Attend a session",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp,
+                ),
+            )
 
             IconButton(onClick = onDismiss) {
-                Text(
-                    text = "✕",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_close),
+                    contentDescription = "Close",
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(2.dp))
+
+        Text(
+            text = "Enter the code shown on the host's screen",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Segmented Tab Selector
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(MaterialTheme.shapes.small)
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                .padding(4.dp),
-        ) {
-            // Option 0: Enter Code
+        if (!showQrScanner) {
+            // 6-Box Code Input Layout
             Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .clip(MaterialTheme.shapes.small)
-                    .background(
-                        if (activeTab == 0) Color(0xFF3B52D4) else Color.Transparent,
-                    )
-                    .clickable { activeTab = 0 }
-                    .padding(vertical = 12.dp),
-                contentAlignment = Alignment.Center,
+                    .fillMaxWidth()
+                    .clickable { focusRequester.requestFocus() },
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_key),
-                        contentDescription = null,
-                        tint = if (activeTab == 0) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
+                BasicTextField(
+                    value = roomCode,
+                    onValueChange = { input ->
+                        roomCode = input.uppercase().filter { it.isLetterOrDigit() }.take(6)
+                        errorMessage = null
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Characters,
+                        imeAction = ImeAction.Done,
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = { handleVerify() },
+                    ),
+                    modifier = Modifier
+                        .focusRequester(focusRequester)
+                        .fillMaxWidth(),
+                    decorationBox = {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            repeat(6) { index ->
+                                val char = roomCode.getOrNull(index)?.toString() ?: ""
+                                val isCurrentFocused = roomCode.length == index || (roomCode.length == 6 && index == 5)
+
+                                Surface(
+                                    modifier = Modifier
+                                        .size(width = 44.dp, height = 48.dp)
+                                        .border(
+                                            width = if (isCurrentFocused) 2.dp else 1.dp,
+                                            color = if (isCurrentFocused) Color(0xFF3B52D4) else MaterialTheme.colorScheme.outlineVariant,
+                                            shape = RoundedCornerShape(12.dp),
+                                        ),
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
+                                ) {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            text = char,
+                                            style = MaterialTheme.typography.titleLarge.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 20.sp,
+                                                fontFamily = FontFamily.Monospace,
+                                            ),
+                                            color = MaterialTheme.colorScheme.onBackground,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    },
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Demo Code Suggestion Chip
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "6 letters or numbers, like ",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF3B52D4),
+                    modifier = Modifier.clickable {
+                        roomCode = "4VY4N6"
+                        errorMessage = null
+                    },
+                ) {
                     Text(
-                        text = "Enter Code",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = if (activeTab == 0) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = "4VY4N6",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 11.sp,
+                        ),
+                        color = Color.White,
                     )
                 }
             }
-
-            // Option 1: Scan QR
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(MaterialTheme.shapes.small)
-                    .background(
-                        if (activeTab == 1) Color(0xFF3B52D4) else Color.Transparent,
-                    )
-                    .clickable { activeTab = 1 }
-                    .padding(vertical = 12.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_camera),
-                        contentDescription = null,
-                        tint = if (activeTab == 1) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Scan QR",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = if (activeTab == 1) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        if (activeTab == 0) {
-            // Enter Code Section
-            Text(
-                text = "Session Room Code:",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                ),
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            OutlinedTextField(
-                value = roomCode,
-                onValueChange = { input ->
-                    roomCode = input.uppercase().take(12)
-                    errorMessage = null
-                },
-                placeholder = {
-                    Text(
-                        text = "e.g.  SES-892",
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center,
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                    )
-                },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Characters,
-                    imeAction = ImeAction.Done,
-                ),
-                keyboardActions = KeyboardActions(
-                    onDone = { handleVerify() },
-                ),
-                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    textAlign = TextAlign.Center,
-                    letterSpacing = 2.sp,
-                ),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-                    focusedBorderColor = Color(0xFF3B52D4),
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                ),
-                shape = MaterialTheme.shapes.small,
-                modifier = Modifier.fillMaxWidth(),
-            )
 
             if (!errorMessage.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Surface(
                     color = MaterialTheme.colorScheme.errorContainer,
                     contentColor = MaterialTheme.colorScheme.onErrorContainer,
@@ -315,18 +291,21 @@ private fun AttendSessionMainContent(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
+            // Primary Action Button: Find session ->
             Button(
                 onClick = handleVerify,
-                enabled = roomCode.isNotBlank() && !isVerifying,
+                enabled = roomCode.length == 6 && !isVerifying,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
-                shape = MaterialTheme.shapes.small,
+                    .height(50.dp),
+                shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF3B52D4),
                     contentColor = Color.White,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 ),
             ) {
                 if (isVerifying) {
@@ -337,7 +316,7 @@ private fun AttendSessionMainContent(
                     )
                 } else {
                     Text(
-                        text = "Verify Code & Attend",
+                        text = "Find session",
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
                     )
@@ -350,9 +329,64 @@ private fun AttendSessionMainContent(
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Divider: "or"
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                HorizontalDivider(
+                    modifier = Modifier.weight(1f),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                )
+                Text(
+                    text = "or",
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                HorizontalDivider(
+                    modifier = Modifier.weight(1f),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Secondary Action Button: Scan QR code
+            Button(
+                onClick = {
+                    showQrScanner = true
+                    if (!isCameraGranted) {
+                        cameraLauncher.launch(Manifest.permission.CAMERA)
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                    contentColor = MaterialTheme.colorScheme.primary,
+                ),
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_qr_code),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Scan QR code",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
         } else {
-            // Scan QR Section
+            // QR Scanner View
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -364,9 +398,8 @@ private fun AttendSessionMainContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp)
-                            .clip(MaterialTheme.shapes.small)
-                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.small),
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                         contentAlignment = Alignment.Center,
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -385,7 +418,7 @@ private fun AttendSessionMainContent(
                             Spacer(modifier = Modifier.height(14.dp))
                             Button(
                                 onClick = { cameraLauncher.launch(Manifest.permission.CAMERA) },
-                                shape = MaterialTheme.shapes.small,
+                                shape = CircleShape,
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color(0xFF3B52D4),
                                 ),
@@ -395,14 +428,13 @@ private fun AttendSessionMainContent(
                         }
                     }
                 } else {
-                    // Simulated QR Scanner Frame
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(220.dp)
-                            .clip(MaterialTheme.shapes.small)
+                            .clip(RoundedCornerShape(16.dp))
                             .background(Color(0xFF0F172A))
-                            .border(2.dp, Color(0xFF3B52D4), MaterialTheme.shapes.small),
+                            .border(2.dp, Color(0xFF3B52D4), RoundedCornerShape(16.dp)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -425,7 +457,7 @@ private fun AttendSessionMainContent(
 
                     Button(
                         onClick = {
-                            onVerifyCode("TALK-415") { result ->
+                            onVerifyCode("4VY4N6") { result ->
                                 result.onFailure { error ->
                                     errorMessage = error.localizedMessage
                                 }
@@ -433,8 +465,8 @@ private fun AttendSessionMainContent(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp),
-                        shape = MaterialTheme.shapes.small,
+                            .height(50.dp),
+                        shape = CircleShape,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF3B52D4),
                             contentColor = Color.White,
@@ -446,11 +478,17 @@ private fun AttendSessionMainContent(
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Simulate QR Scan (TALK-415)", fontWeight = FontWeight.Bold)
+                        Text("Simulate QR Scan (4VY4N6)", fontWeight = FontWeight.Bold)
                     }
                 }
 
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+
+                TextButton(onClick = { showQrScanner = false }) {
+                    Text("Back to code entry", fontWeight = FontWeight.SemiBold)
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
@@ -460,6 +498,7 @@ private fun AttendSessionMainContent(
 private fun SessionConfirmationContent(
     session: HostSession,
     onDismiss: () -> Unit,
+    onBackToCode: () -> Unit,
     onConfirmJoin: () -> Unit,
 ) {
     val speakerInitials = remember(session.speakerName) {
@@ -475,50 +514,55 @@ private fun SessionConfirmationContent(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 8.dp),
+            .padding(horizontal = 20.dp, vertical = 8.dp),
     ) {
-        // Top Row: Title & Close
+        // Top Row: Back, Title & Close
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = "Session Details",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp,
-                ),
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onBackToCode) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_arrow_back),
+                        contentDescription = "Back",
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "Session found",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp,
+                    ),
+                )
+            }
 
             IconButton(onClick = onDismiss) {
-                Text(
-                    text = "✕",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_close),
+                    contentDescription = "Close",
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Card Container
-        Card(
+        // Session Card Preview
+        Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.small,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-            ),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLowest,
         ) {
             Column {
-                // Banner Image
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(160.dp),
+                        .height(150.dp),
                 ) {
                     AsyncImage(
                         model = session.bannerImageUrl ?: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1000",
@@ -527,58 +571,27 @@ private fun SessionConfirmationContent(
                         modifier = Modifier.fillMaxWidth(),
                     )
 
-                    // Code Tag Badge
                     Surface(
                         modifier = Modifier
-                            .align(Alignment.BottomEnd)
+                            .align(Alignment.TopStart)
                             .padding(12.dp),
-                        shape = MaterialTheme.shapes.extraSmall,
+                        shape = RoundedCornerShape(8.dp),
                         color = Color(0xCC000000),
                     ) {
                         Text(
-                            text = session.talkCode,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            text = session.category ?: "Technology & digital",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.sp,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 12.sp,
                             ),
                             color = Color.White,
                         )
                     }
-
-                    // Live Status Badge
-                    if (session.isLive || session.status.equals("live", ignoreCase = true)) {
-                        Surface(
-                            modifier = Modifier
-                                .align(Alignment.TopStart)
-                                .padding(12.dp),
-                            shape = MaterialTheme.shapes.extraSmall,
-                            color = Color(0xFFDC2626),
-                        ) {
-                            Text(
-                                text = "● LIVE NOW",
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp,
-                                ),
-                                color = Color.White,
-                            )
-                        }
-                    }
                 }
 
-                // Details Text
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Text(
-                        text = session.time,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
+                Column(modifier = Modifier.padding(16.dp)) {
+                    // Line 1: Title
                     Text(
                         text = session.title,
                         style = MaterialTheme.typography.titleMedium.copy(
@@ -588,70 +601,203 @@ private fun SessionConfirmationContent(
                         ),
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF3B52D4)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                text = speakerInitials,
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Text(
-                            text = session.speakerName,
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.SemiBold,
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_location),
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = session.venue,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                    // Line 2: Time & Attendees Chips Row
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_clock),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = session.time,
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_people),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "${session.attendeesCount} ${if (session.attendeesCount == 1) "attendee" else "attendees"}",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
                     }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Line 3: Code Badge Chip on a separate line underneath time
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_key),
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = session.talkCode,
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                ),
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // Speaker Card
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+        ) {
+            Row(
+                modifier = Modifier.padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF3B52D4)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = speakerInitials,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column {
+                    Text(
+                        text = "Speaker",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = session.speakerName,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                        ),
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Room Card
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+        ) {
+            Row(
+                modifier = Modifier.padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_location),
+                        contentDescription = "Room Location",
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column {
+                    Text(
+                        text = "Room",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = session.venue,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                        ),
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // Join Session Button
         Button(
             onClick = onConfirmJoin,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp),
-            shape = MaterialTheme.shapes.small,
+            shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFF3B52D4),
                 contentColor = Color.White,
             ),
         ) {
             Text(
-                text = "Join Session",
+                text = "Join session",
                 fontWeight = FontWeight.Bold,
                 fontSize = 15.sp,
             )
@@ -663,7 +809,27 @@ private fun SessionConfirmationContent(
             )
         }
 
-        Spacer(modifier = Modifier.height(28.dp))
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = "Enter a different code",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                ),
+                color = Color(0xFF3B52D4),
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable { onBackToCode() }
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
     }
 }
 
@@ -683,20 +849,20 @@ fun AttendSessionMainContentPreview() {
 fun SessionConfirmationContentPreview() {
     val sampleSession = HostSession(
         id = "1",
-        venue = "Tech Summit Hall B",
-        time = "10:00 AM",
-        talkCode = "TALK-415",
-        title = "Edge AI & Distributed Cloud Architecture",
-        speakerName = "Engr. Marco Valerio",
-        attendeesCount = 120,
+        venue = "CDO Ayala",
+        time = "10:00 – 11:30 AM",
+        talkCode = "4VY4N6",
+        title = "Object Oriented Programming",
+        speakerName = "Ernesto Razo",
+        attendeesCount = 1,
         isLive = true,
     )
     KontekstoTheme {
         SessionConfirmationContent(
             session = sampleSession,
             onDismiss = {},
+            onBackToCode = {},
             onConfirmJoin = {},
         )
     }
 }
-
