@@ -3,12 +3,14 @@ package com.example.konteksto.data.repository
 import android.content.Context
 import android.util.Log
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.domain.model.LiveConceptExplanationItem
 import com.example.konteksto.ui.host.studio.TranscriptEntry
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
+import com.google.firebase.firestore.Query
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -63,6 +65,8 @@ interface SessionRepository {
     ): Result<TranscriptEntry>
     fun getLivePartialTranscriptStream(sessionId: String): Flow<String>
     suspend fun updateLivePartialTranscript(sessionId: String, text: String): Result<Unit>
+    /** Live concepts are written only by the server's concept engine. */
+    fun getLiveConceptsStream(sessionId: String): Flow<List<LiveConceptExplanationItem>>
     suspend fun uploadSlideDeckPdf(
         sessionId: String,
         uri: android.net.Uri,
@@ -748,6 +752,55 @@ class FirebaseSessionRepository(
         } catch (e: Exception) {
             Log.w("FirebaseSessionRepo", "Failed to update live partial: ${e.message}")
             Result.failure(e)
+        }
+    }
+
+    private fun liveConceptsCollection(firestore: FirebaseFirestore, sessionId: String) =
+        firestore.collection("sessions").document(sessionId).collection("live_concepts")
+
+    private fun DocumentSnapshot.toLiveConcept(): LiveConceptExplanationItem? {
+        val title = getString("title")?.takeIf { it.isNotBlank() } ?: return null
+        return LiveConceptExplanationItem(
+            id = id,
+            type = getString("type").orEmpty(),
+            timestamp = getString("timestamp").orEmpty(),
+            percentGrounded = getLong("percentGrounded")?.toInt() ?: 0,
+            title = title,
+            definition = getString("definition").orEmpty(),
+            analogy = getString("analogy").orEmpty(),
+            whyItMatters = getString("whyItMatters").orEmpty(),
+            createdAt = getLong("createdAt") ?: 0L,
+        )
+    }
+
+    /** Newest first, matching how the live concepts list shows them. Bookmarks are per attendee and not stored here. */
+    override fun getLiveConceptsStream(sessionId: String): Flow<List<LiveConceptExplanationItem>> = callbackFlow {
+        if (sessionId.isBlank()) {
+            trySend(emptyList())
+            awaitClose { }
+            return@callbackFlow
+        }
+
+        val firestore = firestoreOrNull
+        if (firestore == null) {
+            trySend(emptyList())
+            awaitClose { }
+            return@callbackFlow
+        }
+
+        val listenerRegistration = liveConceptsCollection(firestore, sessionId)
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("FirebaseSessionRepo", "Live concepts listener failed: ${error.message}")
+                    close(error)
+                    return@addSnapshotListener
+                }
+                trySend(snapshot?.documents?.mapNotNull { it.toLiveConcept() } ?: emptyList())
+            }
+
+        awaitClose {
+            listenerRegistration.remove()
         }
     }
 

@@ -1,7 +1,5 @@
 package com.example.konteksto.ui.sessions.studio
 
-import android.widget.Toast
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -20,9 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -39,11 +35,11 @@ fun SessionStudioTopBar(
     onPresentQrClick: (HostSession) -> Unit,
     onLeaveClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onShowMessage: (String) -> Unit = {},
 ) {
-    val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
 
-    val talkCodeText = session.talkCode.ifBlank { "TALK–892" }
+    val talkCodeText = session.talkCode.ifBlank { "4VY4N6" }
 
     Row(
         modifier = modifier
@@ -52,49 +48,45 @@ fun SessionStudioTopBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Back Button + Text Label ("Sessions")
+        // Back Button + Title ("Live room")
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .clip(MaterialTheme.shapes.small)
                 .clickable { onBackClick() }
-                .padding(vertical = 6.dp, horizontal = 4.dp),
+                .padding(vertical = 6.dp, horizontal = 2.dp),
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_arrow_back),
-                contentDescription = "Back to Sessions",
-                tint = Color(0xFF3B52D4),
-                modifier = Modifier.size(20.dp),
+                contentDescription = "Back",
+                tint = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.size(22.dp),
             )
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(10.dp))
             Text(
-                text = "Sessions",
-                style = MaterialTheme.typography.titleMedium.copy(
+                text = "Live room",
+                style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
+                    fontSize = 20.sp,
                 ),
-                color = Color(0xFF3B52D4),
+                color = MaterialTheme.colorScheme.onBackground,
             )
         }
 
         // Right side: Talk Code Badge Pill + Leave Button
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             // Talk Code Pill Button
             Surface(
                 onClick = {
                     clipboardManager.setText(AnnotatedString(talkCodeText))
-                    Toast.makeText(context, "Copied $talkCodeText to clipboard", Toast.LENGTH_SHORT).show()
+                    onShowMessage("Copied $talkCodeText to clipboard")
                     onPresentQrClick(session)
                 },
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                border = BorderStroke(
-                    1.dp,
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                ),
+                color = MaterialTheme.colorScheme.primaryContainer,
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
@@ -103,23 +95,23 @@ fun SessionStudioTopBar(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_copy),
                         contentDescription = "Copy Talk Code",
-                        tint = Color(0xFF3B52D4),
-                        modifier = Modifier.size(15.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp),
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = talkCodeText,
                         style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.ExtraBold,
+                            fontWeight = FontWeight.Bold,
                             fontSize = 13.5.sp,
                             letterSpacing = 0.5.sp,
                         ),
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 }
             }
 
-            // Leave Session Button (replaced bookmark icon)
+            // Leave Session Button
             IconButton(
                 onClick = onLeaveClick,
                 modifier = Modifier.size(36.dp),

@@ -276,7 +276,7 @@ private fun AttendSessionMainContent(
             }
 
             if (!errorMessage.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 Surface(
                     color = MaterialTheme.colorScheme.errorContainer,
                     contentColor = MaterialTheme.colorScheme.onErrorContainer,
@@ -291,21 +291,18 @@ private fun AttendSessionMainContent(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Primary Action Button: Find session ->
             Button(
                 onClick = handleVerify,
-                enabled = roomCode.length == 6 && !isVerifying,
+                enabled = roomCode.isNotBlank() && !isVerifying,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp),
-                shape = CircleShape,
+                    .height(52.dp),
+                shape = MaterialTheme.shapes.small,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF3B52D4),
                     contentColor = Color.White,
-                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 ),
             ) {
                 if (isVerifying) {
@@ -316,7 +313,7 @@ private fun AttendSessionMainContent(
                     )
                 } else {
                     Text(
-                        text = "Find session",
+                        text = "Verify Code & Attend",
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
                     )
@@ -418,7 +415,7 @@ private fun AttendSessionMainContent(
                             Spacer(modifier = Modifier.height(14.dp))
                             Button(
                                 onClick = { cameraLauncher.launch(Manifest.permission.CAMERA) },
-                                shape = CircleShape,
+                                shape = MaterialTheme.shapes.small,
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color(0xFF3B52D4),
                                 ),
@@ -579,8 +576,8 @@ private fun SessionConfirmationContent(
                         color = Color(0xCC000000),
                     ) {
                         Text(
-                            text = session.category ?: "Technology & digital",
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            text = session.talkCode,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Medium,
                                 fontSize = 12.sp,
@@ -866,3 +863,4 @@ fun SessionConfirmationContentPreview() {
         )
     }
 }
+

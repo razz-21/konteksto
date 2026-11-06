@@ -37,6 +37,8 @@ import coil.compose.AsyncImage
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.theme.KontekstoTheme
+import androidx.compose.foundation.clickable
+import com.example.konteksto.ui.theme.extendedColors
 
 @Composable
 fun AttendeeSessionCard(
@@ -56,7 +58,7 @@ fun AttendeeSessionCard(
     }
 
     val tagText = remember(session.category, session.venue) {
-        session.category?.takeIf { it.isNotBlank() } ?: "Technology & digital"
+        session.category?.takeIf { it.isNotBlank() } ?: session.venue
     }
 
     Surface(
@@ -110,16 +112,15 @@ fun AttendeeSessionCard(
                         fontSize = 18.sp,
                         lineHeight = 24.sp,
                     ),
-                    color = MaterialTheme.colorScheme.onBackground,
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Speaker Row
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(26.dp)
+                            .size(28.dp)
                             .clip(CircleShape)
                             .background(Color(0xFF3B52D4)),
                         contentAlignment = Alignment.Center,
@@ -128,7 +129,7 @@ fun AttendeeSessionCard(
                             text = speakerInitials,
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                         )
                     }
 

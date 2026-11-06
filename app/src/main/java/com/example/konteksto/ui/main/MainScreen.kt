@@ -6,7 +6,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavHostController
@@ -14,12 +18,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.ui.components.showKontekstoSnackbar
 import com.example.konteksto.ui.glossary.GlossaryScreen
 import com.example.konteksto.ui.host.HostSessionsScreen
 import com.example.konteksto.ui.navigation.MainTab
 import com.example.konteksto.ui.profile.ProfileScreen
 import com.example.konteksto.ui.sessions.SessionsScreen
 import com.example.konteksto.ui.theme.KontekstoTheme
+import kotlinx.coroutines.launch
 
 @Composable
 fun MainScreen(
@@ -35,7 +41,13 @@ fun MainScreen(
     onNavigateToAttendeeRoom: (sessionId: String) -> Unit = {},
     isDarkMode: Boolean = false,
     onDarkModeChange: (Boolean) -> Unit = {},
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
+    val snackbarScope = rememberCoroutineScope()
+    val showMessage: (String) -> Unit = { message ->
+        snackbarScope.launch { snackbarHostState.showKontekstoSnackbar(message) }
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
@@ -43,6 +55,7 @@ fun MainScreen(
         bottomBar = {
             KontekstoBottomBar(navController = navController)
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
     ) { innerPadding ->
         NavHost(
             navController = navController,
@@ -66,10 +79,11 @@ fun MainScreen(
                     onNewSessionClick = onNavigateToCreateSession,
                     onPresentQrClick = onNavigateToPresentQr,
                     onLiveRoomClick = onNavigateToHostStudio,
+                    onShowMessage = showMessage,
                 )
             }
             composable(MainTab.Glossary.route) {
-                GlossaryScreen()
+                GlossaryScreen(onShowMessage = showMessage)
             }
             composable(MainTab.Profile.route) {
                 ProfileScreen(

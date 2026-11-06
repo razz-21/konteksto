@@ -1,6 +1,5 @@
 package com.example.konteksto.ui.host
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,6 +39,7 @@ import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.components.KontekstoTopBar
 import com.example.konteksto.ui.theme.KontekstoTheme
+import com.example.konteksto.ui.theme.extendedColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,6 +53,7 @@ fun HostSessionsScreen(
     onPresentQrClick: (HostSession) -> Unit = {},
     onLiveRoomClick: (HostSession) -> Unit = {},
     onProfileClick: (() -> Unit)? = null,
+    onShowMessage: (String) -> Unit = {},
 ) {
     val scrollState = rememberScrollState()
 
@@ -93,12 +94,8 @@ fun HostSessionsScreen(
                             modifier = Modifier.fillMaxWidth(),
                             shape = MaterialTheme.shapes.medium,
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                containerColor = MaterialTheme.extendedColors.cardContainer,
                                 contentColor = MaterialTheme.colorScheme.onBackground,
-                            ),
-                            border = BorderStroke(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                             ),
                         ) {
                             Column(
@@ -182,6 +179,7 @@ fun HostSessionsScreen(
                                 session = session,
                                 onPresentQrClick = onPresentQrClick,
                                 onLiveRoomClick = onLiveRoomClick,
+                                onShowMessage = onShowMessage,
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                         }
