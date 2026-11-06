@@ -27,6 +27,9 @@ Before generating or refactoring code in this repository, you **MUST** consult a
 - **Screen Pattern:** Split composables into `<Name>Route` (collects `StateFlow` via `collectAsStateWithLifecycle()`) and `<Name>Screen` (stateless UI rendering plain state).
 - **State Updates:** Mutate state atomically via `_uiState.update { ... }`.
 - **Lists:** Render dynamic list data (transcripts, glossaries, slides) using `LazyColumn`/`LazyRow` with unique keys (`key = { item.id }`).
+- **Material 3 & Material Design:** This is an Android app — build all UI with Material 3 components (`androidx.compose.material3`) and follow Material Design patterns (layout, navigation, component states, spacing, motion). Never use Material 2 (`androidx.compose.material`) or hand-build a component Material 3 already provides.
+- **Theme First:** Style everything through `KontekstoTheme` (`MaterialTheme.colorScheme`, `.typography`, `.shapes`). No hardcoded colors, font sizes, or corner radii.
+- **Attached Designs:** When a design (Figma, screenshot, mockup) is provided, implement it using our existing theme in `ui/theme/` and Material 3 components, following Material Design patterns. Map design values to the closest theme token; add any genuinely new token to `ui/theme` instead of inlining raw values.
 
 ### 3. Asynchronous & Background Execution
 - Keep suspend methods main-safe (`withContext(ioDispatcher)`).

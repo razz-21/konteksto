@@ -35,6 +35,9 @@ UI Layer (Route, Screen, ViewModel) ──► Domain Layer (Models, UseCases) �
 - **State Ownership & Atomic Updates:** ViewModel owns UI state (`StateFlow`). State updates must be atomic using `_uiState.update { it.copy(...) }` (never direct `value =` assignments).
 - **State Persistence:** Use `rememberSaveable` for text inputs, dialog flags, and scroll states that must survive screen rotation.
 - **Compose Performance:** Use `LazyColumn`/`LazyRow` with unique, stable keys (`key = { item.id }`) for dynamic lists. Never use `Column` with `forEach` for list data like transcripts or glossaries.
+- **Material 3 & Material Design:** This is an Android app — build all UI with Material 3 components (`androidx.compose.material3`) and follow Material Design patterns (layout, navigation, component states, spacing, motion). Never use Material 2 (`androidx.compose.material`) or hand-build a component Material 3 already provides.
+- **Theme First:** Style everything through `KontekstoTheme` (`MaterialTheme.colorScheme`, `.typography`, `.shapes`). No hardcoded colors, font sizes, or corner radii.
+- **Attached Designs:** When a design (Figma, screenshot, mockup) is provided, implement it using our existing theme in `ui/theme/` and Material 3 components, following Material Design patterns. Map design values to the closest theme token; add any genuinely new token to `ui/theme` instead of inlining raw values.
 
 ### 4. Background Work & Foreground Services
 - Long-running work (live transcription, audio recording) MUST live in `LiveBroadcastService` (a Foreground Service of type `microphone`), NOT in Composables or ViewModels.
