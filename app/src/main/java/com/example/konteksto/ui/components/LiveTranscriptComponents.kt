@@ -16,8 +16,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +31,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -100,20 +102,40 @@ fun JumpToLiveButton(
     modifier: Modifier = Modifier,
 ) {
     val coroutineScope = rememberCoroutineScope()
-    SmallFloatingActionButton(
+    Surface(
         onClick = {
             followState.isFollowing = true
             coroutineScope.launch { listState.scrollToNewest(itemCount) }
         },
         modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.primary,
-        contentColor = MaterialTheme.colorScheme.onPrimary,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceBright,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shadowElevation = 4.dp,
     ) {
-        Text(
-            text = stringResource(id = R.string.transcript_jump_to_live),
-            modifier = Modifier.padding(horizontal = 12.dp),
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_arrow_forward),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(16.dp)
+                    .graphicsLayer { rotationZ = 90f },
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = stringResource(id = R.string.transcript_jump_to_live),
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
     }
 }
 

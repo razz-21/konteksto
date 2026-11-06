@@ -1,7 +1,10 @@
 package com.example.konteksto.ui.components
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -34,6 +38,8 @@ fun KontekstoTopBar(
     modifier: Modifier = Modifier,
     onNewSessionClick: (() -> Unit)? = null,
     onAttendClick: (() -> Unit)? = null,
+    userInitial: String? = null,
+    onProfileClick: (() -> Unit)? = null,
     actionContent: (@Composable () -> Unit)? = null,
 ) {
     Row(
@@ -60,13 +66,37 @@ fun KontekstoTopBar(
                 text = stringResource(id = R.string.app_name),
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
+                    fontSize = 18.sp,
                 ),
                 color = MaterialTheme.colorScheme.onBackground,
             )
         }
 
-        if (onAttendClick != null) {
+        if (userInitial != null || onProfileClick != null) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .then(
+                        if (onProfileClick != null) {
+                            Modifier.clickable { onProfileClick() }
+                        } else {
+                            Modifier
+                        },
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = userInitial ?: "Z",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                    ),
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        } else if (onAttendClick != null) {
             TopBarButton(
                 onClick = onAttendClick,
                 iconRes = R.drawable.ic_qr_code,

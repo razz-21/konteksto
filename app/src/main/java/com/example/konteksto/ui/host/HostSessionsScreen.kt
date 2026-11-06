@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -46,10 +47,12 @@ fun HostSessionsScreen(
     modifier: Modifier = Modifier,
     sessions: List<HostSession> = emptyList(),
     isRefreshing: Boolean = false,
+    userInitial: String = "Z",
     onRefresh: () -> Unit = {},
     onNewSessionClick: () -> Unit = {},
     onPresentQrClick: (HostSession) -> Unit = {},
     onLiveRoomClick: (HostSession) -> Unit = {},
+    onProfileClick: (() -> Unit)? = null,
 ) {
     val scrollState = rememberScrollState()
 
@@ -57,126 +60,170 @@ fun HostSessionsScreen(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
     ) {
-        PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = onRefresh,
+        Box(
             modifier = Modifier.fillMaxSize(),
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = onRefresh,
+                modifier = Modifier.fillMaxSize(),
             ) {
-                KontekstoTopBar(
-                    onNewSessionClick = onNewSessionClick,
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(scrollState)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                ) {
+                    KontekstoTopBar(
+                        userInitial = userInitial,
+                        onProfileClick = onProfileClick,
+                    )
 
-                Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                HostSessionHeader()
+                    HostSessionHeader(
+                        sessionCount = sessions.size,
+                    )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                if (sessions.isEmpty()) {
-                    // Empty State View with Icon and Message
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                            contentColor = MaterialTheme.colorScheme.onBackground,
-                        ),
-                        border = BorderStroke(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                        ),
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 24.dp, horizontal = 18.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
+                    if (sessions.isEmpty()) {
+                        // Empty State View
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.medium,
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                contentColor = MaterialTheme.colorScheme.onBackground,
+                            ),
+                            border = BorderStroke(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            ),
                         ) {
-                            Box(
+                            Column(
                                 modifier = Modifier
-                                    .size(52.dp)
-                                    .background(
-                                        color = MaterialTheme.colorScheme.primaryContainer,
-                                        shape = MaterialTheme.shapes.medium,
-                                    ),
-                                contentAlignment = Alignment.Center,
+                                    .fillMaxWidth()
+                                    .padding(vertical = 24.dp, horizontal = 18.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
                             ) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.ic_nav_host),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(26.dp),
-                                    tint = MaterialTheme.colorScheme.primary,
-                                )
-                            }
+                                Box(
+                                    modifier = Modifier
+                                        .size(52.dp)
+                                        .background(
+                                            color = MaterialTheme.colorScheme.primaryContainer,
+                                            shape = MaterialTheme.shapes.medium,
+                                        ),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_nav_host),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(26.dp),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
 
-                            Spacer(modifier = Modifier.height(12.dp))
+                                Spacer(modifier = Modifier.height(12.dp))
 
-                            Text(
-                                text = stringResource(id = R.string.host_empty_title),
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp,
-                                ),
-                                color = MaterialTheme.colorScheme.onBackground,
-                                textAlign = TextAlign.Center,
-                            )
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            Text(
-                                text = stringResource(id = R.string.host_empty_subtitle),
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontSize = 12.sp,
-                                    lineHeight = 16.sp,
-                                ),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center,
-                            )
-
-                            Spacer(modifier = Modifier.height(20.dp))
-
-                            Button(
-                                onClick = onNewSessionClick,
-                                shape = MaterialTheme.shapes.small,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                                ),
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
-                            ) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.ic_add),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = stringResource(id = R.string.host_create_first_session),
-                                    style = MaterialTheme.typography.labelLarge.copy(
+                                    text = stringResource(id = R.string.host_empty_title),
+                                    style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp,
                                     ),
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    textAlign = TextAlign.Center,
                                 )
+
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                Text(
+                                    text = stringResource(id = R.string.host_empty_subtitle),
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontSize = 12.sp,
+                                        lineHeight = 16.sp,
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                )
+
+                                Spacer(modifier = Modifier.height(20.dp))
+
+                                Button(
+                                    onClick = onNewSessionClick,
+                                    shape = MaterialTheme.shapes.small,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_add),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = stringResource(id = R.string.host_create_first_session),
+                                        style = MaterialTheme.typography.labelLarge.copy(
+                                            fontWeight = FontWeight.Bold,
+                                        ),
+                                    )
+                                }
                             }
                         }
+                    } else {
+                        sessions.forEach { session ->
+                            HostSessionCard(
+                                session = session,
+                                onPresentQrClick = onPresentQrClick,
+                                onLiveRoomClick = onLiveRoomClick,
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
                     }
-                } else {
-                    sessions.forEach { session ->
-                        HostSessionCard(
-                            session = session,
-                            onPresentQrClick = onPresentQrClick,
-                            onLiveRoomClick = onLiveRoomClick,
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
+
+                    Spacer(modifier = Modifier.height(80.dp))
                 }
+            }
+
+            // Floating Action Button: + New Session
+            Button(
+                onClick = onNewSessionClick,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 16.dp, bottom = 20.dp)
+                    .height(48.dp),
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.primary,
+                ),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 4.dp,
+                    pressedElevation = 6.dp,
+                ),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp),
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_add),
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(id = R.string.host_new_session),
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                    ),
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
         }
     }
@@ -196,13 +243,14 @@ fun HostSessionsScreenContentPreview() {
     val sampleSessions = listOf(
         HostSession(
             id = "1",
-            venue = "Tech Summit Hall B",
-            time = "10:00 AM",
-            talkCode = "TALK–415",
-            title = "Edge AI & Distributed Cloud Architecture: Scaling to Zero Latency",
-            speakerName = "Engr. Marco Valerio",
-            attendeesCount = 890,
-            isLive = true,
+            venue = "CDO Ayala",
+            time = "10:00 – 11:30 AM",
+            talkCode = "4VY4N6",
+            title = "Object Oriented Programming",
+            speakerName = "Ernesto Razo",
+            category = "Technology & digital",
+            attendeesCount = 1,
+            isLive = false,
         ),
     )
     KontekstoTheme(darkTheme = false) {

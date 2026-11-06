@@ -18,11 +18,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Button
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,7 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -61,68 +64,78 @@ fun HostStudioBroadcastView(
     )
 
     Column(modifier = modifier.fillMaxWidth()) {
+        // Header Row: Title & Entry Count Pill
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .background(
-                            color = if (isAudioBroadcasting) Color(0xFF00C853) else MaterialTheme.colorScheme.outline,
-                            shape = CircleShape,
-                        ),
-                )
-                Spacer(modifier = Modifier.width(8.dp))
+                if (isAudioBroadcasting) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .background(Color(0xFF00C853), CircleShape),
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                }
                 Text(
-                    text = stringResource(id = R.string.host_studio_live_transcript),
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 13.sp,
-                        letterSpacing = 1.sp,
+                    text = "Live transcript",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
                     ),
                     color = MaterialTheme.colorScheme.onBackground,
                 )
             }
 
-            Text(
-                text = stringResource(id = R.string.host_studio_entries_format, transcripts.size),
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            ) {
+                Text(
+                    text = "${transcripts.size} entries",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 11.5.sp,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Scrollable Live Transcript Container with max height
+        // Scrollable Live Transcript Outer Panel Card with Border
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(max = 380.dp),
-            shape = MaterialTheme.shapes.medium,
+            shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
             ),
             border = BorderStroke(
                 width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
             ),
         ) {
             Box(modifier = Modifier.fillMaxWidth()) {
                 LazyColumn(
                     state = transcriptListState,
                     modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     if (transcripts.isEmpty() && partialTranscript.isBlank()) {
                         item(key = "empty") {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 20.dp, horizontal = 12.dp),
+                                    .padding(vertical = 28.dp, horizontal = 16.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
                                 Text(
@@ -146,10 +159,11 @@ fun HostStudioBroadcastView(
 
                     items(transcripts, key = { it.id }) { entry ->
                         if (entry.isSystemEvent || entry.speakerName.equals("SYSTEM", ignoreCase = true)) {
+                            // Centered System Event Pill Badge
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
+                                    .padding(vertical = 2.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Surface(
@@ -157,15 +171,15 @@ fun HostStudioBroadcastView(
                                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
                                     border = BorderStroke(
                                         1.dp,
-                                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
                                     ),
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
-                                        val isPositiveEvent = entry.text.contains("started", ignoreCase = true) ||
-                                                entry.text.contains("enabled", ignoreCase = true)
+                                        val isPositiveEvent = !entry.text.contains("off", ignoreCase = true) &&
+                                                !entry.text.contains("ended", ignoreCase = true)
                                         Box(
                                             modifier = Modifier
                                                 .size(6.dp)
@@ -176,32 +190,50 @@ fun HostStudioBroadcastView(
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
-                                            text = "${entry.text}  ·  ${entry.timestamp}",
+                                            text = entry.text,
                                             style = MaterialTheme.typography.labelSmall.copy(
                                                 fontWeight = FontWeight.SemiBold,
                                                 fontSize = 11.sp,
                                             ),
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            color = MaterialTheme.colorScheme.onSurface,
                                         )
+                                        if (entry.timestamp.isNotBlank()) {
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Surface(
+                                                shape = CircleShape,
+                                                color = MaterialTheme.colorScheme.surfaceContainer,
+                                            ) {
+                                                Text(
+                                                    text = entry.timestamp,
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontSize = 10.sp,
+                                                        fontWeight = FontWeight.Medium,
+                                                    ),
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
                         } else {
+                            // Speaker Transcript Speech Bubble Card
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = MaterialTheme.shapes.small,
+                                shape = RoundedCornerShape(16.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surface,
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                                 ),
                                 border = BorderStroke(
                                     width = 1.dp,
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
                                 ),
                             ) {
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(12.dp),
+                                        .padding(horizontal = 14.dp, vertical = 10.dp),
                                 ) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -224,22 +256,22 @@ fun HostStudioBroadcastView(
                                         )
                                     }
 
-                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Spacer(modifier = Modifier.height(4.dp))
 
                                     Text(
                                         text = entry.text,
                                         style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontSize = 13.sp,
+                                            fontSize = 13.5.sp,
                                             lineHeight = 18.sp,
                                         ),
-                                        color = MaterialTheme.colorScheme.onBackground,
+                                        color = MaterialTheme.colorScheme.onSurface,
                                     )
                                 }
                             }
                         }
                     }
 
-                    // Live Spoken Stream Box (Un-carded while the user is talking)
+                    // Live Spoken Stream Bubble
                     if (partialTranscript.isNotBlank()) {
                         item(key = "live_partial") {
                             LiveSpeakingBubble(text = partialTranscript)
@@ -247,6 +279,7 @@ fun HostStudioBroadcastView(
                     }
                 }
 
+                // Floating "Jump to live" pill button over bottom of list
                 if (followState.showJumpToLive) {
                     JumpToLiveButton(
                         listState = transcriptListState,
@@ -254,35 +287,44 @@ fun HostStudioBroadcastView(
                         itemCount = transcriptItemCount,
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
-                            .padding(bottom = 8.dp),
+                            .padding(bottom = 12.dp),
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
+        // Bottom Transcript Input Row: Pill TextField & Circular Send Button
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             OutlinedTextField(
                 value = newTranscriptText,
                 onValueChange = { newTranscriptText = it },
                 placeholder = {
                     Text(
-                        text = "Type spoken summary or transcript...",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
+                        text = "Type what the speaker said",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     )
                 },
                 modifier = Modifier.weight(1f),
-                shape = MaterialTheme.shapes.small,
+                shape = CircleShape,
                 singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                ),
             )
 
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Button(
+            IconButton(
                 onClick = {
                     if (newTranscriptText.isNotBlank()) {
                         onAddTranscript(newTranscriptText.trim())
@@ -290,12 +332,26 @@ fun HostStudioBroadcastView(
                     }
                 },
                 enabled = newTranscriptText.isNotBlank(),
-                shape = MaterialTheme.shapes.small,
-                modifier = Modifier.height(52.dp),
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(
+                        color = if (newTranscriptText.isNotBlank()) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.surfaceContainerHigh
+                        },
+                        shape = CircleShape,
+                    ),
             ) {
-                Text(
-                    text = "Post",
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_arrow_forward),
+                    contentDescription = "Send",
+                    tint = if (newTranscriptText.isNotBlank()) {
+                        MaterialTheme.colorScheme.onPrimary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    },
+                    modifier = Modifier.size(20.dp),
                 )
             }
         }

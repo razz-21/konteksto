@@ -1,7 +1,6 @@
 package com.example.konteksto.ui.host
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -30,8 +29,8 @@ import com.example.konteksto.ui.theme.KontekstoTheme
 @Composable
 fun CreateSessionTopBar(
     onBackClick: () -> Unit,
-    onCreateClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onCreateClick: (() -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
@@ -51,55 +50,48 @@ fun CreateSessionTopBar(
                     painter = painterResource(id = R.drawable.ic_arrow_back),
                     contentDescription = "Back",
                     tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(22.dp),
                 )
             }
 
-            Spacer(modifier = Modifier.width(2.dp))
+            Spacer(modifier = Modifier.width(4.dp))
 
-            Column {
-                Text(
-                    text = stringResource(id = R.string.create_session_title),
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                    ),
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
-                Text(
-                    text = stringResource(id = R.string.create_session_subtitle),
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = 11.sp,
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(
+                text = stringResource(id = R.string.create_session_title),
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                ),
+                color = MaterialTheme.colorScheme.onBackground,
+            )
         }
 
-        Spacer(modifier = Modifier.width(8.dp))
+        if (onCreateClick != null) {
+            Spacer(modifier = Modifier.width(8.dp))
 
-        Button(
-            onClick = onCreateClick,
-            shape = MaterialTheme.shapes.small,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            ),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_check),
-                contentDescription = null,
-                modifier = Modifier.size(15.dp),
-                tint = MaterialTheme.colorScheme.onPrimary,
-            )
-            Spacer(modifier = Modifier.width(5.dp))
-            Text(
-                text = stringResource(id = R.string.create_session_action),
-                style = MaterialTheme.typography.labelLarge.copy(
-                    fontWeight = FontWeight.Bold,
+            Button(
+                onClick = onCreateClick,
+                shape = MaterialTheme.shapes.small,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
-            )
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_check),
+                    contentDescription = null,
+                    modifier = Modifier.size(15.dp),
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                )
+                Spacer(modifier = Modifier.width(5.dp))
+                Text(
+                    text = stringResource(id = R.string.create_session_action),
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                    ),
+                )
+            }
         }
     }
 }
@@ -108,7 +100,7 @@ fun CreateSessionTopBar(
 @Composable
 fun CreateSessionTopBarLightPreview() {
     KontekstoTheme(darkTheme = false) {
-        CreateSessionTopBar(onBackClick = {}, onCreateClick = {})
+        CreateSessionTopBar(onBackClick = {})
     }
 }
 
@@ -116,6 +108,6 @@ fun CreateSessionTopBarLightPreview() {
 @Composable
 fun CreateSessionTopBarDarkPreview() {
     KontekstoTheme(darkTheme = true) {
-        CreateSessionTopBar(onBackClick = {}, onCreateClick = {})
+        CreateSessionTopBar(onBackClick = {})
     }
 }

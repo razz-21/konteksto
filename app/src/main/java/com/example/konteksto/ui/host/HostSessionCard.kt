@@ -1,10 +1,13 @@
 package com.example.konteksto.ui.host
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,22 +18,27 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -42,6 +50,7 @@ import com.example.konteksto.domain.model.ConferenceThemeBanner
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.theme.KontekstoTheme
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HostSessionCard(
     session: HostSession,
@@ -49,6 +58,10 @@ fun HostSessionCard(
     onLiveRoomClick: (HostSession) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    @Suppress("DEPRECATION")
+    val clipboardManager = LocalClipboardManager.current
+    val context = LocalContext.current
+
     val bannerUrl = remember(session.bannerImageUrl, session.category) {
         session.bannerImageUrl?.ifBlank { null }
             ?: ConferenceThemeBanner.DefaultCategories.find {
@@ -57,72 +70,96 @@ fun HostSessionCard(
             ?: ConferenceThemeBanner.DefaultCategories.first().imageUrl
     }
 
+    val categoryLabel = remember(session.category) {
+        session.category?.ifBlank { null } ?: "Technology & digital"
+    }
+
+    val speakerInitials = remember(session.speakerName) {
+        getInitials(session.speakerName)
+    }
+
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-            contentColor = MaterialTheme.colorScheme.onBackground,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
         ),
         border = BorderStroke(
             width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
         ),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
         ) {
-            // Top Cover Image Banner
+            // Cover Image Banner
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(115.dp)
+                    .height(135.dp)
                     .background(MaterialTheme.colorScheme.primaryContainer),
             ) {
                 AsyncImage(
                     model = bannerUrl,
-                    contentDescription = session.category ?: session.title,
+                    contentDescription = session.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
 
-                // Subtle gradient overlay at bottom
+                // Category overlay pill on top left
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .align(Alignment.TopStart)
+                        .padding(12.dp)
                         .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    Color.Black.copy(alpha = 0.55f),
-                                ),
-                                startY = 30f,
-                            ),
+                            color = Color.Black.copy(alpha = 0.65f),
+                            shape = RoundedCornerShape(8.dp),
+                        )
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                ) {
+                    Text(
+                        text = categoryLabel,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 11.sp,
                         ),
-                )
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
 
-                // Category Badge Overlay
-                if (!session.category.isNullOrBlank()) {
+                // Live On Air badge overlay on top right if session is live
+                if (session.isLive) {
                     Box(
                         modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(10.dp)
+                            .align(Alignment.TopEnd)
+                            .padding(12.dp)
                             .background(
-                                color = MaterialTheme.colorScheme.primary,
-                                shape = MaterialTheme.shapes.extraSmall,
+                                color = MaterialTheme.colorScheme.error,
+                                shape = RoundedCornerShape(8.dp),
                             )
-                            .padding(horizontal = 7.dp, vertical = 3.dp),
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
                     ) {
-                        Text(
-                            text = session.category.uppercase(),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 10.sp,
-                                letterSpacing = 0.5.sp,
-                            ),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            maxLines = 1,
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .background(Color.White, CircleShape),
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = stringResource(id = R.string.host_live_on_air).uppercase(),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp,
+                                ),
+                                color = Color.White,
+                            )
+                        }
                     }
                 }
             }
@@ -133,225 +170,259 @@ fun HostSessionCard(
                     .fillMaxWidth()
                     .padding(16.dp),
             ) {
-            // Header Row: Venue & Time + Talk Code Tag
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+                // Session Title
+                Text(
+                    text = session.title,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        lineHeight = 24.sp,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Speaker Row
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f, fill = false),
                 ) {
-                    Text(
-                        text = session.venue,
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 12.sp,
-                        ),
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-
-                    if (session.time.isNotBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .size(26.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = CircleShape,
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
                         Text(
-                            text = "  ·  ",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                        )
-
-                        Text(
-                            text = session.time,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
+                            text = speakerInitials,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp,
+                            ),
+                            color = MaterialTheme.colorScheme.primary,
                         )
                     }
-                }
 
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Talk Tag
-                Box(
-                    modifier = Modifier
-                        .background(
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            shape = MaterialTheme.shapes.extraSmall,
-                        )
-                        .padding(horizontal = 7.dp, vertical = 3.dp),
-                ) {
-                    Text(
-                        text = session.talkCode,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
-                            letterSpacing = 0.5.sp,
-                        ),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        maxLines = 1,
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Talk Title
-            Text(
-                text = session.title,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                    lineHeight = 20.sp,
-                ),
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // Speaker Name
-            Text(
-                text = session.speakerName,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Stats & Live Status Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // Left: Attendees joined
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_people),
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
 
                     Text(
-                        text = session.attendeesCount.toString(),
+                        text = session.speakerName,
                         style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 13.sp,
                         ),
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
-
-                    Spacer(modifier = Modifier.width(4.dp))
-
-                    Text(
-                        text = if (session.attendeesCount == 1) "audience" else "audiences",
-                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
 
-                // Right: Live Status Indicator
-                if (session.isLive) {
-                    val liveColor = MaterialTheme.colorScheme.error
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(7.dp)
-                                .background(
-                                    color = liveColor,
-                                    shape = CircleShape,
-                                ),
-                        )
+                Spacer(modifier = Modifier.height(12.dp))
 
-                        Spacer(modifier = Modifier.width(5.dp))
-
-                        Text(
-                            text = stringResource(id = R.string.host_live_on_air),
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                            ),
-                            color = liveColor,
+                // Metadata Chips: Venue, Time, Attendees
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (session.venue.isNotBlank()) {
+                        SessionBadge(
+                            iconRes = R.drawable.ic_location,
+                            text = session.venue,
                         )
                     }
-                }
-            }
 
-            Spacer(modifier = Modifier.height(14.dp))
+                    if (session.time.isNotBlank()) {
+                        SessionBadge(
+                            iconRes = R.drawable.ic_clock,
+                            text = session.time,
+                        )
+                    }
 
-            // Bottom Action Buttons Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                // Present QR Button
-                Button(
-                    onClick = { onPresentQrClick(session) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(40.dp),
-                    shape = MaterialTheme.shapes.small,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    ),
-                    contentPadding = PaddingValues(horizontal = 8.dp),
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_qr_code),
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = stringResource(id = R.string.host_present_qr),
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                        ),
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    SessionBadge(
+                        iconRes = R.drawable.ic_people,
+                        text = "${session.attendeesCount} ${if (session.attendeesCount == 1) "attendee" else "attendees"}",
                     )
                 }
 
-                // Enter Room Button
-                Button(
-                    onClick = { onLiveRoomClick(session) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(40.dp),
-                    shape = MaterialTheme.shapes.small,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
-                    contentPadding = PaddingValues(horizontal = 8.dp),
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Join Code Container
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
                 ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_live_broadcast),
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = stringResource(id = R.string.host_live_room),
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.Bold,
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_key),
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(
+                                text = "Join code",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(modifier = Modifier.height(1.dp))
+                            Text(
+                                text = session.talkCode,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    letterSpacing = 1.sp,
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+
+                        IconButton(
+                            onClick = {
+                                clipboardManager.setText(AnnotatedString(session.talkCode))
+                                Toast.makeText(context, "Join code copied!", Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.size(32.dp),
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_copy),
+                                contentDescription = "Copy join code",
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Action Buttons Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    // Present QR Button
+                    Button(
+                        onClick = { onPresentQrClick(session) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.primary,
                         ),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
+                        contentPadding = PaddingValues(horizontal = 8.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_qr_code),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = stringResource(id = R.string.host_present_qr),
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                            ),
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+
+                    // Enter Room Button
+                    Button(
+                        onClick = { onLiveRoomClick(session) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                        contentPadding = PaddingValues(horizontal = 8.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_live_broadcast),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = stringResource(id = R.string.host_live_room),
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                            ),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    }
                 }
             }
         }
     }
 }
+
+@Composable
+private fun SessionBadge(
+    iconRes: Int,
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                painter = painterResource(id = iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 11.sp,
+                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+private fun getInitials(name: String?): String {
+    if (name.isNullOrBlank()) return "K"
+    val parts = name.trim().split("\\s+".toRegex())
+    return when {
+        parts.size >= 2 -> "${parts[0].first().uppercaseChar()}${parts[1].first().uppercaseChar()}"
+        parts.size == 1 && parts[0].isNotEmpty() -> parts[0].take(2).uppercase()
+        else -> "K"
+    }
 }
 
 @Preview(showBackground = true)
@@ -359,12 +430,13 @@ fun HostSessionCard(
 fun HostSessionCardLightPreview() {
     val sampleSession = HostSession(
         id = "1",
-        venue = "WAC Building 203 – West Academic Sector",
-        time = "10:00 AM",
-        talkCode = "7EJCD2",
-        title = "Literacy in AI Era",
-        speakerName = "Zhar",
-        attendeesCount = 0,
+        venue = "CDO Ayala",
+        time = "10:00 – 11:30 AM",
+        talkCode = "4VY4N6",
+        title = "Object Oriented Programming",
+        speakerName = "Ernesto Razo",
+        category = "Technology & digital",
+        attendeesCount = 1,
         isLive = false,
     )
     KontekstoTheme(darkTheme = false) {
@@ -382,12 +454,13 @@ fun HostSessionCardLightPreview() {
 fun HostSessionCardDarkPreview() {
     val sampleSession = HostSession(
         id = "1",
-        venue = "Tech Summit Hall B",
-        time = "10:00 AM",
-        talkCode = "TALK–415",
-        title = "Edge AI & Distributed Cloud Architecture: Scaling to Zero Latency",
-        speakerName = "Engr. Marco Valerio",
-        attendeesCount = 890,
+        venue = "CDO Ayala",
+        time = "10:00 – 11:30 AM",
+        talkCode = "4VY4N6",
+        title = "Object Oriented Programming",
+        speakerName = "Ernesto Razo",
+        category = "Technology & digital",
+        attendeesCount = 1,
         isLive = true,
     )
     KontekstoTheme(darkTheme = true) {

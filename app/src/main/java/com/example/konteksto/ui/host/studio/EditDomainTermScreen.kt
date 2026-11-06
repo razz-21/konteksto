@@ -1,11 +1,13 @@
 package com.example.konteksto.ui.host.studio
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,12 +17,15 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,6 +39,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
 import com.example.konteksto.ui.theme.KontekstoTheme
 
@@ -87,7 +93,7 @@ fun EditDomainTermScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             EditFormTopBar(
                 title = "Edit Domain Term",
@@ -110,7 +116,7 @@ fun EditDomainTermScreen(
                 }
             } else {
                 EditFormField(
-                    label = "Term *",
+                    label = "Term",
                     value = term,
                     onValueChange = {
                         term = it
@@ -118,65 +124,117 @@ fun EditDomainTermScreen(
                     },
                     errorMessage = termError,
                     singleLine = true,
+                    placeholder = "e.g. Point of Presence (POP)",
                 )
 
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Keeps a category outside the standard list selectable until the host changes it.
-                    (DOMAIN_TERM_CATEGORIES + domainTerm.category).distinct().forEach { option ->
-                        FilterChip(
-                            selected = category == option,
-                            onClick = { category = option },
-                            label = { Text(text = option) },
-                        )
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "Category",
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 12.sp,
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        (DOMAIN_TERM_CATEGORIES + domainTerm.category).distinct().forEach { option ->
+                            FilterChip(
+                                selected = category == option,
+                                onClick = { category = option },
+                                label = {
+                                    Text(
+                                        text = option,
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                        ),
+                                    )
+                                },
+                                shape = CircleShape,
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.primary,
+                                ),
+                            )
+                        }
                     }
                 }
 
                 EditFormField(
-                    label = "Description *",
+                    label = "Description",
                     value = description,
                     onValueChange = {
                         description = it
                         descriptionError = null
                     },
                     errorMessage = descriptionError,
+                    placeholder = "e.g. A local edge data center that reduces latency for connected users.",
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                Button(
-                    onClick = {
-                        termError = when {
-                            term.isBlank() -> "Term is required"
-                            isNameTaken(term) -> "This term is already in your list"
-                            else -> null
-                        }
-                        descriptionError = if (description.isBlank()) "Description is required" else null
-                        if (termError == null && descriptionError == null) {
-                            onSaveClick(domainTerm.withEdits(term, category, description))
-                        }
-                    },
-                    enabled = hasChanges,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    shape = MaterialTheme.shapes.small,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
+                // Bottom Action Buttons: Back & Save
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_check),
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Save",
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.Bold,
+                    OutlinedButton(
+                        onClick = onBackRequested,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
+                        shape = CircleShape,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    ) {
+                        Text(
+                            text = "Back",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                            ),
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+
+                    Button(
+                        onClick = {
+                            termError = when {
+                                term.isBlank() -> "Term is required"
+                                isNameTaken(term) -> "This term is already in your list"
+                                else -> null
+                            }
+                            descriptionError = if (description.isBlank()) "Description is required" else null
+                            if (termError == null && descriptionError == null) {
+                                onSaveClick(domainTerm.withEdits(term, category, description))
+                            }
+                        },
+                        enabled = hasChanges,
+                        modifier = Modifier
+                            .weight(1.5f)
+                            .height(48.dp),
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
                         ),
-                    )
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_check),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Save",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                            ),
+                        )
+                    }
                 }
             }
         }
