@@ -27,7 +27,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.konteksto.data.repository.AuthRepository
 import com.example.konteksto.data.repository.FirebaseAuthRepository
 import com.example.konteksto.data.repository.FirebaseSessionRepository
+import com.example.konteksto.data.repository.FirebaseUserProfileRepository
 import com.example.konteksto.data.repository.SessionRepository
+import com.example.konteksto.data.repository.UserProfileRepository
 import com.example.konteksto.domain.model.AuthUser
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.components.showKontekstoSnackbar
@@ -67,13 +69,18 @@ fun KontekstoNavHost(
     val sessionRepository: SessionRepository = remember(context) {
         FirebaseSessionRepository(context = context.applicationContext)
     }
+    val userProfileRepository: UserProfileRepository = remember(context) {
+        FirebaseUserProfileRepository(context.applicationContext)
+    }
     val hostViewModel: HostViewModel = viewModel(
         factory = HostViewModel.provideFactory(
             sessionRepository = sessionRepository,
             authRepository = authRepository,
+            userProfileRepository = userProfileRepository,
         ),
     )
     val hostSessions by hostViewModel.hostSessions.collectAsStateWithLifecycle()
+    val currentProfile by hostViewModel.currentProfile.collectAsStateWithLifecycle()
     val isHostRefreshing by hostViewModel.isRefreshing.collectAsStateWithLifecycle()
     val allSessions by remember(sessionRepository) {
         sessionRepository.getAllSessionsStream()
@@ -189,6 +196,7 @@ fun KontekstoNavHost(
             MainScreen(
                 snackbarHostState = mainSnackbarHostState,
                 hostSessions = hostSessions,
+                currentProfile = currentProfile,
                 isHostRefreshing = isHostRefreshing,
                 onHostRefresh = { hostViewModel.refreshSessions() },
                 isDarkMode = isDarkMode,

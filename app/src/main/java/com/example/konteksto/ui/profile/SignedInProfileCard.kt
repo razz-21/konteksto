@@ -41,19 +41,7 @@ fun SignedInProfileHeaderCard(
     modifier: Modifier = Modifier,
     onEditClick: () -> Unit = {},
 ) {
-    val initials = remember(profile.name, profile.email) {
-        val source = profile.name.takeIf { it.isNotBlank() }
-            ?: profile.email.takeIf { it.isNotBlank() }
-            ?: "K"
-
-        source
-            .trim()
-            .split(" ")
-            .filter { it.isNotBlank() }
-            .take(2)
-            .joinToString("") { it.first().uppercase() }
-            .ifEmpty { "K" }
-    }
+    val initials = remember(profile.name, profile.email) { profile.initials }
 
     Surface(
         modifier = modifier.fillMaxWidth(),

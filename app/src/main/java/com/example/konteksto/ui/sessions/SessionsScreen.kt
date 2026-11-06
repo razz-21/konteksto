@@ -27,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -37,18 +38,28 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.konteksto.R
 import com.example.konteksto.data.repository.FirebaseSessionRepository
+import com.example.konteksto.data.repository.FirebaseUserProfileRepository
 import com.example.konteksto.data.repository.SessionRepository
+import com.example.konteksto.data.repository.UserProfileRepository
 import com.example.konteksto.ui.components.KontekstoTopBar
 import com.example.konteksto.ui.components.showKontekstoSnackbar
+import com.example.konteksto.ui.sessions.attend.AttendSessionSheet
 import com.example.konteksto.ui.theme.KontekstoTheme
 
 @Composable
 fun SessionsScreen(
     onNavigateToAttendeeRoom: (sessionId: String) -> Unit,
     modifier: Modifier = Modifier,
+    onProfileClick: () -> Unit = {},
     sessionRepository: SessionRepository = remember { FirebaseSessionRepository() },
+    userProfileRepository: UserProfileRepository = LocalContext.current.let { context ->
+        remember(context) { FirebaseUserProfileRepository(context.applicationContext) }
+    },
     viewModel: SessionsViewModel = viewModel(
-        factory = SessionsViewModel.provideFactory(sessionRepository),
+        factory = SessionsViewModel.provideFactory(
+            sessionRepository = sessionRepository,
+            userProfileRepository = userProfileRepository,
+        ),
     ),
 ) {
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
@@ -57,6 +68,7 @@ fun SessionsScreen(
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val showAttendSheet by viewModel.showAttendSheet.collectAsStateWithLifecycle()
     val sessionToConfirm by viewModel.selectedSessionToConfirm.collectAsStateWithLifecycle()
+    val currentProfile by viewModel.currentProfile.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -95,7 +107,8 @@ fun SessionsScreen(
             ) {
                 // Top Header Row
                 KontekstoTopBar(
-                    onAttendClick = { viewModel.openAttendSheet() },
+                    currentProfile = currentProfile,
+                    onProfileClick = onProfileClick,
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))

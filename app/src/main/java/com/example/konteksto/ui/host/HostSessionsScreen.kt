@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.domain.model.UserProfile
 import com.example.konteksto.ui.components.KontekstoTopBar
 import com.example.konteksto.ui.theme.KontekstoTheme
 import com.example.konteksto.ui.theme.extendedColors
@@ -47,7 +48,7 @@ fun HostSessionsScreen(
     modifier: Modifier = Modifier,
     sessions: List<HostSession> = emptyList(),
     isRefreshing: Boolean = false,
-    userInitial: String = "Z",
+    currentProfile: UserProfile? = null,
     onRefresh: () -> Unit = {},
     onNewSessionClick: () -> Unit = {},
     onPresentQrClick: (HostSession) -> Unit = {},
@@ -76,7 +77,7 @@ fun HostSessionsScreen(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 ) {
                     KontekstoTopBar(
-                        userInitial = userInitial,
+                        currentProfile = currentProfile,
                         onProfileClick = onProfileClick,
                     )
 
