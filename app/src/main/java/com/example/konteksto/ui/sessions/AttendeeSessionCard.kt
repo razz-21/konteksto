@@ -1,6 +1,5 @@
 package com.example.konteksto.ui.sessions
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,6 +39,7 @@ import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.theme.KontekstoTheme
 
 import androidx.compose.foundation.clickable
+import com.example.konteksto.ui.theme.extendedColors
 
 @Composable
 fun AttendeeSessionCard(
@@ -68,9 +68,8 @@ fun AttendeeSessionCard(
             .clickable { onActionClick() },
         shape = MaterialTheme.shapes.small,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+            containerColor = MaterialTheme.extendedColors.cardContainer,
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column {
             // Banner Image Box

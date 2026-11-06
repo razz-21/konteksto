@@ -40,6 +40,7 @@ import com.example.konteksto.domain.model.AuthUser
 import com.example.konteksto.domain.model.UserProfile
 import com.example.konteksto.ui.login.GoogleSignInButton
 import com.example.konteksto.ui.theme.KontekstoTheme
+import com.example.konteksto.ui.theme.extendedColors
 
 @Composable
 fun ProfileScreenContent(
@@ -203,7 +204,7 @@ fun ProfileScreenContent(
                         .height(56.dp)
                         .clickable(enabled = !isLoading) { showSignOutDialog = true },
                     shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    color = MaterialTheme.extendedColors.cardContainer,
                 ) {
                     Row(
                         modifier = Modifier.fillMaxSize(),

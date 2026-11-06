@@ -40,17 +40,17 @@ val SecondaryDark = Color(0xFFBFC6DC)
 val OnSecondaryDark = Color(0xFF293041)
 val SecondaryContainerDark = Color(0xFF3E4759)
 val OnSecondaryContainerDark = Color(0xFFDAE2F9)
-val BackgroundDark = Color(0xFF111318)
+val BackgroundDark = Color(0xFF0D0F13)          // darker than the Material default so cards stand out
 val OnBackgroundDark = Color(0xFFE2E2E9)
-val SurfaceDark = Color(0xFF111318)
+val SurfaceDark = Color(0xFF0D0F13)
 val OnSurfaceDark = Color(0xFFE2E2E9)
 val SurfaceVariantDark = Color(0xFF44474F)
 val OnSurfaceVariantDark = Color(0xFFC4C6D0)
 val OutlineDark = Color(0xFF8E9099)
 val OutlineVariantDark = Color(0xFF44474F)
-val SurfaceDimDark = Color(0xFF111318)
+val SurfaceDimDark = Color(0xFF0D0F13)
 val SurfaceBrightDark = Color(0xFF37393E)
-val SurfaceContainerLowestDark = Color(0xFF0C0E13)
+val SurfaceContainerLowestDark = Color(0xFF090B0E)
 val SurfaceContainerLowDark = Color(0xFF191C20)
 val SurfaceContainerDark = Color(0xFF1D2024)
 val SurfaceContainerHighDark = Color(0xFF282A2F)
@@ -59,6 +59,16 @@ val ErrorDark = Color(0xFFFFB4AB)
 val OnErrorDark = Color(0xFF690005)
 val ErrorContainerDark = Color(0xFF93000A)
 val OnErrorContainerDark = Color(0xFFFFDAD6)
+
+// Cards and sections in dark mode: between surfaceContainer and surfaceContainerHigh, so the page,
+// the card, and the tiles inside it (surfaceContainerHigh) are three distinct steps.
+val CardContainerDark = Color(0xFF202328)
+
+// Success (grounding badges, live status dots). Material 3 has no success role, so these are extended colors.
+val SuccessLight = Color(0xFF00875A)
+val SuccessContainerLight = Color(0xFFE8F8F0)
+val SuccessDark = Color(0xFF6DDBA8)
+val SuccessContainerDark = Color(0xFF003D26)
 
 // Avatar colors (Edit profile)
 val AvatarBlue = Color(0xFF2A5BD7)

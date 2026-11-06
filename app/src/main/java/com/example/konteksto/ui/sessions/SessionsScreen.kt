@@ -34,6 +34,7 @@ import com.example.konteksto.R
 import com.example.konteksto.data.repository.FirebaseSessionRepository
 import com.example.konteksto.data.repository.SessionRepository
 import com.example.konteksto.ui.components.KontekstoTopBar
+import com.example.konteksto.ui.components.showKontekstoSnackbar
 import com.example.konteksto.ui.theme.KontekstoTheme
 
 @Composable
@@ -56,7 +57,7 @@ fun SessionsScreen(
 
     LaunchedEffect(Unit) {
         viewModel.snackbarMessage.collect { message ->
-            snackbarHostState.showSnackbar(message)
+            snackbarHostState.showKontekstoSnackbar(message)
         }
     }
 

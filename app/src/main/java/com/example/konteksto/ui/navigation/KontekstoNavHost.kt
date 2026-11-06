@@ -1,17 +1,18 @@
 package com.example.konteksto.ui.navigation
 
-import android.widget.Toast
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavBackStackEntry
@@ -29,6 +30,7 @@ import com.example.konteksto.data.repository.FirebaseSessionRepository
 import com.example.konteksto.data.repository.SessionRepository
 import com.example.konteksto.domain.model.AuthUser
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.ui.components.showKontekstoSnackbar
 import com.example.konteksto.ui.host.CreateSessionScreen
 import com.example.konteksto.ui.host.HostViewModel
 import com.example.konteksto.ui.host.PresentQrScreen
@@ -60,6 +62,8 @@ fun KontekstoNavHost(
     onDarkModeChange: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
+    val mainSnackbarHostState = remember { SnackbarHostState() }
+    val navScope = rememberCoroutineScope()
     val sessionRepository: SessionRepository = remember(context) {
         FirebaseSessionRepository(context = context.applicationContext)
     }
@@ -183,6 +187,7 @@ fun KontekstoNavHost(
 
         composable(Screen.Main.route) {
             MainScreen(
+                snackbarHostState = mainSnackbarHostState,
                 hostSessions = hostSessions,
                 isHostRefreshing = isHostRefreshing,
                 onHostRefresh = { hostViewModel.refreshSessions() },
@@ -494,7 +499,8 @@ fun KontekstoNavHost(
         }
 
         composable(Screen.CreateSession.route) {
-            val context = LocalContext.current
+            val createSnackbarHostState = remember { SnackbarHostState() }
+            val createScope = rememberCoroutineScope()
             val currentUser = (sessionState as? SessionBootstrapState.Authenticated)?.user
                 ?: authRepository.currentUser
             val currentSpeakerName = currentUser?.displayName?.takeIf { it.isNotBlank() }
@@ -503,6 +509,7 @@ fun KontekstoNavHost(
 
             CreateSessionScreen(
                 initialSpeakerName = currentSpeakerName,
+                snackbarHostState = createSnackbarHostState,
                 onBackClick = {
                     navController.popBackStack()
                 },
@@ -517,11 +524,11 @@ fun KontekstoNavHost(
                         bannerImageUrl = banner.imageUrl,
                         talkCode = talkCode,
                         onSuccess = {
-                            Toast.makeText(context, "Session created successfully!", Toast.LENGTH_SHORT).show()
                             navController.popBackStack()
+                            navScope.launch { mainSnackbarHostState.showKontekstoSnackbar("Session created successfully!") }
                         },
                         onError = { message ->
-                            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                            createScope.launch { createSnackbarHostState.showKontekstoSnackbar(message) }
                         },
                     )
                 },

@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.ui.theme.extendedColors
 
 @Composable
 fun PreferencesSectionCard(
@@ -52,7 +53,7 @@ fun PreferencesSectionCard(
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerLowest,
+            color = MaterialTheme.extendedColors.cardContainer,
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 // Item 1: Dark theme Row

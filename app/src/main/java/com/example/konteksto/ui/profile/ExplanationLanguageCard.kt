@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.ui.theme.extendedColors
 
 @Composable
 fun ExplanationLanguageCard(
@@ -35,7 +36,7 @@ fun ExplanationLanguageCard(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        color = MaterialTheme.extendedColors.cardContainer,
     ) {
         Column(
             modifier = Modifier

@@ -1,7 +1,5 @@
 package com.example.konteksto.ui.host
 
-import android.widget.Toast
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -49,6 +46,7 @@ import com.example.konteksto.R
 import com.example.konteksto.domain.model.ConferenceThemeBanner
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.theme.KontekstoTheme
+import com.example.konteksto.ui.theme.extendedColors
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -57,10 +55,10 @@ fun HostSessionCard(
     onPresentQrClick: (HostSession) -> Unit,
     onLiveRoomClick: (HostSession) -> Unit,
     modifier: Modifier = Modifier,
+    onShowMessage: (String) -> Unit = {},
 ) {
     @Suppress("DEPRECATION")
     val clipboardManager = LocalClipboardManager.current
-    val context = LocalContext.current
 
     val bannerUrl = remember(session.bannerImageUrl, session.category) {
         session.bannerImageUrl?.ifBlank { null }
@@ -82,12 +80,8 @@ fun HostSessionCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = MaterialTheme.extendedColors.cardContainer,
             contentColor = MaterialTheme.colorScheme.onSurface,
-        ),
-        border = BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
         ),
     ) {
         Column(
@@ -295,7 +289,7 @@ fun HostSessionCard(
                         IconButton(
                             onClick = {
                                 clipboardManager.setText(AnnotatedString(session.talkCode))
-                                Toast.makeText(context, "Join code copied!", Toast.LENGTH_SHORT).show()
+                                onShowMessage("Join code copied!")
                             },
                             modifier = Modifier.size(32.dp),
                         ) {

@@ -1,6 +1,5 @@
 package com.example.konteksto.ui.host
 
-import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +10,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -30,15 +30,19 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -50,7 +54,10 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.ui.components.showKontekstoSnackbar
 import com.example.konteksto.ui.theme.KontekstoTheme
+import com.example.konteksto.ui.theme.extendedColors
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -59,24 +66,31 @@ fun PresentQrScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
     onDownloadQrClick: (() -> Unit)? = null,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
     val scrollState = rememberScrollState()
-    val context = LocalContext.current
+    val snackbarScope = rememberCoroutineScope()
+    val showMessage: (String) -> Unit = { message ->
+        snackbarScope.launch { snackbarHostState.showKontekstoSnackbar(message) }
+    }
     @Suppress("DEPRECATION")
     val clipboardManager = LocalClipboardManager.current
     val qrDownloadedMessage = stringResource(id = R.string.qr_downloaded_toast)
 
     val qrApiUrl = "https://api.qrserver.com/v1/create-qr-code/?size=450x450&data=${session.talkCode}"
 
-    Surface(
+    Scaffold(
         modifier = modifier
             .fillMaxSize()
             .safeDrawingPadding(),
-        color = MaterialTheme.colorScheme.background,
-    ) {
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0),
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(innerPadding)
                 .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.SpaceBetween,
@@ -126,12 +140,8 @@ fun PresentQrScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
+                        containerColor = MaterialTheme.extendedColors.cardContainer,
                         contentColor = MaterialTheme.colorScheme.onSurface,
-                    ),
-                    border = BorderStroke(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
                     ),
                 ) {
                     Column(
@@ -205,7 +215,7 @@ fun PresentQrScreen(
                                 IconButton(
                                     onClick = {
                                         clipboardManager.setText(AnnotatedString(session.talkCode))
-                                        Toast.makeText(context, "Join code copied!", Toast.LENGTH_SHORT).show()
+                                        showMessage("Join code copied!")
                                     },
                                     modifier = Modifier.size(32.dp),
                                 ) {
@@ -228,12 +238,8 @@ fun PresentQrScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
+                        containerColor = MaterialTheme.extendedColors.cardContainer,
                         contentColor = MaterialTheme.colorScheme.onSurface,
-                    ),
-                    border = BorderStroke(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
                     ),
                 ) {
                     Column(
@@ -311,11 +317,7 @@ fun PresentQrScreen(
                 Button(
                     onClick = {
                         onDownloadQrClick?.invoke()
-                            ?: Toast.makeText(
-                                context,
-                                qrDownloadedMessage,
-                                Toast.LENGTH_SHORT,
-                            ).show()
+                            ?: showMessage(qrDownloadedMessage)
                     },
                     modifier = Modifier
                         .weight(1.5f)
