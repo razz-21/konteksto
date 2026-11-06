@@ -278,6 +278,18 @@ A live transcript is especially important to Deaf and hard-of-hearing attendees,
 - Put user-visible text in `strings.xml`. This is what makes translation possible.
 - Take colors from `MaterialTheme.colorScheme` and define new ones in `ui/theme`, so light and dark modes both work.
 
+### Material 3 and Material Design
+This is an Android app, so every screen is built with Material 3 components and follows Material Design guidelines.
+
+**Must**
+- Build UI from Material 3 components (`androidx.compose.material3`): `Scaffold`, `TopAppBar`, `Button`, `Card`, `TextField`, `NavigationBar`, `ModalBottomSheet`, `AlertDialog`, `SnackbarHost`, and so on. Don't import `androidx.compose.material` (Material 2), and don't hand-build a component Material 3 already provides.
+- Wrap all UI in `KontekstoTheme`, and style it through the theme: `MaterialTheme.colorScheme`, `MaterialTheme.typography`, and `MaterialTheme.shapes`. Don't hardcode colors, font sizes, or corner radii in composables.
+- Follow Material Design patterns for layout, navigation, component choice, states (enabled, disabled, pressed, loading, error, empty), spacing on the 4dp/8dp grid, and motion.
+- **When a design is attached** (Figma, screenshot, mockup), implement it with our existing theme (`ui/theme/Color.kt`, `Type.kt`, `Shape.kt`) and Material 3 components. Map the design's colors, type, and shapes to the closest theme token instead of copying raw values. If the design needs something the theme lacks, add it as a token in `ui/theme` instead of inlining it. If the design conflicts with a Material pattern, follow the Material pattern and note the difference in the pull request.
+
+**Should**
+- Customize a Material 3 component through its own parameters and `*Defaults` (e.g., `ButtonDefaults`, `CardDefaults`) before wrapping it in custom modifiers.
+
 ### Images
 Use vector drawables for icons and WebP for bitmaps.
 
@@ -571,6 +583,8 @@ Measured when this guide was written. Product and feature fixes are tracked in S
 ## 14. References
 
 - [Architecture recommendations](https://developer.android.com/topic/architecture/recommendations)
+- [Material Design 3 in Compose](https://developer.android.com/develop/ui/compose/designsystems/material3)
+- [Material Design 3 guidelines](https://m3.material.io/)
 - [Coroutines best practices](https://developer.android.com/kotlin/coroutines/coroutines-best-practices)
 - [Strong skipping mode](https://developer.android.com/develop/ui/compose/performance/stability/strongskipping)
 - [Android 16 behavior changes](https://developer.android.com/about/versions/16/behavior-changes-16)
