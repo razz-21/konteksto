@@ -2,7 +2,6 @@ package com.example.konteksto.ui.profile
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -46,7 +45,7 @@ fun PreferencesSectionCard(
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp,
             ),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
         )
 
@@ -56,7 +55,7 @@ fun PreferencesSectionCard(
             color = MaterialTheme.colorScheme.surfaceContainerLowest,
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                // Item 1: Dark Mode Row
+                // Item 1: Dark theme Row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -72,7 +71,7 @@ fun PreferencesSectionCard(
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_dark_mode),
-                            contentDescription = "Dark mode",
+                            contentDescription = "Dark theme",
                             modifier = Modifier.size(20.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -82,7 +81,7 @@ fun PreferencesSectionCard(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Dark mode",
+                            text = "Dark theme",
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp,
@@ -187,14 +186,25 @@ fun PreferencesSectionCard(
                                 .padding(vertical = 10.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Text(
-                                text = "English",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                ),
-                                color = if (!isTaglish) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (!isTaglish) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_check),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = Color.White,
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                }
+                                Text(
+                                    text = "English",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                    ),
+                                    color = if (!isTaglish) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
 
                         // Taglish Segment
@@ -209,14 +219,25 @@ fun PreferencesSectionCard(
                                 .padding(vertical = 10.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Text(
-                                text = "Taglish",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                ),
-                                color = if (isTaglish) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (isTaglish) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_check),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = Color.White,
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                }
+                                Text(
+                                    text = "Taglish",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                    ),
+                                    color = if (isTaglish) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
                     }
                 }

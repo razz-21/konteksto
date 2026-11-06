@@ -2,6 +2,7 @@ package com.example.konteksto.ui.profile
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -79,24 +80,7 @@ fun SignedInProfileHeaderCard(
                     color = MaterialTheme.colorScheme.onBackground,
                 )
 
-                Spacer(modifier = Modifier.height(3.dp))
-
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-                ) {
-                    Text(
-                        text = profile.role.ifBlank { "Attendee" },
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 11.sp,
-                        ),
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp))
 
                 Text(
                     text = profile.email.ifBlank { "No email available" },
@@ -134,6 +118,7 @@ fun SignedInProfileHeaderCard(
 @Composable
 fun AboutYouSectionCard(
     profile: UserProfile,
+    onEditClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -143,7 +128,7 @@ fun AboutYouSectionCard(
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp,
             ),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
         )
 
@@ -153,10 +138,60 @@ fun AboutYouSectionCard(
             color = MaterialTheme.colorScheme.surfaceContainerLowest,
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                // Organization Row
+                // Item 1: Role Row (Aligned right, no arrow)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_badge),
+                            contentDescription = "Role",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(14.dp))
+
+                    Text(
+                        text = "Role",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                        ),
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.weight(1f),
+                    )
+
+                    Text(
+                        text = profile.role.ifBlank { "Attendee" },
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp,
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+
+                // Item 2: Organization Row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onEditClick)
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -197,6 +232,13 @@ fun AboutYouSectionCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_arrow_forward),
+                        contentDescription = "Edit",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    )
                 }
 
                 HorizontalDivider(
@@ -204,10 +246,11 @@ fun AboutYouSectionCard(
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
 
-                // Bio Row
+                // Item 3: Bio Row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clickable(onClick = onEditClick)
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -248,6 +291,13 @@ fun AboutYouSectionCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_arrow_forward),
+                        contentDescription = "Edit",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    )
                 }
             }
         }
