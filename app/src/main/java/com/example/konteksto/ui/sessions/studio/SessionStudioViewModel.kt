@@ -3,6 +3,9 @@ package com.example.konteksto.ui.sessions.studio
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.konteksto.data.repository.FirebaseGlossaryRepository
+import com.example.konteksto.data.repository.GlossaryRepository
+import com.example.konteksto.data.repository.GlossaryTermItem
 import com.example.konteksto.data.repository.SessionRepository
 import com.example.konteksto.ui.host.studio.TranscriptEntry
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -35,6 +38,7 @@ data class SessionStudioUiState(
     val didLiveTranscriptFail: Boolean = false,
     val conceptExplanations: List<LiveConceptExplanationItem> = emptyList(),
     val activeExplanation: ActiveExplanationRequest? = null,
+    val sessionGlossaryTerms: List<GlossaryTermItem> = emptyList(),
 )
 
 /**
@@ -72,6 +76,7 @@ class SessionStudioViewModel(
     private val sessionId: String,
     private val sessionRepository: SessionRepository,
     private val explanationRepository: com.example.konteksto.data.repository.ExplanationRepository = com.example.konteksto.data.repository.FirebaseExplanationRepository(),
+    private val glossaryRepository: GlossaryRepository = FirebaseGlossaryRepository(),
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SessionStudioUiState())
@@ -79,6 +84,7 @@ class SessionStudioViewModel(
 
     private var knownTranscripts = emptyList<TranscriptEntry>()
     private var observeJob: Job? = null
+    private var lastDetectedTranscriptCount = 0
 
     /** Live updates only run while the screen is visible, so a backgrounded attendee costs no reads. */
     fun startObserving() {
@@ -97,6 +103,12 @@ class SessionStudioViewModel(
                         _uiState.value = _uiState.value.copy(livePartialText = text)
                     }
             }
+            launch {
+                glossaryRepository.getSessionGlossaryStream(sessionId)
+                    .collect { glossaryTerms ->
+                        _uiState.value = _uiState.value.copy(sessionGlossaryTerms = glossaryTerms)
+                    }
+            }
         }
     }
 
@@ -112,10 +124,30 @@ class SessionStudioViewModel(
 
     private fun onTranscriptWindow(window: List<TranscriptEntry>) {
         knownTranscripts = mergeTranscriptWindow(knownTranscripts, window)
+        val companionItems = knownTranscripts.map { it.toCompanionItem() }
         _uiState.value = _uiState.value.copy(
-            transcripts = knownTranscripts.map { it.toCompanionItem() },
+            transcripts = companionItems,
             hasEarlierTranscripts = _uiState.value.hasEarlierTranscripts || window.size >= TRANSCRIPT_PAGE_SIZE,
         )
+
+        // Trigger concept detection when new spoken transcript lines arrive during talk
+        if (knownTranscripts.size > lastDetectedTranscriptCount && knownTranscripts.any { !it.isSystemEvent }) {
+            lastDetectedTranscriptCount = knownTranscripts.size
+            triggerLiveConceptDetection()
+        }
+    }
+
+    private fun triggerLiveConceptDetection() {
+        viewModelScope.launch {
+            explanationRepository.detectLiveConcepts(sessionId, knownTranscripts)
+                .onSuccess { detectedConcepts ->
+                    if (detectedConcepts.isNotEmpty()) {
+                        val existing = _uiState.value.conceptExplanations
+                        val merged = (detectedConcepts + existing).distinctBy { it.title.lowercase().trim() }
+                        _uiState.value = _uiState.value.copy(conceptExplanations = merged)
+                    }
+                }
+        }
     }
 
     fun loadEarlierTranscripts() {
@@ -146,34 +178,87 @@ class SessionStudioViewModel(
 
     fun explainSelection(selectedItems: List<CompanionTranscriptItem>) {
         if (selectedItems.isEmpty()) return
-        
+
         _uiState.value = _uiState.value.copy(
             activeExplanation = ActiveExplanationRequest(
                 selectedItems = selectedItems,
                 isLoading = true,
-                error = null
-            )
+                error = null,
+            ),
         )
-        
+
         viewModelScope.launch {
             val segmentIds = selectedItems.map { it.id }
-            explanationRepository.explainSelection(sessionId, segmentIds)
+            val selectedTexts = selectedItems.map { it.text }
+            val speakerName = selectedItems.firstOrNull()?.speakerName.orEmpty()
+
+            explanationRepository.explainSelection(sessionId, segmentIds, selectedTexts, speakerName)
                 .onSuccess { explanation ->
+                    val updatedConcepts = (listOf(explanation) + _uiState.value.conceptExplanations)
+                        .distinctBy { it.title.lowercase().trim() }
                     _uiState.value = _uiState.value.copy(
                         activeExplanation = _uiState.value.activeExplanation?.copy(
                             isLoading = false,
-                            explanation = explanation
-                        )
+                            explanation = explanation,
+                        ),
+                        conceptExplanations = updatedConcepts,
                     )
                 }
                 .onFailure { error ->
                     _uiState.value = _uiState.value.copy(
                         activeExplanation = _uiState.value.activeExplanation?.copy(
                             isLoading = false,
-                            error = error.message ?: "Failed to generate explanation."
-                        )
+                            error = error.message ?: "Failed to generate explanation.",
+                        ),
                     )
                 }
+        }
+    }
+
+    fun bookmarkConceptExplanation(concept: LiveConceptExplanationItem, sessionTitle: String = "") {
+        viewModelScope.launch {
+            val termId = concept.id.ifBlank { "term_${concept.title.lowercase().replace(" ", "_")}" }
+            val termItem = GlossaryTermItem(
+                id = termId,
+                term = concept.title,
+                category = concept.type,
+                definition = concept.definition,
+                source = "transcript",
+                sessionId = sessionId,
+                sessionTitle = sessionTitle,
+                isBookmarked = !concept.isBookmarked,
+            )
+
+            if (concept.isBookmarked) {
+                glossaryRepository.removeTermFromGlossary(userUid = "", sessionId = sessionId, termId = termId)
+            } else {
+                glossaryRepository.saveTermToGlossary(
+                    userUid = "",
+                    sessionId = sessionId,
+                    sessionTitle = sessionTitle,
+                    term = termItem,
+                )
+            }
+
+            val updatedExplanations = _uiState.value.conceptExplanations.map {
+                if (it.id == concept.id) it.copy(isBookmarked = !it.isBookmarked) else it
+            }
+            _uiState.value = _uiState.value.copy(conceptExplanations = updatedExplanations)
+        }
+    }
+
+    fun toggleBookmarkGlossaryTerm(term: GlossaryTermItem, sessionTitle: String = "") {
+        viewModelScope.launch {
+            if (term.isBookmarked) {
+                glossaryRepository.removeTermFromGlossary(userUid = "", sessionId = sessionId, termId = term.id)
+            } else {
+                glossaryRepository.saveTermToGlossary(
+                    userUid = "",
+                    sessionId = sessionId,
+                    sessionTitle = sessionTitle,
+                    term = term,
+                )
+            }
         }
     }
 

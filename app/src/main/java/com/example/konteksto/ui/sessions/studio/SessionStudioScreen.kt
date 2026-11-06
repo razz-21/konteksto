@@ -1,53 +1,38 @@
 package com.example.konteksto.ui.sessions.studio
 
 import android.widget.Toast
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.example.konteksto.data.repository.GlossaryTermItem
 import com.example.konteksto.domain.model.HostSession
-import com.example.konteksto.ui.host.studio.DOMAIN_TERM_CATEGORIES
 import com.example.konteksto.ui.host.studio.DeleteDomainTermDialog
 import com.example.konteksto.ui.host.studio.DomainTermItem
 import com.example.konteksto.ui.theme.KontekstoTheme
@@ -64,6 +49,8 @@ fun SessionStudioScreen(
     onRetryLiveTranscript: () -> Unit = {},
     onAskWhatTheyMean: (List<CompanionTranscriptItem>) -> Unit = {},
     onDismissActiveExplanation: () -> Unit = {},
+    onBookmarkConcept: (LiveConceptExplanationItem) -> Unit = {},
+    onToggleBookmarkGlossaryTerm: (GlossaryTermItem) -> Unit = {},
     domainTerms: List<DomainTermItem> = emptyList(),
 ) {
     val context = LocalContext.current
@@ -72,6 +59,31 @@ fun SessionStudioScreen(
     var termsList by remember(domainTerms) { mutableStateOf(domainTerms) }
     var termToDelete by remember { mutableStateOf<DomainTermItem?>(null) }
     var termToEdit by remember { mutableStateOf<DomainTermItem?>(null) }
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    var previousConceptIds by remember { mutableStateOf<Set<String>?>(null) }
+
+    LaunchedEffect(transcriptState.conceptExplanations) {
+        val currentConcepts = transcriptState.conceptExplanations
+        if (currentConcepts.isNotEmpty()) {
+            val currentIds = currentConcepts.map { it.id }.toSet()
+            val prev = previousConceptIds
+            if (prev != null) {
+                val newlyAdded = currentConcepts.filter { it.id !in prev }
+                if (newlyAdded.isNotEmpty()) {
+                    val newest = newlyAdded.first()
+                    val result = snackbarHostState.showSnackbar(
+                        message = "New live concept detected: ${newest.title}",
+                        actionLabel = "View",
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        selectedTab = 0
+                    }
+                }
+            }
+            previousConceptIds = currentIds
+        }
+    }
 
     if (showLeaveConfirmDialog) {
         AlertDialog(
@@ -147,15 +159,17 @@ fun SessionStudioScreen(
         )
     }
 
-    Surface(
+    Scaffold(
         modifier = modifier
             .fillMaxSize()
             .safeDrawingPadding(),
-        color = MaterialTheme.colorScheme.background,
-    ) {
+        containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(innerPadding)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
             // Top Bar: Back button navigates directly back, Leave button opens prompt
@@ -181,7 +195,7 @@ fun SessionStudioScreen(
                 selectedTab = selectedTab,
                 onTabSelected = { selectedTab = it },
                 termsCount = termsList.size,
-                glossaryCount = 3,
+                glossaryCount = transcriptState.sessionGlossaryTerms.size.coerceAtLeast(1),
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -207,6 +221,7 @@ fun SessionStudioScreen(
                             onLoadEarlierTranscripts = onLoadEarlierTranscripts,
                             onRetryLiveTranscript = onRetryLiveTranscript,
                             conceptExplanations = transcriptState.conceptExplanations,
+                            onBookmarkConcept = onBookmarkConcept,
                             onAskWhatTheyMean = { selectedItems, clearSelection ->
                                 onAskWhatTheyMean(selectedItems)
                                 clearSelection()
@@ -222,17 +237,11 @@ fun SessionStudioScreen(
                     }
                     2 -> {
                         // Glossary Tab
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(vertical = 16.dp),
-                        ) {
-                            Text(
-                                text = "Session Glossary Entries",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                        SessionGlossaryView(
+                            glossaryTerms = transcriptState.sessionGlossaryTerms,
+                            domainTerms = termsList,
+                            onToggleBookmark = onToggleBookmarkGlossaryTerm,
+                        )
                     }
                 }
             }

@@ -45,26 +45,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.components.JumpToLiveButton
 import com.example.konteksto.ui.components.LiveSpeakingBubble
 import com.example.konteksto.ui.components.rememberLiveTranscriptFollowState
-import com.example.konteksto.domain.model.HostSession
 
 data class CompanionTranscriptItem(
     val id: String,
@@ -136,6 +132,7 @@ fun SessionLiveCompanionView(
     isExplaining: Boolean = false,
     explainError: String? = null,
     onRetryExplain: () -> Unit = {},
+    onBookmarkConcept: (LiveConceptExplanationItem) -> Unit = {},
     onAskWhatTheyMean: (selectedItems: List<CompanionTranscriptItem>, clearSelection: () -> Unit) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
@@ -639,8 +636,14 @@ fun SessionLiveCompanionView(
             conceptExplanations.forEach { concept ->
                 LiveConceptExplanationCard(
                     item = concept,
-                    onBookmarkToggle = { conceptId ->
-                        Toast.makeText(context, "Toggled bookmark for concept", Toast.LENGTH_SHORT).show()
+                    onBookmarkToggle = { _ ->
+                        onBookmarkConcept(concept)
+                        val msg = if (!concept.isBookmarked) {
+                            "Saved to My Glossary & Session Glossary"
+                        } else {
+                            "Removed from My Glossary"
+                        }
+                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                     },
                 )
             }
@@ -761,7 +764,68 @@ fun LiveConceptExplanationCard(
                 color = MaterialTheme.colorScheme.onSurface,
             )
 
+            // Analogy block
+            if (item.analogy.isNotBlank()) {
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_sparkle),
+                            contentDescription = null,
+                            tint = Color(0xFF3B52D4),
+                            modifier = Modifier.size(16.dp).padding(top = 2.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "Analogy",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF3B52D4),
+                                ),
+                            )
+                            Text(
+                                text = item.analogy,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontSize = 12.sp,
+                                    lineHeight = 16.sp,
+                                    fontStyle = FontStyle.Italic,
+                                ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
 
+            // Why It Matters block
+            if (item.whyItMatters.isNotBlank()) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Why it matters:",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = item.whyItMatters,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp,
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
         }
     }
 }
