@@ -7,6 +7,7 @@ import com.example.konteksto.data.repository.FirebaseGlossaryRepository
 import com.example.konteksto.data.repository.GlossaryRepository
 import com.example.konteksto.data.repository.GlossaryTermItem
 import com.example.konteksto.data.repository.SessionRepository
+import com.example.konteksto.domain.model.LiveConceptExplanationItem
 import com.example.konteksto.ui.host.studio.TranscriptEntry
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -39,6 +40,8 @@ data class SessionStudioUiState(
     val didEarlierTranscriptsFail: Boolean = false,
     val didLiveTranscriptFail: Boolean = false,
     val conceptExplanations: List<LiveConceptExplanationItem> = emptyList(),
+    /** A concept the engine saved while this attendee was in the room, shown once as a snackbar. */
+    val newConceptAnnouncement: LiveConceptExplanationItem? = null,
     val activeExplanation: ActiveExplanationRequest? = null,
     val sessionGlossaryTerms: List<GlossaryTermItem> = emptyList(),
 )
@@ -79,6 +82,7 @@ class SessionStudioViewModel(
     private val sessionRepository: SessionRepository,
     private val explanationRepository: com.example.konteksto.data.repository.ExplanationRepository = com.example.konteksto.data.repository.FirebaseExplanationRepository(),
     private val glossaryRepository: GlossaryRepository = FirebaseGlossaryRepository(),
+    clock: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SessionStudioUiState())
@@ -88,13 +92,11 @@ class SessionStudioViewModel(
     private var observeJob: Job? = null
 
     /**
-     * Newest spoken line already considered for concept detection. Null until the first window
-     * arrives, which only sets the baseline, so the backlog from before the attendee joined is
-     * never analyzed and only lines the speaker says live trigger detection.
+     * Only concepts saved after the attendee opened the studio are announced, so saved ones loading
+     * on entry are not, and IDs already seen are not announced again when observing restarts.
      */
-    private var lastDetectedCreatedAt: Long? = null
-    private var detectionJob: Job? = null
-    private var isDetectionPending = false
+    private val openedAt = clock()
+    private var seenConceptIds = emptySet<String>()
 
     /** Live updates only run while the screen is visible, so a backgrounded attendee costs no reads. */
     fun startObserving() {
@@ -112,6 +114,22 @@ class SessionStudioViewModel(
                     .catch { emit("") }
                     .collect { text ->
                         _uiState.update { it.copy(livePartialText = text) }
+                    }
+            }
+            launch {
+                // The server's concept engine detects and saves these, so they are never generated on the device.
+                sessionRepository.getLiveConceptsStream(sessionId)
+                    .catch { }
+                    .collect { concepts ->
+                        val newest = concepts.firstOrNull { it.id !in seenConceptIds && it.createdAt > openedAt }
+                        seenConceptIds = seenConceptIds + concepts.map { it.id }
+                        _uiState.update { state ->
+                            val savedIds = state.sessionGlossaryTerms.map { it.id }.toSet()
+                            state.copy(
+                                conceptExplanations = concepts.map { it.copy(isBookmarked = it.id in savedIds) },
+                                newConceptAnnouncement = newest ?: state.newConceptAnnouncement,
+                            )
+                        }
                     }
             }
             launch {
@@ -152,41 +170,6 @@ class SessionStudioViewModel(
                 transcripts = companionItems,
                 hasEarlierTranscripts = it.hasEarlierTranscripts || window.size >= TRANSCRIPT_PAGE_SIZE,
             )
-        }
-
-        val newestSpokenAt = knownTranscripts.lastOrNull { !it.isSystemEvent }?.createdAt ?: 0L
-        val baseline = lastDetectedCreatedAt
-        lastDetectedCreatedAt = maxOf(baseline ?: 0L, newestSpokenAt)
-        if (baseline != null && newestSpokenAt > baseline) {
-            triggerLiveConceptDetection()
-        }
-    }
-
-    /** Runs one detection at a time; lines spoken during a run are picked up by a single follow-up run. */
-    private fun triggerLiveConceptDetection() {
-        if (detectionJob?.isActive == true) {
-            isDetectionPending = true
-            return
-        }
-        detectionJob = viewModelScope.launch {
-            do {
-                isDetectionPending = false
-                explanationRepository.detectLiveConcepts(sessionId, knownTranscripts)
-                    .onSuccess { detected -> addDetectedConcepts(detected) }
-            } while (isDetectionPending)
-        }
-    }
-
-    private fun addDetectedConcepts(detected: List<LiveConceptExplanationItem>) {
-        if (detected.isEmpty()) return
-        val savedIds = _uiState.value.sessionGlossaryTerms.map { it.id }.toSet()
-        _uiState.update { state ->
-            val knownTitles = state.conceptExplanations.map { it.title.lowercase().trim() }.toSet()
-            val newConcepts = detected
-                .distinctBy { it.title.lowercase().trim() }
-                .filter { it.title.lowercase().trim() !in knownTitles }
-                .map { it.copy(isBookmarked = it.id in savedIds) }
-            if (newConcepts.isEmpty()) state else state.copy(conceptExplanations = newConcepts + state.conceptExplanations)
         }
     }
 
@@ -300,6 +283,12 @@ class SessionStudioViewModel(
     fun removeGlossaryTerm(term: GlossaryTermItem) {
         viewModelScope.launch {
             glossaryRepository.removeTermFromGlossary(userUid = "", sessionId = sessionId, termId = term.id)
+        }
+    }
+
+    fun onConceptAnnouncementShown(conceptId: String) {
+        _uiState.update {
+            if (it.newConceptAnnouncement?.id == conceptId) it.copy(newConceptAnnouncement = null) else it
         }
     }
 

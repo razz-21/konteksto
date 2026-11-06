@@ -47,17 +47,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.domain.model.LiveConceptExplanationItem
+import com.example.konteksto.ui.components.MarkdownText
 import com.example.konteksto.ui.theme.KontekstoTheme
 import com.example.konteksto.ui.theme.extendedColors
 
@@ -457,9 +456,8 @@ fun ExplanationBottomSheetContent(
                                 }
 
                                 // Definition Body Text
-                                val breakdown = parseMarkdownToAnnotatedString(exp.definition)
-                                Text(
-                                    text = breakdown,
+                                MarkdownText(
+                                    markdown = exp.definition,
                                     style = MaterialTheme.typography.bodyMedium.copy(
                                         fontSize = 13.5.sp,
                                         lineHeight = 19.sp,
@@ -624,45 +622,6 @@ fun SkeletonItem(modifier: Modifier = Modifier) {
             .clip(RoundedCornerShape(4.dp))
             .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha)),
     )
-}
-
-fun parseMarkdownToAnnotatedString(text: String) = buildAnnotatedString {
-    val tokens = mutableListOf<Token>()
-
-    val combinedRegex = "(\\*\\*(.*?)\\*\\*)|(\\*([^\\s*].*?[^\\s*]|[^\\s*])\\*)".toRegex()
-
-    var lastIndex = 0
-    combinedRegex.findAll(text).forEach { matchResult ->
-        if (matchResult.range.first > lastIndex) {
-            tokens.add(Token.Text(text.substring(lastIndex, matchResult.range.first)))
-        }
-
-        val value = matchResult.value
-        if (value.startsWith("**")) {
-            tokens.add(Token.Bold(value.removeSurrounding("**")))
-        } else {
-            tokens.add(Token.Italic(value.removeSurrounding("*")))
-        }
-        lastIndex = matchResult.range.last + 1
-    }
-
-    if (lastIndex < text.length) {
-        tokens.add(Token.Text(text.substring(lastIndex)))
-    }
-
-    tokens.forEach { token ->
-        when (token) {
-            is Token.Text -> append(token.content)
-            is Token.Bold -> withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(token.content) }
-            is Token.Italic -> withStyle(SpanStyle(fontStyle = FontStyle.Italic)) { append(token.content) }
-        }
-    }
-}
-
-private sealed class Token {
-    data class Text(val content: String) : Token()
-    data class Bold(val content: String) : Token()
-    data class Italic(val content: String) : Token()
 }
 
 @Preview(showBackground = true)

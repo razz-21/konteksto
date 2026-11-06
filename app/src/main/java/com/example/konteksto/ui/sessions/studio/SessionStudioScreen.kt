@@ -32,9 +32,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.konteksto.data.repository.GlossaryTermItem
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.domain.model.LiveConceptExplanationItem
+import com.example.konteksto.ui.components.showKontekstoSnackbar
 import com.example.konteksto.ui.host.studio.DeleteDomainTermDialog
 import com.example.konteksto.ui.host.studio.DomainTermItem
-import com.example.konteksto.ui.components.showKontekstoSnackbar
 import com.example.konteksto.ui.theme.KontekstoTheme
 import kotlinx.coroutines.launch
 
@@ -52,6 +53,7 @@ fun SessionStudioScreen(
     onDismissActiveExplanation: () -> Unit = {},
     onBookmarkConcept: (LiveConceptExplanationItem) -> Unit = {},
     onRemoveGlossaryTerm: (GlossaryTermItem) -> Unit = {},
+    onConceptAnnouncementShown: (String) -> Unit = {},
     domainTerms: List<DomainTermItem> = emptyList(),
 ) {
     var showLeaveConfirmDialog by remember { mutableStateOf(false) }
@@ -65,21 +67,17 @@ fun SessionStudioScreen(
     val showMessage: (String) -> Unit = { message ->
         snackbarScope.launch { snackbarHostState.showKontekstoSnackbar(message) }
     }
-    var previousConceptIds by remember { mutableStateOf<Set<String>?>(null) }
-
-    // The first run only records what is already shown, so only concepts detected afterwards are announced.
-    LaunchedEffect(transcriptState.conceptExplanations) {
-        val currentConcepts = transcriptState.conceptExplanations
-        val prev = previousConceptIds
-        previousConceptIds = currentConcepts.map { it.id }.toSet()
-        val newest = prev?.let { currentConcepts.firstOrNull { it.id !in prev } } ?: return@LaunchedEffect
+    val newConcept = transcriptState.newConceptAnnouncement
+    LaunchedEffect(newConcept?.id) {
+        newConcept ?: return@LaunchedEffect
         val result = snackbarHostState.showKontekstoSnackbar(
-            message = "New live concept detected: ${newest.title}",
+            message = "New live concept detected: ${newConcept.title}",
             actionLabel = "View",
         )
         if (result == SnackbarResult.ActionPerformed) {
             selectedTab = SessionStudioTab.ConceptExplanation
         }
+        onConceptAnnouncementShown(newConcept.id)
     }
 
     if (showLeaveConfirmDialog) {

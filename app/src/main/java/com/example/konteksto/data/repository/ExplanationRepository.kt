@@ -2,8 +2,7 @@ package com.example.konteksto.data.repository
 
 import android.util.Log
 import com.example.konteksto.BuildConfig
-import com.example.konteksto.ui.host.studio.TranscriptEntry
-import com.example.konteksto.ui.sessions.studio.LiveConceptExplanationItem
+import com.example.konteksto.domain.model.LiveConceptExplanationItem
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.firebase.Firebase
 import com.google.firebase.functions.FirebaseFunctions
@@ -11,7 +10,6 @@ import com.google.firebase.vertexai.vertexAI
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
 import org.json.JSONObject
 
 interface ExplanationRepository {
@@ -21,11 +19,6 @@ interface ExplanationRepository {
         selectedTexts: List<String> = emptyList(),
         speakerName: String = "",
     ): Result<LiveConceptExplanationItem>
-
-    suspend fun detectLiveConcepts(
-        sessionId: String,
-        transcripts: List<TranscriptEntry>,
-    ): Result<List<LiveConceptExplanationItem>>
 }
 
 class FirebaseExplanationRepository(
@@ -188,114 +181,6 @@ class FirebaseExplanationRepository(
 
         Result.failure(IllegalStateException("Could not generate concept explanation for selected statements."))
     }
-
-    override suspend fun detectLiveConcepts(
-        sessionId: String,
-        transcripts: List<TranscriptEntry>,
-    ): Result<List<LiveConceptExplanationItem>> = withContext(Dispatchers.IO) {
-        val nonSystemTranscripts = transcripts.filterNot { it.isSystemEvent || it.speakerName.equals("SYSTEM", ignoreCase = true) }
-        if (nonSystemTranscripts.isEmpty()) {
-            return@withContext Result.success(emptyList())
-        }
-
-        val transcriptText = nonSystemTranscripts.takeLast(10).joinToString("\n") { entry ->
-            "${entry.speakerName} (${entry.timestamp}): ${entry.text}"
-        }
-
-        val prompt = """
-            You are an expert educational AI assistant listening to a live spoken presentation.
-            
-            RECENT LIVE TRANSCRIPT:
-            $transcriptText
-            
-            TASK:
-            Detect up to 3 key technical concepts, terms, or domain mechanisms mentioned or explained by the speaker in the transcript above.
-            
-            Return ONLY a raw JSON array of objects with no markdown formatting. Each object MUST contain:
-            - "type": domain category (e.g. "Core Mechanics", "Architecture", "Optimization", "Key Term")
-            - "timestamp": timestamp of statement (e.g. "Live")
-            - "percentGrounded": integer between 85 and 99
-            - "title": short concept title (2-5 words)
-            - "definition": clear 1-2 sentence plain language definition/explanation of what the speaker meant
-            - "analogy": clear 1-2 sentence real-world analogy
-            - "whyItMatters": clear 1 sentence why this matters in the talk
-        """.trimIndent()
-
-        val candidateModelNames = listOf(
-            "gemini-3.8-flash",
-            "gemini-3.1-pro-preview",
-            "gemini-2.5-flash",
-            "gemini-2.5-flash-lite",
-        )
-
-        var responseText = ""
-
-        try {
-            if (apiKey.isNotBlank()) {
-                for (modelName in candidateModelNames) {
-                    try {
-                        val model = GenerativeModel(modelName, apiKey = apiKey)
-                        val response = model.generateContent(prompt)
-                        val textResult = response.text?.trim()
-                        if (!textResult.isNullOrBlank()) {
-                            responseText = textResult
-                            break
-                        }
-                    } catch (e: Exception) {
-                        Log.w("FirebaseExplanationRepo", "Model $modelName detectLiveConcepts failed: ${e.message}")
-                    }
-                }
-            } else {
-                for (modelName in candidateModelNames) {
-                    try {
-                        val model = Firebase.vertexAI.generativeModel(modelName)
-                        val response = model.generateContent(prompt)
-                        val textResult = response.text?.trim()
-                        if (!textResult.isNullOrBlank()) {
-                            responseText = textResult
-                            break
-                        }
-                    } catch (e: Exception) {
-                        Log.w("FirebaseExplanationRepo", "Firebase vertexAI model $modelName detectLiveConcepts failed: ${e.message}")
-                    }
-                }
-            }
-
-            if (responseText.isNotBlank()) {
-                val cleanedJson = responseText
-                    .removePrefix("```json")
-                    .removePrefix("```")
-                    .removeSuffix("```")
-                    .trim()
-
-                val jsonArray = JSONArray(cleanedJson)
-                val resultList = mutableListOf<LiveConceptExplanationItem>()
-                for (i in 0 until jsonArray.length()) {
-                    val obj = jsonArray.getJSONObject(i)
-                    val title = obj.optString("title").trim()
-                    if (title.isBlank()) continue
-                    resultList.add(
-                        LiveConceptExplanationItem(
-                            id = liveConceptId(sessionId, title),
-                            type = obj.optString("type", "Live Concept"),
-                            timestamp = obj.optString("timestamp", "Live"),
-                            percentGrounded = obj.optInt("percentGrounded", 95),
-                            title = title,
-                            definition = obj.optString("definition"),
-                            analogy = obj.optString("analogy"),
-                            whyItMatters = obj.optString("whyItMatters"),
-                            isBookmarked = false,
-                        ),
-                    )
-                }
-                return@withContext Result.success(resultList)
-            }
-        } catch (e: Exception) {
-            // Safe handling for unit tests where android.util.Log is not mocked
-        }
-
-        Result.success(emptyList())
-    }
 }
 
 private const val CONTEXT_ID_TOKEN = """(?:ID:\s*)?(?:term|tr|note|slide|concept|seg|segment|glossary)_[A-Za-z0-9_\-]+"""
@@ -306,9 +191,5 @@ private val bracketedIdTagRegex = Regex("""[ \t]*\[ID:[^\]]*]""")
  * Removes grounding IDs (e.g. "(term_1793882650749_25, term_oop)") that Gemini sometimes echoes
  * from its context tags into the user-facing explanation text.
  */
-/** Same concept title gives the same ID, so a re-detected concept keeps its bookmark and list key. */
-internal fun liveConceptId(sessionId: String, title: String): String =
-    "concept_${sessionId}_" + title.lowercase().replace(Regex("[^a-z0-9]+"), "_").trim('_')
-
 internal fun stripContextIdReferences(text: String): String =
     text.replace(contextIdGroupRegex, "").replace(bracketedIdTagRegex, "")

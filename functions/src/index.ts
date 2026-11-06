@@ -476,9 +476,220 @@ RULES:
   return addedCount;
 }
 
+// -------------------------------------------------------------------
+// Live Concept Engine (Batch Functions)
+// -------------------------------------------------------------------
+
+const CONCEPT_BATCH_MIN_SEGMENTS = 3;
+const CONCEPT_BATCH_MIN_INTERVAL_MS = 20000;
+const CONCEPT_CONTEXT_SEGMENTS = 6;
+
+/** Same title gives the same ID, so a re-detected concept keeps its attendees' bookmarks. */
+function liveConceptId(sessionId: string, title: string): string {
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  return `concept_${sessionId}_${slug}`;
+}
+
+/**
+ * Detects concepts in segments spoken since the last run and saves them to live_concepts, which
+ * every attendee reads, so each concept is generated once per session instead of once per phone.
+ */
+async function runConceptDetectionBatch(sessionId: string): Promise<number> {
+  const sessionDoc = await db.collection("sessions").doc(sessionId).get();
+  if (!sessionDoc.exists) return 0;
+  const sessionData = sessionDoc.data()!;
+
+  const stateRef = db.collection(`sessions/${sessionId}/concept_engine`).doc("state");
+  const stateDoc = await stateRef.get();
+  const lastProcessedCreatedAt = stateDoc.exists ? (stateDoc.data()?.lastProcessedCreatedAt || 0) : 0;
+
+  const transcriptsRef = db.collection(`sessions/${sessionId}/transcripts`);
+  const newTranscriptsSnapshot = await transcriptsRef
+    .where("createdAt", ">", lastProcessedCreatedAt)
+    .where("isSystemEvent", "==", false)
+    .orderBy("createdAt", "asc")
+    .limit(30)
+    .get();
+
+  if (newTranscriptsSnapshot.empty) return 0;
+
+  const newSegments = newTranscriptsSnapshot.docs.map(d => d.data());
+  const newestCreatedAt = newSegments[newSegments.length - 1].createdAt;
+
+  // Lines just before the batch, so a concept the speaker is still explaining has its setup.
+  const [contextSnap, notesSnap, slidesSnap, conceptsSnap] = await Promise.all([
+    transcriptsRef
+      .where("createdAt", "<=", lastProcessedCreatedAt)
+      .orderBy("createdAt", "desc")
+      .limit(CONCEPT_CONTEXT_SEGMENTS)
+      .get(),
+    db.collection(`sessions/${sessionId}/context_notes`).get(),
+    db.collection(`sessions/${sessionId}/analyzed_slides`).get(),
+    db.collection(`sessions/${sessionId}/live_concepts`).get()
+  ]);
+
+  const earlierSegments = contextSnap.docs
+    .map(d => d.data())
+    .filter((s: any) => !s.isSystemEvent)
+    .reverse();
+  const notes = notesSnap.docs.map(d => d.data());
+  const slides = slidesSnap.docs.map(d => d.data());
+  const knownIds = new Set(conceptsSnap.docs.map(d => d.id));
+  const knownTitles = conceptsSnap.docs.map(d => d.data().title).filter(Boolean);
+
+  const prompt = `
+You are an expert educational AI assistant listening to a live spoken presentation.
+Session Title: "${sessionData.title}" (${sessionData.category || "General"})
+
+<host_notes>
+${notes.map((n: any) => `- ${n.title}: ${n.content}`).join("\n")}
+</host_notes>
+
+<analyzed_slides>
+${slides.map((s: any) => `- Slide ${s.slideNumber}: ${s.title} — ${s.summary}`).join("\n")}
+</analyzed_slides>
+
+<already_explained_concepts>
+${knownTitles.map((title: string) => `- ${title}`).join("\n")}
+</already_explained_concepts>
+
+<earlier_transcript>
+${earlierSegments.map((s: any) => `${s.speakerName}: ${s.text}`).join("\n")}
+</earlier_transcript>
+
+<new_live_transcript_segments>
+${newSegments.map((s: any) => `[Segment ID: ${s.id}] ${s.speakerName}: ${s.text}`).join("\n")}
+</new_live_transcript_segments>
+
+TASK:
+Detect up to 3 key technical concepts, terms, or domain mechanisms the speaker mentions or explains in <new_live_transcript_segments>.
+
+RULES:
+- Skip any concept listed in <already_explained_concepts>.
+- Return an empty list if nothing new was introduced. Do not guess.
+- "title": short concept title (2-5 words).
+- "type": domain category (e.g. "Core Mechanics", "Architecture", "Optimization", "Key Term").
+- "definition": clear 1-2 sentence plain language explanation of what the speaker meant.
+- "analogy": clear 1-2 sentence real-world analogy.
+- "whyItMatters": 1 sentence on why this matters in the talk.
+- "percentGrounded": integer between 85 and 99.
+- "firstSegmentId": the Segment ID where the concept first appears.
+- Never include segment IDs in the user-facing text.
+`;
+
+  const conceptSchema = {
+    type: SchemaType.OBJECT,
+    properties: {
+      concepts: {
+        type: SchemaType.ARRAY,
+        items: {
+          type: SchemaType.OBJECT,
+          properties: {
+            title: { type: SchemaType.STRING },
+            type: { type: SchemaType.STRING },
+            definition: { type: SchemaType.STRING },
+            analogy: { type: SchemaType.STRING },
+            whyItMatters: { type: SchemaType.STRING },
+            percentGrounded: { type: SchemaType.INTEGER },
+            firstSegmentId: { type: SchemaType.STRING }
+          },
+          required: ["title", "type", "definition", "analogy", "whyItMatters", "percentGrounded"]
+        }
+      }
+    },
+    required: ["concepts"]
+  } as any;
+
+  let conceptsResult: any[] = [];
+  try {
+    const model = ai.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: conceptSchema,
+        temperature: 0.2
+      }
+    });
+
+    const response = await model.generateContent(prompt);
+    const text = response.response.text();
+    if (text) {
+      const parsed = JSON.parse(text);
+      conceptsResult = Array.isArray(parsed.concepts) ? parsed.concepts : [];
+    }
+  } catch (err) {
+    // The cursor stays put, so the next batch retries these segments.
+    console.error("Concept engine Gemini generation failed:", err);
+    return 0;
+  }
+
+  const segmentsById = new Map(newSegments.map((s: any) => [s.id, s]));
+  const batch = db.batch();
+  const now = Date.now();
+  let addedCount = 0;
+
+  conceptsResult.forEach((item: any, index: number) => {
+    const title = (item.title || "").trim();
+    if (!title) return;
+    const conceptId = liveConceptId(sessionId, title);
+    if (knownIds.has(conceptId)) return;
+    knownIds.add(conceptId);
+
+    const firstSegment: any = segmentsById.get(item.firstSegmentId) || newSegments[0];
+    batch.set(db.collection(`sessions/${sessionId}/live_concepts`).doc(conceptId), {
+      id: conceptId,
+      type: item.type || "Key Term",
+      timestamp: firstSegment?.timestamp || "Live",
+      percentGrounded: Number.isInteger(item.percentGrounded) ? item.percentGrounded : 90,
+      title: title,
+      definition: stripContextIdReferences(item.definition || ""),
+      analogy: stripContextIdReferences(item.analogy || ""),
+      whyItMatters: stripContextIdReferences(item.whyItMatters || ""),
+      firstSegmentId: firstSegment?.id || "",
+      // Concepts detected together keep their order when sorted newest first.
+      createdAt: now + conceptsResult.length - 1 - index
+    });
+    addedCount++;
+  });
+
+  batch.set(stateRef, {
+    unprocessedCount: 0,
+    lastProcessedAt: now,
+    lastProcessedCreatedAt: newestCreatedAt
+  }, { merge: true });
+
+  await batch.commit();
+  console.log(`Concept Engine added ${addedCount} new concepts for session ${sessionId}`);
+  return addedCount;
+}
+
+/**
+ * Counts a new segment toward an engine's next batch and claims the run once enough segments or
+ * time have built up, inside a transaction so concurrent triggers start only one run.
+ */
+async function claimBatch(
+  stateRef: admin.firestore.DocumentReference,
+  minSegments: number,
+  minIntervalMs: number
+): Promise<boolean> {
+  return db.runTransaction(async (transaction) => {
+    const stateDoc = await transaction.get(stateRef);
+    const state = stateDoc.data() || {};
+    const newCount = (state.unprocessedCount || 0) + 1;
+    const now = Date.now();
+
+    if (newCount >= minSegments || now - (state.lastProcessedAt || 0) >= minIntervalMs) {
+      transaction.set(stateRef, { unprocessedCount: 0, lastProcessedAt: now }, { merge: true });
+      return true;
+    }
+    transaction.set(stateRef, { unprocessedCount: newCount }, { merge: true });
+    return false;
+  });
+}
+
 /**
  * Firestore Trigger: Runs when a new transcript segment is created.
- * Uses batching: triggers Gemini when unprocessed count >= 8 OR 30 seconds since last run.
+ * The glossary runs after 8 segments or 30 seconds; live concepts run sooner, after 3 segments or 20 seconds.
  */
 export const onTranscriptCreated = onDocumentCreated(
   {
@@ -493,35 +704,19 @@ export const onTranscriptCreated = onDocumentCreated(
     if (data.isSystemEvent) return;
 
     const sessionId = event.params.sessionId;
-    const stateRef = db.collection(`sessions/${sessionId}/glossary_engine`).doc("state");
+    const [runGlossary, runConcepts] = await Promise.all([
+      claimBatch(db.collection(`sessions/${sessionId}/glossary_engine`).doc("state"), 8, 30000),
+      claimBatch(
+        db.collection(`sessions/${sessionId}/concept_engine`).doc("state"),
+        CONCEPT_BATCH_MIN_SEGMENTS,
+        CONCEPT_BATCH_MIN_INTERVAL_MS
+      )
+    ]);
 
-    let shouldRunBatch = false;
-
-    await db.runTransaction(async (transaction) => {
-      const stateDoc = await transaction.get(stateRef);
-      const state = stateDoc.data() || { unprocessedCount: 0, lastProcessedAt: 0, lastProcessedCreatedAt: 0 };
-
-      const newCount = state.unprocessedCount + 1;
-      const now = Date.now();
-      const timeElapsed = now - state.lastProcessedAt;
-
-      if (newCount >= 8 || timeElapsed >= 30000) {
-        shouldRunBatch = true;
-        transaction.set(stateRef, {
-          unprocessedCount: 0,
-          lastProcessedAt: now,
-          lastProcessedCreatedAt: state.lastProcessedCreatedAt
-        }, { merge: true });
-      } else {
-        transaction.set(stateRef, {
-          unprocessedCount: newCount
-        }, { merge: true });
-      }
-    });
-
-    if (shouldRunBatch) {
-      await runGlossaryExtractionBatch(sessionId);
-    }
+    await Promise.all([
+      runGlossary ? runGlossaryExtractionBatch(sessionId) : Promise.resolve(0),
+      runConcepts ? runConceptDetectionBatch(sessionId) : Promise.resolve(0)
+    ]);
   }
 );
 
@@ -543,8 +738,11 @@ export const onSessionStatusChanged = onDocumentUpdated(
     const newStatus = afterData.status;
 
     if (oldStatus !== newStatus && (newStatus === "paused" || newStatus === "ended")) {
-      console.log(`Session ${sessionId} changed status to ${newStatus}. Running final glossary pass...`);
-      await runGlossaryExtractionBatch(sessionId);
+      console.log(`Session ${sessionId} changed status to ${newStatus}. Running final glossary and concept pass...`);
+      await Promise.all([
+        runGlossaryExtractionBatch(sessionId),
+        runConceptDetectionBatch(sessionId)
+      ]);
     }
   }
 );

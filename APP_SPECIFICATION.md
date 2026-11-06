@@ -398,6 +398,22 @@ Firebase Dynamic Links is not an option: the service was shut down on August 25,
 }
 ```
 
+### `sessions/{sessionId}/live_concepts/{conceptId}`
+Concepts detected from the live transcript by the server's concept engine, saved once and shared by everyone in the room so they aren't generated again on each visit or on each phone. The engine runs from the same transcript trigger as the glossary, in batches of 3 new final segments or 20 seconds, with its cursor in `sessions/{sessionId}/concept_engine/state`, plus a final pass on pause and end. It receives the new segments, a few earlier lines, the host's notes and slide summaries, and the concepts already saved. The ID is derived from the title, so the same concept keeps its ID and bookmark. Bookmarks are per attendee and live in `users/{uid}/saved`.
+```json
+{
+  "id": "concept_session_1710000000000_superposition",
+  "type": "Core Mechanics",
+  "timestamp": "Live",
+  "percentGrounded": 95,
+  "title": "Superposition",
+  "definition": "...",
+  "analogy": "...",
+  "whyItMatters": "...",
+  "createdAt": 1710000020000
+}
+```
+
 ### `sessions/{sessionId}/analyzed_slides/{slideId}`
 ```json
 {
@@ -459,6 +475,7 @@ Firebase Dynamic Links is not an option: the service was shut down on August 25,
 | `joinCodes/{code}` | Create | Get a single code only, **no listing** | Read, write |
 | `transcripts`, `live` | Write while using the on-device engine | Read | Write |
 | `glossary` | Read, edit, hide | Read | Write |
+| `live_concepts` | Read | Read | Write |
 | `analyzed_slides` | Read, write | **No access** | Read |
 | `context_notes` | Read, write | **No access** | Read |
 | `explanation_cache` | No access | **No access** | Read, write |

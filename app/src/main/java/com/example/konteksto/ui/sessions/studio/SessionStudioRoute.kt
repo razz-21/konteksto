@@ -38,6 +38,7 @@ fun SessionStudioRoute(
         onDismissActiveExplanation = viewModel::dismissActiveExplanation,
         onBookmarkConcept = { concept -> viewModel.bookmarkConceptExplanation(concept, session.title) },
         onRemoveGlossaryTerm = viewModel::removeGlossaryTerm,
+        onConceptAnnouncementShown = viewModel::onConceptAnnouncementShown,
         domainTerms = domainTerms,
     )
 }

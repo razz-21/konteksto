@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.domain.model.LiveConceptExplanationItem
 import com.example.konteksto.ui.components.MarkdownText
 import com.example.konteksto.ui.theme.extendedColors
 
