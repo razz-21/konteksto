@@ -1,6 +1,5 @@
 package com.example.konteksto.ui.sessions
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -222,10 +221,10 @@ fun SessionsScreen(
 
             // Floating Action Button ("Attend session") on right side matching reference image
             Surface(
+                onClick = { viewModel.openAttendSheet() },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 16.dp)
-                    .clickable { viewModel.openAttendSheet() },
+                    .padding(end = 16.dp, bottom = 16.dp),
                 shape = RoundedCornerShape(16.dp),
                 color = MaterialTheme.colorScheme.primaryContainer,
                 shadowElevation = 4.dp,
