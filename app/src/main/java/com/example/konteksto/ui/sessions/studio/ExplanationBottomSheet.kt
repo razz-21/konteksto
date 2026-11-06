@@ -18,8 +18,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -65,7 +67,7 @@ fun ExplanationBottomSheet(
         containerColor = MaterialTheme.colorScheme.surface,
         dragHandle = {
             BottomSheetDefaults.DragHandle()
-        }
+        },
     ) {
         Column(
             modifier = Modifier
@@ -76,7 +78,7 @@ fun ExplanationBottomSheet(
             // Header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Box(
                     modifier = Modifier
@@ -107,198 +109,206 @@ fun ExplanationBottomSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Selected Statements Card
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                shape = MaterialTheme.shapes.small,
-                modifier = Modifier.fillMaxWidth()
+            // Scrollable Content
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState()),
             ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(
-                        text = "SELECTED STATEMENTS (${request.selectedItems.size}):",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp),
-                        color = Color(0xFF3B52D4),
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    
-                    request.selectedItems.forEachIndexed { index, item ->
-                        Row(modifier = Modifier.fillMaxWidth()) {
-                            // Blue left border
-                            Box(
-                                modifier = Modifier
-                                    .width(3.dp)
-                                    .height(36.dp)
-                                    .background(Color(0xFF3B52D4))
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column(modifier = Modifier.padding(bottom = if (index == request.selectedItems.size - 1) 0.dp else 12.dp)) {
-                                Text(
-                                    text = "${item.speakerName} (${item.timestamp})",
-                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                // Selected Statements Card
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    shape = MaterialTheme.shapes.small,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = "SELECTED STATEMENTS (${request.selectedItems.size}):",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp),
+                            color = Color(0xFF3B52D4),
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        
+                        request.selectedItems.forEachIndexed { index, item ->
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                // Blue left border
+                                Box(
+                                    modifier = Modifier
+                                        .width(3.dp)
+                                        .height(36.dp)
+                                        .background(Color(0xFF3B52D4))
                                 )
-                                Text(
-                                    text = "\"${item.text}\"",
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column(modifier = Modifier.padding(bottom = if (index == request.selectedItems.size - 1) 0.dp else 12.dp)) {
+                                    Text(
+                                        text = "${item.speakerName} (${item.timestamp})",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                    Text(
+                                        text = "\"${item.text}\"",
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-            // Result, Loading, or Error Card
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                shape = MaterialTheme.shapes.small,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Box(modifier = Modifier.padding(16.dp)) {
-                    when {
-                        request.isLoading -> {
-                            Column(modifier = Modifier.fillMaxWidth()) {
-                                Text("Analyzing selected statements...", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp))
-                                SkeletonItem(modifier = Modifier.fillMaxWidth())
-                                Spacer(modifier = Modifier.height(8.dp))
-                                SkeletonItem(modifier = Modifier.fillMaxWidth())
-                                Spacer(modifier = Modifier.height(8.dp))
-                                SkeletonItem(modifier = Modifier.fillMaxWidth(0.7f))
-                            }
-                        }
-                        request.error != null -> {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                                Text(request.error, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Button(onClick = onRetry) {
-                                    Text("Retry")
+                // Result, Loading, or Error Card
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    shape = MaterialTheme.shapes.small,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(modifier = Modifier.padding(16.dp)) {
+                        when {
+                            request.isLoading -> {
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    Text("Analyzing selected statements...", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp))
+                                    SkeletonItem(modifier = Modifier.fillMaxWidth())
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    SkeletonItem(modifier = Modifier.fillMaxWidth())
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    SkeletonItem(modifier = Modifier.fillMaxWidth(0.7f))
                                 }
                             }
-                        }
-                        request.explanation != null -> {
-                            val exp = request.explanation
-                            Column(modifier = Modifier.fillMaxWidth()) {
-                                if (exp.type.isNotBlank()) {
-                                    Surface(
-                                        shape = RoundedCornerShape(4.dp),
-                                        color = Color(0xFFE8EAFF),
-                                        modifier = Modifier.padding(bottom = 8.dp)
-                                    ) {
-                                        Text(
-                                            text = exp.type.uppercase(),
-                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                fontWeight = FontWeight.Bold,
-                                                letterSpacing = 0.5.sp
-                                            ),
-                                            color = Color(0xFF3B52D4),
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                        )
+                            request.error != null -> {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                                    Text(request.error, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Button(onClick = onRetry) {
+                                        Text("Retry")
                                     }
                                 }
-                                if (exp.title.isNotBlank()) {
-                                    Text(
-                                        text = exp.title,
-                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.padding(bottom = 8.dp)
-                                    )
-                                }
-                                val breakdown = parseMarkdownToAnnotatedString(exp.definition)
-                                Text(
-                                    text = breakdown,
-                                    style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                if (exp.analogy.isNotBlank()) {
-                                    Spacer(modifier = Modifier.height(10.dp))
-                                    Surface(
-                                        shape = MaterialTheme.shapes.small,
-                                        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(10.dp),
-                                            verticalAlignment = Alignment.Top
+                            }
+                            request.explanation != null -> {
+                                val exp = request.explanation
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    if (exp.type.isNotBlank()) {
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = Color(0xFFE8EAFF),
+                                            modifier = Modifier.padding(bottom = 8.dp)
                                         ) {
-                                            Icon(
-                                                painter = painterResource(id = R.drawable.ic_sparkle),
-                                                contentDescription = null,
-                                                tint = Color(0xFF3B52D4),
-                                                modifier = Modifier.size(16.dp).padding(top = 2.dp)
+                                            Text(
+                                                text = exp.type.uppercase(),
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                    letterSpacing = 0.5.sp
+                                                ),
+                                                color = Color(0xFF3B52D4),
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                             )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Column {
-                                                Text(
-                                                    text = "Analogy",
-                                                    style = MaterialTheme.typography.labelSmall.copy(
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = Color(0xFF3B52D4)
+                                        }
+                                    }
+                                    if (exp.title.isNotBlank()) {
+                                        Text(
+                                            text = exp.title,
+                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.padding(bottom = 8.dp)
+                                        )
+                                    }
+                                    val breakdown = parseMarkdownToAnnotatedString(exp.definition)
+                                    Text(
+                                        text = breakdown,
+                                        style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    if (exp.analogy.isNotBlank()) {
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        Surface(
+                                            shape = MaterialTheme.shapes.small,
+                                            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(10.dp),
+                                                verticalAlignment = Alignment.Top
+                                            ) {
+                                                Icon(
+                                                    painter = painterResource(id = R.drawable.ic_sparkle),
+                                                    contentDescription = null,
+                                                    tint = Color(0xFF3B52D4),
+                                                    modifier = Modifier.size(16.dp).padding(top = 2.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Column {
+                                                    Text(
+                                                        text = "Analogy",
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = Color(0xFF3B52D4)
+                                                        )
                                                     )
-                                                )
-                                                Text(
-                                                    text = exp.analogy,
-                                                    style = MaterialTheme.typography.bodySmall.copy(
-                                                        fontSize = 12.sp,
-                                                        lineHeight = 16.sp,
-                                                        fontStyle = FontStyle.Italic
-                                                    ),
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
+                                                    Text(
+                                                        text = exp.analogy,
+                                                        style = MaterialTheme.typography.bodySmall.copy(
+                                                            fontSize = 12.sp,
+                                                            lineHeight = 16.sp,
+                                                            fontStyle = FontStyle.Italic
+                                                        ),
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
                                             }
                                         }
                                     }
-                                }
-                                if (exp.whyItMatters.isNotBlank()) {
-                                    Spacer(modifier = Modifier.height(10.dp))
-                                    Column(modifier = Modifier.fillMaxWidth()) {
-                                        Text(
-                                            text = "Why it matters:",
-                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 11.sp
-                                            ),
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(
-                                            text = exp.whyItMatters,
-                                            style = MaterialTheme.typography.bodySmall.copy(
-                                                fontSize = 12.sp,
-                                                lineHeight = 16.sp
-                                            ),
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
+                                    if (exp.whyItMatters.isNotBlank()) {
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        Column(modifier = Modifier.fillMaxWidth()) {
+                                            Text(
+                                                text = "Why it matters:",
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 11.sp
+                                                ),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = exp.whyItMatters,
+                                                style = MaterialTheme.typography.bodySmall.copy(
+                                                    fontSize = 12.sp,
+                                                    lineHeight = 16.sp
+                                                ),
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            if (request.explanation != null) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Source: Audio stream segment",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "${request.explanation.percentGrounded}% Grounded",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = Color(0xFF00875A)
-                    )
+                if (request.explanation != null) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Source: Audio stream segment",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "${request.explanation.percentGrounded}% Grounded",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = Color(0xFF00875A)
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Buttons
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
