@@ -8,6 +8,7 @@ import com.example.konteksto.data.repository.GlossaryRepository
 import com.example.konteksto.data.repository.GlossaryTermItem
 import com.example.konteksto.data.repository.SessionRepository
 import com.example.konteksto.domain.model.LiveConceptExplanationItem
+import com.example.konteksto.ui.components.SessionLookup
 import com.example.konteksto.ui.host.studio.TranscriptEntry
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -33,6 +34,7 @@ data class ActiveExplanationRequest(
 )
 
 data class SessionStudioUiState(
+    val sessionLookup: SessionLookup = SessionLookup.Loading,
     val transcripts: List<CompanionTranscriptItem> = emptyList(),
     val livePartialText: String = "",
     val hasEarlierTranscripts: Boolean = false,
@@ -104,6 +106,19 @@ class SessionStudioViewModel(
         _uiState.update { it.copy(didLiveTranscriptFail = false) }
         observeJob = viewModelScope.launch {
             launch {
+                sessionRepository.getSessionStream(sessionId)
+                    .catch {
+                        // A session already on screen stays there; only a first load that fails is shown as one.
+                        _uiState.update { state ->
+                            if (state.sessionLookup is SessionLookup.Found) state else state.copy(sessionLookup = SessionLookup.Failed)
+                        }
+                    }
+                    .collect { session ->
+                        val lookup = if (session != null) SessionLookup.Found(session) else SessionLookup.NotFound
+                        _uiState.update { it.copy(sessionLookup = lookup) }
+                    }
+            }
+            launch {
                 sessionRepository.getTranscriptsStream(sessionId, limit = TRANSCRIPT_PAGE_SIZE)
                     .catch { _uiState.update { it.copy(didLiveTranscriptFail = true) } }
                     .collect(::onTranscriptWindow)
@@ -158,6 +173,12 @@ class SessionStudioViewModel(
     }
 
     fun retryLiveTranscript() {
+        stopObserving()
+        startObserving()
+    }
+
+    fun retrySessionLookup() {
+        _uiState.update { it.copy(sessionLookup = SessionLookup.Loading) }
         stopObserving()
         startObserving()
     }

@@ -39,6 +39,7 @@ import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.theme.KontekstoTheme
 import androidx.compose.foundation.clickable
 import com.example.konteksto.ui.theme.extendedColors
+import com.example.konteksto.ui.components.LiveOnAirBadge
 
 @Composable
 fun AttendeeSessionCard(
@@ -98,6 +99,14 @@ fun AttendeeSessionCard(
                             fontSize = 12.sp,
                         ),
                         color = Color.White,
+                    )
+                }
+
+                if (session.isLive) {
+                    LiveOnAirBadge(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(12.dp),
                     )
                 }
             }

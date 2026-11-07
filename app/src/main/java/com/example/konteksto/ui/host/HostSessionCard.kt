@@ -47,6 +47,7 @@ import com.example.konteksto.domain.model.ConferenceThemeBanner
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.theme.KontekstoTheme
 import com.example.konteksto.ui.theme.extendedColors
+import com.example.konteksto.ui.components.LiveOnAirBadge
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -126,35 +127,11 @@ fun HostSessionCard(
 
                 // Live On Air badge overlay on top right if session is live
                 if (session.isLive) {
-                    Box(
+                    LiveOnAirBadge(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(12.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.error,
-                                shape = RoundedCornerShape(8.dp),
-                            )
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .background(Color.White, CircleShape),
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = stringResource(id = R.string.host_live_on_air).uppercase(),
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 10.sp,
-                                ),
-                                color = Color.White,
-                            )
-                        }
-                    }
+                            .padding(12.dp),
+                    )
                 }
             }
 

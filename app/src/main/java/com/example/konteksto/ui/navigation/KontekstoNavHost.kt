@@ -31,11 +31,11 @@ import com.example.konteksto.data.repository.FirebaseUserProfileRepository
 import com.example.konteksto.data.repository.SessionRepository
 import com.example.konteksto.data.repository.UserProfileRepository
 import com.example.konteksto.domain.model.AuthUser
-import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.components.showKontekstoSnackbar
 import com.example.konteksto.ui.host.CreateSessionScreen
 import com.example.konteksto.ui.host.HostViewModel
-import com.example.konteksto.ui.host.PresentQrScreen
+import com.example.konteksto.ui.host.PresentQrRoute
+import com.example.konteksto.ui.host.PresentQrViewModel
 import com.example.konteksto.ui.host.studio.AddContextNoteRoute
 import com.example.konteksto.ui.host.studio.EditContextNoteRoute
 import com.example.konteksto.ui.host.studio.EditDomainTermRoute
@@ -82,9 +82,6 @@ fun KontekstoNavHost(
     val hostSessions by hostViewModel.hostSessions.collectAsStateWithLifecycle()
     val currentProfile by hostViewModel.currentProfile.collectAsStateWithLifecycle()
     val isHostRefreshing by hostViewModel.isRefreshing.collectAsStateWithLifecycle()
-    val allSessions by remember(sessionRepository) {
-        sessionRepository.getAllSessionsStream()
-    }.collectAsStateWithLifecycle(initialValue = emptyList())
 
     val sessionState by produceState<SessionBootstrapState>(
         initialValue = authRepository.currentUser?.let {
@@ -231,19 +228,16 @@ fun KontekstoNavHost(
             arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
         ) { backStackEntry ->
             val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
-            val session = hostSessions.find { it.id == sessionId } ?: HostSession(
-                id = sessionId,
-                venue = "Tech Summit Hall B",
-                time = "10:00 AM",
-                talkCode = "TALK–415",
-                title = "Edge AI & Distributed Cloud Architecture: Scaling to Zero Latency",
-                speakerName = "Engr. Marco Valerio",
-                attendeesCount = 890,
-                isLive = true,
+            val presentQrViewModel: PresentQrViewModel = viewModel(
+                key = sessionId,
+                factory = PresentQrViewModel.provideFactory(
+                    sessionId = sessionId,
+                    sessionRepository = sessionRepository,
+                ),
             )
 
-            PresentQrScreen(
-                session = session,
+            PresentQrRoute(
+                viewModel = presentQrViewModel,
                 onBackClick = {
                     navController.popBackStack()
                 },
@@ -256,20 +250,6 @@ fun KontekstoNavHost(
         ) { backStackEntry ->
             val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
             val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
-            val session = allSessions.find { it.id == sessionId }
-                ?: hostSessions.find { it.id == sessionId }
-                ?: HostSession(
-                    id = sessionId,
-                    venue = "Main Auditorium · Stage A",
-                    time = "75 min",
-                    talkCode = "TALK–892",
-                    title = "Revolutionizing Deep Learning: Advancements in Neural Architectures",
-                    speakerName = "Dr. Elena Santos",
-                    category = "Frontier",
-                    attendeesCount = 892,
-                    isLive = true,
-                )
-
             val transcriptViewModel: SessionStudioViewModel = viewModel(
                 key = sessionId,
                 factory = SessionStudioViewModel.provideFactory(
@@ -284,7 +264,6 @@ fun KontekstoNavHost(
 
             SessionStudioRoute(
                 viewModel = transcriptViewModel,
-                session = session,
                 domainTerms = dbDomainTerms,
                 onBackClick = {
                     navController.popBackStack()
@@ -292,7 +271,7 @@ fun KontekstoNavHost(
                 onLeaveConfirm = {
                     val currentUid = authRepository.currentUser?.uid ?: "guest_user"
                     coroutineScope.launch {
-                        sessionRepository.leaveSession(currentUid, session.id)
+                        sessionRepository.leaveSession(currentUid, sessionId)
                     }
                     navController.popBackStack()
                 },
@@ -308,20 +287,6 @@ fun KontekstoNavHost(
         ) { backStackEntry ->
             val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
             val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
-            val session = allSessions.find { it.id == sessionId }
-                ?: hostSessions.find { it.id == sessionId }
-                ?: HostSession(
-                    id = sessionId,
-                    venue = "Main Auditorium · Stage A",
-                    time = "75 min",
-                    talkCode = "TALK–892",
-                    title = "Revolutionizing Deep Learning: Advancements in Neural Architectures",
-                    speakerName = "Dr. Elena Santos",
-                    category = "Frontier",
-                    attendeesCount = 892,
-                    isLive = true,
-                )
-
             val transcriptViewModel: SessionStudioViewModel = viewModel(
                 key = sessionId,
                 factory = SessionStudioViewModel.provideFactory(
@@ -336,7 +301,6 @@ fun KontekstoNavHost(
 
             SessionStudioRoute(
                 viewModel = transcriptViewModel,
-                session = session,
                 domainTerms = dbDomainTerms,
                 onBackClick = {
                     navController.popBackStack()
@@ -344,7 +308,7 @@ fun KontekstoNavHost(
                 onLeaveConfirm = {
                     val currentUid = authRepository.currentUser?.uid ?: "guest_user"
                     coroutineScope.launch {
-                        sessionRepository.leaveSession(currentUid, session.id)
+                        sessionRepository.leaveSession(currentUid, sessionId)
                     }
                     navController.popBackStack()
                 },
@@ -368,20 +332,8 @@ fun KontekstoNavHost(
                     authRepository = authRepository,
                 ),
             )
-            val fallbackSession = hostSessions.find { it.id == sessionId } ?: HostSession(
-                id = sessionId,
-                venue = "Tech Summit Hall B",
-                time = "10:00 AM",
-                talkCode = "TALK–415",
-                title = "Edge AI & Distributed Cloud Architecture: Scaling to Zero Latency",
-                speakerName = "Engr. Marco Valerio",
-                attendeesCount = 890,
-                isLive = true,
-            )
-
             HostStudioRoute(
                 viewModel = studioViewModel,
-                initialSession = fallbackSession,
                 onBackClick = {
                     navController.popBackStack()
                 },

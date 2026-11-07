@@ -6,12 +6,13 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.ui.components.SessionLookup
+import com.example.konteksto.ui.components.SessionUnavailableScreen
 import com.example.konteksto.ui.host.studio.DomainTermItem
 
 @Composable
 fun SessionStudioRoute(
     viewModel: SessionStudioViewModel,
-    session: HostSession,
     onBackClick: () -> Unit,
     onLeaveConfirm: () -> Unit,
     onPresentQrClick: (HostSession) -> Unit,
@@ -23,6 +24,17 @@ fun SessionStudioRoute(
     LifecycleStartEffect(viewModel) {
         viewModel.startObserving()
         onStopOrDispose { viewModel.stopObserving() }
+    }
+
+    val session = (transcriptState.sessionLookup as? SessionLookup.Found)?.session
+    if (session == null) {
+        SessionUnavailableScreen(
+            lookup = transcriptState.sessionLookup,
+            onBackClick = onBackClick,
+            onRetryClick = viewModel::retrySessionLookup,
+            modifier = modifier,
+        )
+        return
     }
 
     SessionStudioScreen(

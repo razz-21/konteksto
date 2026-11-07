@@ -28,6 +28,12 @@ interface SessionRepository {
     fun getAllLiveSessionsStream(): Flow<List<HostSession>>
     fun getAllSessionsStream(): Flow<List<HostSession>>
     fun getJoinedSessionIdsStream(userUid: String): Flow<Set<String>>
+
+    /**
+     * Streams one session, emitting null once the server confirms it doesn't exist. The flow fails
+     * if the listener is rejected, because Firestore delivers nothing further after that.
+     */
+    fun getSessionStream(sessionId: String): Flow<HostSession?>
     suspend fun findSessionByCode(code: String): Result<HostSession>
     suspend fun joinSession(userUid: String, sessionId: String): Result<HostSession>
     suspend fun leaveSession(userUid: String, sessionId: String): Result<Unit>
@@ -164,6 +170,41 @@ class FirebaseSessionRepository(
         awaitClose {
             listenerRegistration?.remove()
         }
+    }
+
+    override fun getSessionStream(sessionId: String): Flow<HostSession?> = callbackFlow {
+        if (sessionId.isBlank()) {
+            trySend(null)
+            awaitClose { }
+            return@callbackFlow
+        }
+
+        val firestore = firestoreOrNull
+        if (firestore == null) {
+            val localJob = launch {
+                localCreatedSessions.collect { sessions ->
+                    trySend(sessions.find { it.id == sessionId })
+                }
+            }
+            awaitClose { localJob.cancel() }
+            return@callbackFlow
+        }
+
+        val listenerRegistration = firestore.collection("sessions").document(sessionId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("FirebaseSessionRepo", "Session listener failed: ${error.message}")
+                    close(error)
+                    return@addSnapshotListener
+                }
+                // A missing document read from the offline cache may still exist on the server.
+                if (snapshot == null || (!snapshot.exists() && snapshot.metadata.isFromCache)) {
+                    return@addSnapshotListener
+                }
+                trySend(if (snapshot.exists()) snapshot.toHostSession() else null)
+            }
+
+        awaitClose { listenerRegistration.remove() }
     }
 
     override fun getJoinedSessionIdsStream(userUid: String): Flow<Set<String>> = callbackFlow {

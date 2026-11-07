@@ -5,11 +5,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.ui.components.SessionUnavailableScreen
 
 @Composable
 fun HostStudioRoute(
     viewModel: HostStudioViewModel,
-    initialSession: HostSession,
     onBackClick: () -> Unit,
     onPresentQrClick: (HostSession) -> Unit,
     onEditSlideClick: (slideId: String) -> Unit,
@@ -19,7 +19,16 @@ fun HostStudioRoute(
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val session = uiState.session ?: initialSession
+    val session = uiState.session
+    if (session == null) {
+        SessionUnavailableScreen(
+            lookup = uiState.sessionLookup,
+            onBackClick = onBackClick,
+            onRetryClick = viewModel::retrySessionLookup,
+            modifier = modifier,
+        )
+        return
+    }
 
     HostStudioScreen(
         session = session,
