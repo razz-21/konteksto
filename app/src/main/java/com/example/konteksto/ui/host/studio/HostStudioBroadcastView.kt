@@ -1,7 +1,6 @@
 package com.example.konteksto.ui.host.studio
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,10 +40,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.domain.model.AudioInputDevice
 import com.example.konteksto.ui.components.JumpToLiveButton
 import com.example.konteksto.ui.components.LiveSpeakingBubble
 import com.example.konteksto.ui.components.rememberLiveTranscriptFollowState
-import com.example.konteksto.ui.sessions.studio.SquareSelectCheckbox
 import com.example.konteksto.ui.sessions.studio.SystemEventPill
 import com.example.konteksto.ui.theme.extendedColors
 
@@ -55,9 +54,9 @@ fun HostStudioBroadcastView(
     onAddTranscript: (String) -> Unit,
     modifier: Modifier = Modifier,
     partialTranscript: String = "",
+    inputDevice: AudioInputDevice? = null,
 ) {
     var newTranscriptText by remember { mutableStateOf("") }
-    var selectedIds by remember { mutableStateOf(setOf<String>()) }
     val transcriptListState = rememberLazyListState()
     val transcriptItemCount = transcripts.size + if (partialTranscript.isNotBlank()) 1 else 0
     val followState = rememberLiveTranscriptFollowState(
@@ -84,7 +83,7 @@ fun HostStudioBroadcastView(
                     .padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                // Header Row: Title & Entry Count Pill
+                // Header Row: Title & Input Device Pill
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -109,19 +108,8 @@ fun HostStudioBroadcastView(
                         )
                     }
 
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    ) {
-                        Text(
-                            text = "${transcripts.size} entries",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Medium,
-                                fontSize = 11.5.sp,
-                            ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        )
+                    if (inputDevice != null) {
+                        TranscriptInputDevicePill(device = inputDevice)
                     }
                 }
 
@@ -165,22 +153,11 @@ fun HostStudioBroadcastView(
                                     timestamp = entry.timestamp,
                                 )
                             } else {
-                                val isSelected = selectedIds.contains(entry.id)
-
                                 Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            selectedIds = if (isSelected) {
-                                                selectedIds - entry.id
-                                            } else {
-                                                selectedIds + entry.id
-                                            }
-                                        },
+                                    modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(12.dp),
                                     colors = CardDefaults.cardColors(
-                                        // No border: selection shows as a full tint plus the checked box.
-                                        containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+                                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                                     ),
                                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                                 ) {
@@ -189,56 +166,38 @@ fun HostStudioBroadcastView(
                                             .fillMaxWidth()
                                             .padding(14.dp),
                                     ) {
-                                        // Top Row: Speaker Name, Timestamp, Square Checkbox
+                                        // Top Row: Speaker Name & Timestamp
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically,
                                         ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier.weight(1f, fill = false),
-                                            ) {
-                                                Text(
-                                                    text = entry.speakerName,
-                                                    style = MaterialTheme.typography.titleSmall.copy(
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontSize = 13.5.sp,
-                                                    ),
-                                                    color = MaterialTheme.colorScheme.primary,
-                                                )
+                                            Text(
+                                                text = entry.speakerName,
+                                                style = MaterialTheme.typography.titleSmall.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 13.5.sp,
+                                                ),
+                                                color = MaterialTheme.colorScheme.primary,
+                                            )
 
-                                                if (entry.timestamp.isNotBlank()) {
-                                                    Spacer(modifier = Modifier.width(8.dp))
+                                            if (entry.timestamp.isNotBlank()) {
+                                                Spacer(modifier = Modifier.width(8.dp))
 
-                                                    Surface(
-                                                        shape = RoundedCornerShape(6.dp),
-                                                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                                    ) {
-                                                        Text(
-                                                            text = entry.timestamp,
-                                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                                fontWeight = FontWeight.SemiBold,
-                                                                fontSize = 11.sp,
-                                                            ),
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                        )
-                                                    }
+                                                Surface(
+                                                    shape = RoundedCornerShape(6.dp),
+                                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                                ) {
+                                                    Text(
+                                                        text = entry.timestamp,
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            fontSize = 11.sp,
+                                                        ),
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    )
                                                 }
                                             }
-
-                                            // Square Checkbox on Top Right
-                                            SquareSelectCheckbox(
-                                                checked = isSelected,
-                                                onCheckedChange = { checked ->
-                                                    selectedIds = if (checked) {
-                                                        selectedIds + entry.id
-                                                    } else {
-                                                        selectedIds - entry.id
-                                                    }
-                                                },
-                                            )
                                         }
 
                                         Spacer(modifier = Modifier.height(8.dp))

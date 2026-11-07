@@ -70,7 +70,11 @@
     <string name="host_studio_live_transcript">LIVE TRANSCRIPT</string>
     <string name="host_studio_audio_live">Audio Live · Broadcasting</string>
     <string name="host_studio_audio_start">Start Audio Broadcast</string>
-    <string name="host_studio_entries_format">%1$d entries</string>
+    <string name="host_studio_input_device_description">Recording from %1$s</string>
+    <string name="host_studio_input_builtin_mic">Phone mic</string>
+    <string name="host_studio_input_wired_headset">Wired headset</string>
+    <string name="host_studio_input_usb">USB mic</string>
+    <string name="host_studio_input_bluetooth">Bluetooth headset</string>
     <string name="transcript_jump_to_live">Jump to live</string>
     <string name="transcript_load_earlier">Load earlier lines</string>
     <string name="transcript_load_earlier_failed">Couldn\'t load earlier lines. Tap to retry.</string>

@@ -4,11 +4,14 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.konteksto.data.audio.AndroidAudioInputRepository
+import com.example.konteksto.data.audio.AudioInputRepository
 import com.example.konteksto.data.repository.AuthRepository
 import com.example.konteksto.data.repository.FirebaseAuthRepository
 import com.example.konteksto.data.repository.FirebaseSessionRepository
 import com.example.konteksto.data.repository.GeminiSlideAnalyzer
 import com.example.konteksto.data.repository.SessionRepository
+import com.example.konteksto.domain.model.AudioInputDevice
 import com.example.konteksto.domain.model.HostSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,6 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class HostStudioUiState(
@@ -27,6 +31,7 @@ data class HostStudioUiState(
     val selectedTab: Int = 0, // 0: Broadcast & Audio, 1: Slides & Context
     val transcripts: List<TranscriptEntry> = emptyList(),
     val partialTranscript: String = "",
+    val inputDevice: AudioInputDevice? = null,
     val contextNotes: List<ContextNoteItem> = emptyList(),
     val slideDeckInfo: SlideDeckInfo? = null,
     val analyzedSlides: List<AnalyzedSlideItem> = emptyList(),
@@ -91,6 +96,7 @@ internal suspend fun StateFlow<String>.publishThrottled(
 class HostStudioViewModel(
     private val sessionId: String,
     transcriptionEngineFactory: (onSegmentComplete: (String) -> Unit) -> TranscriptionEngine,
+    private val audioInputRepository: AudioInputRepository,
     private val sessionRepository: SessionRepository = FirebaseSessionRepository(),
     private val authRepository: AuthRepository = FirebaseAuthRepository(),
     private val geminiSlideAnalyzer: GeminiSlideAnalyzer = GeminiSlideAnalyzer(),
@@ -120,6 +126,15 @@ class HostStudioViewModel(
         observeAnalyzedSlides()
         observeContextNotes()
         observeDomainTerms()
+        observeInputDevice()
+    }
+
+    private fun observeInputDevice() {
+        viewModelScope.launch {
+            audioInputRepository.currentInputDevice
+                .catch { /* Without a device list the transcript header just leaves the mic name out. */ }
+                .collect { device -> _uiState.update { it.copy(inputDevice = device) } }
+        }
     }
 
     private fun observeDomainTerms() {
@@ -212,19 +227,25 @@ class HostStudioViewModel(
         }
     }
 
-    /** The engine saves any words in progress when it stops, so this runs before logging the stop. */
+    /**
+     * The engine saves any words in progress when it stops, so this runs before logging the stop.
+     * The Bluetooth route is set before listening starts, so the first words already use the headset.
+     */
     private fun setAudioBroadcasting(isAudioBroadcasting: Boolean) {
         if (_uiState.value.isAudioBroadcasting == isAudioBroadcasting) return
         _uiState.value = _uiState.value.copy(isAudioBroadcasting = isAudioBroadcasting)
         if (isAudioBroadcasting) {
+            audioInputRepository.setBluetoothMicEnabled(true)
             transcriptionEngine.startListening()
         } else {
             transcriptionEngine.stopListening()
+            audioInputRepository.setBluetoothMicEnabled(false)
         }
     }
 
     override fun onCleared() {
         transcriptionEngine.stopListening()
+        audioInputRepository.setBluetoothMicEnabled(false)
     }
 
     fun setSelectedTab(tabIndex: Int) {
@@ -564,6 +585,7 @@ class HostStudioViewModel(
                     transcriptionEngineFactory = { onSegmentComplete ->
                         SpeechToTextManager(appContext, onSegmentComplete)
                     },
+                    audioInputRepository = AndroidAudioInputRepository(appContext),
                     sessionRepository = sessionRepository,
                     authRepository = authRepository,
                 ) as T

@@ -3,7 +3,10 @@ package com.example.konteksto
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
+import com.example.konteksto.data.audio.AudioInputRepository
 import com.example.konteksto.data.repository.AuthRepository
+import com.example.konteksto.domain.model.AudioInputDevice
+import com.example.konteksto.domain.model.AudioInputType
 import com.example.konteksto.domain.model.AuthUser
 import com.example.konteksto.data.repository.FirebaseSessionRepository
 import com.example.konteksto.data.repository.SessionRepository
@@ -24,6 +27,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -77,6 +81,12 @@ private object SignedOutAuthRepository : AuthRepository {
     override fun signOut() = Unit
 }
 
+private object BuiltInMicRepository : AudioInputRepository {
+    override val currentInputDevice: Flow<AudioInputDevice> =
+        flowOf(AudioInputDevice(AudioInputType.BuiltInMic))
+    override fun setBluetoothMicEnabled(enabled: Boolean) = Unit
+}
+
 private fun localRepository() = FirebaseSessionRepository(
     context = null,
     firestoreProvider = { throw IllegalStateException("No firestore in unit test") },
@@ -111,6 +121,7 @@ class LiveTranscriptSyncTest {
             transcriptionEngineFactory = { onSegmentComplete ->
                 FakeEngine(onSegmentComplete).also { engine = it }
             },
+            audioInputRepository = BuiltInMicRepository,
             sessionRepository = repository,
             authRepository = SignedOutAuthRepository,
         )
@@ -292,6 +303,7 @@ class LiveTranscriptSyncTest {
                 transcriptionEngineFactory = { onSegmentComplete ->
                     FakeEngine(onSegmentComplete).also { engine = it }
                 },
+                audioInputRepository = BuiltInMicRepository,
                 sessionRepository = repository,
                 authRepository = SignedOutAuthRepository,
             ) as T
