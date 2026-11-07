@@ -83,43 +83,16 @@ fun SessionLiveCompanionView(
     onAskWhatTheyMean: (selectedItems: List<CompanionTranscriptItem>, clearSelection: () -> Unit) -> Unit = { _, _ -> },
 ) {
 
-    // Sample default transcript entries matching the design screenshot
-    val defaultTranscripts = remember(session.speakerName) {
-        val name = session.speakerName.ifBlank { "ERNESTO RAZO" }
-        listOf(
-            CompanionTranscriptItem(
-                id = "demo_1",
-                speakerName = name,
-                timestamp = "7:35 PM",
-                text = "so here is the take a key takeaways first oop organized organizes program around objects that bundle date with behavior class is a blueprint an object is a living instance build with new so you're going to use new keyword if you want to instantiate the class to object at the four pillars that the following are encapsulation and abstraction make code reusable and easy to maintain",
-            ),
-            CompanionTranscriptItem(
-                id = "demo_sys_1",
-                speakerName = "SYSTEM",
-                timestamp = "7:35 PM",
-                text = "Audio broadcast ended",
-                isSystemEvent = true,
-            ),
-        )
-    }
-
-    val activeTranscripts = remember(customTranscripts, defaultTranscripts) {
-        if (customTranscripts.isNotEmpty()) customTranscripts else defaultTranscripts
-    }
-
-    val items = remember(activeTranscripts, session.speakerName) {
-        activeTranscripts.map { item ->
+    val items = remember(customTranscripts, session.speakerName) {
+        customTranscripts.map { item ->
             if (!item.isSystemEvent && session.speakerName.isNotBlank()) {
                 item.copy(speakerName = session.speakerName.uppercase())
             } else item
         }
     }
 
-    // Default select statement 1 in demo mode to match design screenshot
     var selectedIds by remember {
-        mutableStateOf(
-            if (customTranscripts.isEmpty()) setOf("demo_1") else emptySet(),
-        )
+        mutableStateOf<Set<String>>(emptySet())
     }
 
     val transcriptListState = rememberLazyListState()
@@ -245,11 +218,30 @@ fun SessionLiveCompanionView(
                         .fillMaxWidth()
                         .weight(1f),
                 ) {
-                    LazyColumn(
-                        state = transcriptListState,
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
+                    if (items.isEmpty() && livePartialText.isBlank() && !hasEarlierTranscripts) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = if (isAudioBroadcasting) {
+                                    "Listening to speaker...\nTranscripts will appear here soon."
+                                } else {
+                                    "No transcripts available yet."
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            state = transcriptListState,
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
                         if (hasEarlierTranscripts) {
                             item(key = "load_earlier") {
                                 TextButton(
@@ -423,6 +415,7 @@ fun SessionLiveCompanionView(
                                 .align(Alignment.BottomCenter)
                                 .padding(bottom = 12.dp),
                         )
+                    }
                     }
                 }
             }
