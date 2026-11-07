@@ -74,6 +74,12 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.datastore.preferences)
 
+    // CameraX & ML Kit Barcode Scanning
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.mlkit.barcode.scanning)
+
     // Firebase & Google Sign-In (Credential Manager)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
