@@ -12,10 +12,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.konteksto.R
 import com.example.konteksto.data.repository.AuthRepository
 import com.example.konteksto.data.repository.FirebaseAuthRepository
 import com.example.konteksto.data.repository.FirebaseUserProfileRepository
 import com.example.konteksto.data.repository.UserProfileRepository
+import com.example.konteksto.domain.model.ExplanationLanguage
 import com.example.konteksto.domain.model.UserProfile
 import com.example.konteksto.ui.login.GoogleAuthHelper
 import com.example.konteksto.ui.login.GoogleSignInResult
@@ -31,6 +33,7 @@ fun ProfileScreen(
     isDarkMode: Boolean = false,
     onDarkModeChange: (Boolean) -> Unit = {},
     onSignOutClick: () -> Unit = {},
+    onShowMessage: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -107,8 +110,21 @@ fun ProfileScreen(
         profile = visibleProfile,
         isDarkMode = isDarkMode,
         onDarkModeChange = onDarkModeChange,
-        isTaglish = visibleProfile?.explanationLanguage == "taglish",
-        onLanguageChange = { isTaglish -> viewModel.updateLanguage(isTaglish) },
+        explanationLanguage = visibleProfile?.explanationLanguage ?: ExplanationLanguage.Default,
+        onExplanationLanguageChange = { language ->
+            viewModel.updateLanguage(language) { wasSaved ->
+                onShowMessage(
+                    if (wasSaved) {
+                        context.getString(
+                            R.string.profile_explanation_language_saved,
+                            context.getString(language.labelRes),
+                        )
+                    } else {
+                        context.getString(R.string.profile_explanation_language_save_failed)
+                    },
+                )
+            }
+        },
         isLoading = uiState.isLoading,
         errorMessage = uiState.errorMessage,
         onEditProfileClick = { showEditProfile = true },

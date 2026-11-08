@@ -8,12 +8,14 @@ import com.example.konteksto.data.repository.FirebaseAuthRepository
 import com.example.konteksto.data.repository.FirebaseUserProfileRepository
 import com.example.konteksto.data.repository.UserProfileRepository
 import com.example.konteksto.domain.model.AuthUser
+import com.example.konteksto.domain.model.ExplanationLanguage
 import com.example.konteksto.domain.model.UserProfile
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class ProfileUiState(
@@ -119,7 +121,7 @@ class ProfileViewModel(
                 bio = bio.trim(),
                 photoUrl = user.photoUrl,
                 avatarColorIndex = avatarColorIndex,
-                explanationLanguage = _profile.value?.explanationLanguage ?: "english",
+                explanationLanguage = _profile.value?.explanationLanguage ?: ExplanationLanguage.Default,
             )
 
             userProfileRepository.saveProfile(updatedProfile)
@@ -139,18 +141,22 @@ class ProfileViewModel(
         }
     }
 
-    fun updateLanguage(isTaglish: Boolean) {
+    // Saves the explanation language right away so the next explanation uses it.
+    fun updateLanguage(language: ExplanationLanguage, onComplete: (Boolean) -> Unit) {
         if (currentUser == null) return
-        val currentProfile = _profile.value ?: return
-        
-        val newLang = if (isTaglish) "taglish" else "english"
-        if (currentProfile.explanationLanguage == newLang) return
-        
-        val updatedProfile = currentProfile.copy(explanationLanguage = newLang)
-        _profile.value = updatedProfile
-        
+        val previousProfile = _profile.value ?: return
+        if (previousProfile.explanationLanguage == language) return
+
+        val updatedProfile = previousProfile.copy(explanationLanguage = language)
+        _profile.update { updatedProfile }
+
         viewModelScope.launch {
             userProfileRepository.saveProfile(updatedProfile)
+                .onSuccess { onComplete(true) }
+                .onFailure {
+                    _profile.update { previousProfile }
+                    onComplete(false)
+                }
         }
     }
 

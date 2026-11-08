@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.AuthUser
+import com.example.konteksto.domain.model.ExplanationLanguage
 import com.example.konteksto.domain.model.UserProfile
 import com.example.konteksto.ui.login.GoogleSignInButton
 import com.example.konteksto.ui.theme.KontekstoTheme
@@ -49,8 +50,8 @@ fun ProfileScreenContent(
     profile: UserProfile? = null,
     isDarkMode: Boolean = false,
     onDarkModeChange: (Boolean) -> Unit = {},
-    isTaglish: Boolean = false,
-    onLanguageChange: (Boolean) -> Unit = {},
+    explanationLanguage: ExplanationLanguage = ExplanationLanguage.Default,
+    onExplanationLanguageChange: (ExplanationLanguage) -> Unit = {},
     isLoading: Boolean = false,
     errorMessage: String? = null,
     onEditProfileClick: () -> Unit = {},
@@ -173,8 +174,8 @@ fun ProfileScreenContent(
             PreferencesSectionCard(
                 isDarkMode = isDarkMode,
                 onDarkModeChange = onDarkModeChange,
-                isTaglish = isTaglish,
-                onLanguageChange = onLanguageChange,
+                explanationLanguage = explanationLanguage,
+                onExplanationLanguageChange = onExplanationLanguageChange,
             )
 
             if (!errorMessage.isNullOrBlank()) {

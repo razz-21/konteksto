@@ -19,7 +19,7 @@ data class UserProfile(
     val bio: String,
     val photoUrl: String? = null,
     val avatarColorIndex: Int = 3,
-    val explanationLanguage: String = "english",
+    val explanationLanguage: ExplanationLanguage = ExplanationLanguage.Default,
 ) {
     val avatarGradientColors: List<Color>
         get() = AvatarGradients.getOrElse(avatarColorIndex) { AvatarGradients[0] }
@@ -70,7 +70,7 @@ data class UserProfile(
                 bio = "",
                 photoUrl = user.photoUrl,
                 avatarColorIndex = 3,
-                explanationLanguage = "english",
+                explanationLanguage = ExplanationLanguage.Default,
             )
         }
     }
