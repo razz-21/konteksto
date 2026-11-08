@@ -275,6 +275,8 @@ fun KontekstoNavHost(
                 factory = SessionStudioViewModel.provideFactory(
                     sessionId = sessionId,
                     sessionRepository = sessionRepository,
+                    authRepository = authRepository,
+                    userProfileRepository = userProfileRepository,
                 ),
             )
 
@@ -327,6 +329,8 @@ fun KontekstoNavHost(
                 factory = SessionStudioViewModel.provideFactory(
                     sessionId = sessionId,
                     sessionRepository = sessionRepository,
+                    authRepository = authRepository,
+                    userProfileRepository = userProfileRepository,
                 ),
             )
 

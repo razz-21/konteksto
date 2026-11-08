@@ -1,7 +1,7 @@
 package com.example.konteksto.ui.profile
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,6 +15,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -25,18 +28,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.domain.model.ExplanationLanguage
 import com.example.konteksto.ui.theme.extendedColors
 
 @Composable
 fun PreferencesSectionCard(
     isDarkMode: Boolean,
     onDarkModeChange: (Boolean) -> Unit,
-    isTaglish: Boolean,
-    onLanguageChange: (Boolean) -> Unit,
+    explanationLanguage: ExplanationLanguage,
+    onExplanationLanguageChange: (ExplanationLanguage) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -145,7 +150,7 @@ fun PreferencesSectionCard(
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Explanation language",
+                                text = stringResource(R.string.profile_explanation_language_title),
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 15.sp,
@@ -156,7 +161,7 @@ fun PreferencesSectionCard(
                             Spacer(modifier = Modifier.height(2.dp))
 
                             Text(
-                                text = "How Konteksto explains talks to you",
+                                text = stringResource(R.string.profile_explanation_language_subtitle),
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     fontSize = 13.sp,
                                 ),
@@ -167,82 +172,50 @@ fun PreferencesSectionCard(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // Segmented Button Bar
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                            .padding(4.dp),
-                    ) {
-                        // English Segment
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(
-                                    if (!isTaglish) Color(0xFF3B52D4) else Color.Transparent,
-                                )
-                                .clickable { onLanguageChange(false) }
-                                .padding(vertical = 10.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (!isTaglish) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_check),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
-                                        tint = Color.White,
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                }
-                                Text(
-                                    text = "English",
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 14.sp,
-                                    ),
-                                    color = if (!isTaglish) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-
-                        // Taglish Segment
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(
-                                    if (isTaglish) Color(0xFF3B52D4) else Color.Transparent,
-                                )
-                                .clickable { onLanguageChange(true) }
-                                .padding(vertical = 10.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (isTaglish) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_check),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
-                                        tint = Color.White,
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                }
-                                Text(
-                                    text = "Taglish",
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 14.sp,
-                                    ),
-                                    color = if (isTaglish) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                    }
+                    ExplanationLanguageSelector(
+                        selected = explanationLanguage,
+                        onSelect = onExplanationLanguageChange,
+                    )
                 }
             }
+        }
+    }
+}
+
+internal val ExplanationLanguage.labelRes: Int
+    @StringRes get() = when (this) {
+        ExplanationLanguage.ENGLISH -> R.string.explanation_language_english
+        ExplanationLanguage.TAGALOG -> R.string.explanation_language_tagalog
+        ExplanationLanguage.TAGLISH -> R.string.explanation_language_taglish
+    }
+
+@Composable
+private fun ExplanationLanguageSelector(
+    selected: ExplanationLanguage,
+    onSelect: (ExplanationLanguage) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val options = ExplanationLanguage.entries
+    SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
+        options.forEachIndexed { index, language ->
+            SegmentedButton(
+                selected = language == selected,
+                onClick = { onSelect(language) },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                colors = SegmentedButtonDefaults.colors(
+                    activeContainerColor = MaterialTheme.colorScheme.primary,
+                    activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                    inactiveContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
+                label = {
+                    Text(
+                        text = stringResource(language.labelRes),
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                    )
+                },
+            )
         }
     }
 }

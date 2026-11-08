@@ -80,4 +80,11 @@
     <string name="host_studio_mic_permission_required">Microphone permission is required to stream audio live.</string>
     <string name="firebase_web_client_id" translatable="false">328928803643-0rlsa0e1nul8msn8q0901tmktgtis9ig.apps.googleusercontent.com</string>
     <string name="profile_avatar_description">Open profile</string>
+    <string name="profile_explanation_language_title">Explanation language</string>
+    <string name="profile_explanation_language_subtitle">How Konteksto explains talks to you</string>
+    <string name="explanation_language_english">English</string>
+    <string name="explanation_language_tagalog">Tagalog</string>
+    <string name="explanation_language_taglish">Taglish</string>
+    <string name="profile_explanation_language_saved">Explanations will now be in %1$s</string>
+    <string name="profile_explanation_language_save_failed">Couldn\'t save your explanation language. Please try again.</string>
 </resources>

@@ -219,7 +219,7 @@ Turning the toggle off restores normal auto-scrolling. Answers are **private to 
 - The host's context notes.
 - The analyzed slide summaries.
 - The session glossary.
-- The attendee's explanation language from their profile (Taglish or English).
+- The attendee's explanation language (`english`, `tagalog`, or `taglish`). The app sends the attendee's current choice with the request, and the function falls back to `users/{uid}.explanationLanguage` when it's missing or invalid.
 
 **Answer rules**
 - Uses plain language and stays short enough to read during a live talk.
@@ -568,7 +568,7 @@ Status of the code when this spec was written.
 | Explain mode and questions | Not started | Client and Cloud Function |
 | Live glossary engine | Not started | Only deck-derived terms exist. `GlossaryScreen` is a placeholder |
 | Session history | Not started | |
-| Explanation language setting | Partial | Card is display-only, so selection must be saved |
+| Explanation language setting | Built | English, Tagalog, or Taglish on Profile, saved to `users/{uid}` and applied to explanations |
 | Cloud Functions, Cloud Run, rules files | Not started | None are in the repository |
 | App Check | Not started | Dependency and enforcement |
 | Hilt | Not started | Manual factories today |

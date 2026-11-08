@@ -2,6 +2,7 @@ package com.example.konteksto.data.repository
 
 import android.content.Context
 import android.util.Log
+import com.example.konteksto.domain.model.ExplanationLanguage
 import com.example.konteksto.domain.model.UserProfile
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.channels.awaitClose
@@ -40,7 +41,7 @@ class FirebaseUserProfileRepository(
             bio = prefs.getString("bio", "") ?: "",
             photoUrl = prefs.getString("photoUrl", null),
             avatarColorIndex = prefs.getInt("avatarColorIndex", 3),
-            explanationLanguage = prefs.getString("explanationLanguage", "english") ?: "english",
+            explanationLanguage = ExplanationLanguage.fromStorageValue(prefs.getString("explanationLanguage", null)),
         )
     }
 
@@ -55,7 +56,7 @@ class FirebaseUserProfileRepository(
             .putString("bio", profile.bio)
             .putString("photoUrl", profile.photoUrl)
             .putInt("avatarColorIndex", profile.avatarColorIndex)
-            .putString("explanationLanguage", profile.explanationLanguage)
+            .putString("explanationLanguage", profile.explanationLanguage.storageValue)
             .apply()
     }
 
@@ -95,7 +96,7 @@ class FirebaseUserProfileRepository(
                         bio = data["bio"] as? String ?: "",
                         photoUrl = data["photoUrl"] as? String,
                         avatarColorIndex = (data["avatarColorIndex"] as? Number)?.toInt() ?: 3,
-                        explanationLanguage = data["explanationLanguage"] as? String ?: "english",
+                        explanationLanguage = ExplanationLanguage.fromStorageValue(data["explanationLanguage"] as? String),
                     )
                     saveLocalProfile(remoteProfile)
                     trySend(remoteProfile)
@@ -120,7 +121,7 @@ class FirebaseUserProfileRepository(
                 "bio" to profile.bio,
                 "photoUrl" to profile.photoUrl,
                 "avatarColorIndex" to profile.avatarColorIndex,
-                "explanationLanguage" to profile.explanationLanguage,
+                "explanationLanguage" to profile.explanationLanguage.storageValue,
             )
 
             try {
