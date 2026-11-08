@@ -2,11 +2,12 @@
   "name": "functions",
   "scripts": {
     "build": "tsc",
-    "serve": "npm run build && firebase emulators:start --only functions",
-    "shell": "npm run build && firebase functions:shell",
+    "serve": "npm run build && npx firebase emulators:start --only functions --project konteksto",
+    "shell": "npm run build && npx firebase functions:shell --project konteksto",
     "start": "npm run shell",
-    "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "deploy": "npm run build && npx firebase deploy --only functions --project konteksto",
+    "deploy:explain": "npm run build && npx firebase deploy --only functions:explainSelection --project konteksto",
+    "logs": "npx firebase functions:log --project konteksto"
   },
   "engines": {
     "node": "22"
@@ -18,6 +19,7 @@
     "firebase-functions": "^4.5.0"
   },
   "devDependencies": {
+    "firebase-tools": "^15.35.0",
     "typescript": "^7.0.2"
   },
   "private": true
