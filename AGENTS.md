@@ -32,6 +32,7 @@ UI Layer (Route, Screen, ViewModel) ──► Domain Layer (Models, UseCases) �
 - **Route & Screen Separation:** Always split screens into:
   - `<Name>Route`: Collects state from ViewModel with `collectAsStateWithLifecycle()`, handles navigation/callbacks.
   - `<Name>Screen`: Stateless composable accepting plain values and callbacks (enables previews and testing without ViewModels).
+- **One Composable Per File:** Every public composable lives in its own file named after it (e.g., `ExplanationBottomSheet.kt`, `ExplanationBottomSheetContent.kt`, `SkeletonItem.kt`). A `private` composable may stay in a file only if that file alone uses it. Keep `@Preview` functions at the bottom of the file holding the composable they render. When a file passes ~400 lines, extract sections (cards, headers, rows) into their own files. Never stack several public composables in one file.
 - **State Ownership & Atomic Updates:** ViewModel owns UI state (`StateFlow`). State updates must be atomic using `_uiState.update { it.copy(...) }` (never direct `value =` assignments).
 - **State Persistence:** Use `rememberSaveable` for text inputs, dialog flags, and scroll states that must survive screen rotation.
 - **Compose Performance:** Use `LazyColumn`/`LazyRow` with unique, stable keys (`key = { item.id }`) for dynamic lists. Never use `Column` with `forEach` for list data like transcripts or glossaries.
@@ -64,4 +65,5 @@ When editing code, check for and resolve existing gaps listed in `ANDROID_BEST_P
 - Convert `_uiState.value = ...` to `_uiState.update { ... }`.
 - Ensure cancellation exceptions are rethrown in `try-catch` blocks.
 - Verify `LazyColumn` has `key = { ... }`.
+- Move each public composable into its own file.
 - Ensure hardcoded strings are moved to `strings.xml`.

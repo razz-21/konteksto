@@ -4,12 +4,16 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.konteksto.data.audio.AndroidAudioInputRepository
+import com.example.konteksto.data.audio.AudioInputRepository
 import com.example.konteksto.data.repository.AuthRepository
 import com.example.konteksto.data.repository.FirebaseAuthRepository
 import com.example.konteksto.data.repository.FirebaseSessionRepository
 import com.example.konteksto.data.repository.GeminiSlideAnalyzer
 import com.example.konteksto.data.repository.SessionRepository
+import com.example.konteksto.domain.model.AudioInputDevice
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.ui.components.SessionLookup
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -19,14 +23,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class HostStudioUiState(
-    val session: HostSession? = null,
+    val sessionLookup: SessionLookup = SessionLookup.Loading,
     val isAudioBroadcasting: Boolean = false,
     val selectedTab: Int = 0, // 0: Broadcast & Audio, 1: Slides & Context
     val transcripts: List<TranscriptEntry> = emptyList(),
     val partialTranscript: String = "",
+    val inputDevice: AudioInputDevice? = null,
     val contextNotes: List<ContextNoteItem> = emptyList(),
     val slideDeckInfo: SlideDeckInfo? = null,
     val analyzedSlides: List<AnalyzedSlideItem> = emptyList(),
@@ -37,6 +43,9 @@ data class HostStudioUiState(
     val errorMessage: String? = null,
     val areContextNotesLoaded: Boolean = false,
 ) {
+    val session: HostSession?
+        get() = (sessionLookup as? SessionLookup.Found)?.session
+
     /** True when the analyzed slides and terms were produced from different notes than the current ones. */
     val hasUnappliedContextNotes: Boolean
         get() = areContextNotesLoaded &&
@@ -91,6 +100,7 @@ internal suspend fun StateFlow<String>.publishThrottled(
 class HostStudioViewModel(
     private val sessionId: String,
     transcriptionEngineFactory: (onSegmentComplete: (String) -> Unit) -> TranscriptionEngine,
+    private val audioInputRepository: AudioInputRepository,
     private val sessionRepository: SessionRepository = FirebaseSessionRepository(),
     private val authRepository: AuthRepository = FirebaseAuthRepository(),
     private val geminiSlideAnalyzer: GeminiSlideAnalyzer = GeminiSlideAnalyzer(),
@@ -104,6 +114,7 @@ class HostStudioViewModel(
     val uiState: StateFlow<HostStudioUiState> = _uiState.asStateFlow()
 
     private var removeSlideDeckJob: Job? = null
+    private var observeSessionJob: Job? = null
     private var hasReportedLivePartialFailure = false
 
     // Leaving the studio cancels viewModelScope, and the words still in progress must be saved after that.
@@ -120,6 +131,15 @@ class HostStudioViewModel(
         observeAnalyzedSlides()
         observeContextNotes()
         observeDomainTerms()
+        observeInputDevice()
+    }
+
+    private fun observeInputDevice() {
+        viewModelScope.launch {
+            audioInputRepository.currentInputDevice
+                .catch { /* Without a device list the transcript header just leaves the mic name out. */ }
+                .collect { device -> _uiState.update { it.copy(inputDevice = device) } }
+        }
     }
 
     private fun observeDomainTerms() {
@@ -155,24 +175,43 @@ class HostStudioViewModel(
     }
 
     private fun observeSession() {
-        viewModelScope.launch {
-            val hostUid = authRepository.currentUser?.uid ?: ""
-            sessionRepository.getHostSessionsStream(hostUid).collect { sessions ->
-                val matchingSession = sessions.find { it.id == sessionId }
-                if (matchingSession != null) {
+        observeSessionJob?.cancel()
+        observeSessionJob = viewModelScope.launch {
+            val hostUid = authRepository.currentUser?.uid
+            sessionRepository.getSessionStream(sessionId)
+                .catch {
+                    // A session already on screen stays there; only a first load that fails is shown as one.
+                    _uiState.update { state ->
+                        if (state.sessionLookup is SessionLookup.Found) state else state.copy(sessionLookup = SessionLookup.Failed)
+                    }
+                }
+                .collect { remoteSession ->
+                    // Only the session's own host can run its studio.
+                    val session = remoteSession?.takeIf { hostUid != null && it.hostUid == hostUid }
+                    if (session == null) {
+                        _uiState.update { it.copy(sessionLookup = SessionLookup.NotFound) }
+                        setAudioBroadcasting(false)
+                        return@collect
+                    }
                     val isAudioBroadcasting = resolveAudioBroadcasting(
                         isAudioBroadcasting = _uiState.value.isAudioBroadcasting,
                         previousSession = _uiState.value.session,
-                        session = matchingSession,
+                        session = session,
                     )
-                    _uiState.value = _uiState.value.copy(
-                        session = matchingSession,
-                        slideDeckInfo = resolveSlideDeck(_uiState.value.slideDeckInfo, matchingSession),
-                    )
+                    _uiState.update {
+                        it.copy(
+                            sessionLookup = SessionLookup.Found(session),
+                            slideDeckInfo = resolveSlideDeck(it.slideDeckInfo, session),
+                        )
+                    }
                     setAudioBroadcasting(isAudioBroadcasting)
                 }
-            }
         }
+    }
+
+    fun retrySessionLookup() {
+        _uiState.update { it.copy(sessionLookup = SessionLookup.Loading) }
+        observeSession()
     }
 
     private fun observeTranscripts() {
@@ -212,19 +251,25 @@ class HostStudioViewModel(
         }
     }
 
-    /** The engine saves any words in progress when it stops, so this runs before logging the stop. */
+    /**
+     * The engine saves any words in progress when it stops, so this runs before logging the stop.
+     * The Bluetooth route is set before listening starts, so the first words already use the headset.
+     */
     private fun setAudioBroadcasting(isAudioBroadcasting: Boolean) {
         if (_uiState.value.isAudioBroadcasting == isAudioBroadcasting) return
         _uiState.value = _uiState.value.copy(isAudioBroadcasting = isAudioBroadcasting)
         if (isAudioBroadcasting) {
+            audioInputRepository.setBluetoothMicEnabled(true)
             transcriptionEngine.startListening()
         } else {
             transcriptionEngine.stopListening()
+            audioInputRepository.setBluetoothMicEnabled(false)
         }
     }
 
     override fun onCleared() {
         transcriptionEngine.stopListening()
+        audioInputRepository.setBluetoothMicEnabled(false)
     }
 
     fun setSelectedTab(tabIndex: Int) {
@@ -243,24 +288,17 @@ class HostStudioViewModel(
         onSuccess: () -> Unit = {},
         onError: (String) -> Unit = {},
     ) {
-        val currentSession = _uiState.value.session ?: HostSession(
-            id = sessionId,
-            venue = "Tech Summit Hall B",
-            time = "10:00 AM",
-            talkCode = "TALK–415",
-            title = "Edge AI & Distributed Cloud Architecture: Scaling to Zero Latency",
-            speakerName = "Engr. Marco Valerio",
-            attendeesCount = 890,
-            isLive = isLive,
-        )
+        val currentSession = _uiState.value.session ?: return
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isUpdatingLiveStatus = true)
             sessionRepository.updateSessionLiveStatus(currentSession.id, isLive)
                 .onSuccess {
-                    _uiState.value = _uiState.value.copy(
-                        isUpdatingLiveStatus = false,
-                        session = currentSession.copy(isLive = isLive),
-                    )
+                    _uiState.update {
+                        it.copy(
+                            isUpdatingLiveStatus = false,
+                            sessionLookup = SessionLookup.Found(currentSession.copy(isLive = isLive)),
+                        )
+                    }
                     setAudioBroadcasting(isLive)
                     val eventMsg = if (isLive) "Session started" else "Session ended"
                     addTranscriptEntry(speakerName = "SYSTEM", text = eventMsg, isSystemEvent = true)
@@ -445,7 +483,9 @@ class HostStudioViewModel(
                     analyzedSlides = analysis.slides,
                     domainTerms = analysis.terms,
                     isAnalyzingPdf = false,
-                    session = _uiState.value.session?.copy(analyzedContextNotesSignature = notesSignature),
+                    sessionLookup = _uiState.value.session
+                        ?.let { SessionLookup.Found(it.copy(analyzedContextNotesSignature = notesSignature)) }
+                        ?: _uiState.value.sessionLookup,
                 )
                 // Saved first so the session updates from the writes below already carry it.
                 val signatureSaved = sessionRepository
@@ -564,6 +604,7 @@ class HostStudioViewModel(
                     transcriptionEngineFactory = { onSegmentComplete ->
                         SpeechToTextManager(appContext, onSegmentComplete)
                     },
+                    audioInputRepository = AndroidAudioInputRepository(appContext),
                     sessionRepository = sessionRepository,
                     authRepository = authRepository,
                 ) as T

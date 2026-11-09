@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 internal const val ROOM_CODE_LENGTH = 6
-internal const val DEMO_ROOM_CODE = "4VY4N6"
 
 @Composable
 internal fun RoomCodeInput(

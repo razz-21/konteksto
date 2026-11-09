@@ -4,6 +4,7 @@ import com.example.konteksto.data.repository.FirebaseSessionRepository
 import com.example.konteksto.data.repository.GeminiSlideAnalyzer
 import com.example.konteksto.data.repository.buildContextNotesPrompt
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.ui.components.SessionLookup
 import com.example.konteksto.ui.host.studio.AnalyzedSlideItem
 import com.example.konteksto.ui.host.studio.ContextNoteItem
 import com.example.konteksto.ui.host.studio.DomainTermItem
@@ -267,7 +268,9 @@ class SlideDeckStateTest {
         isAnalyzed: Boolean = true,
         notesLoaded: Boolean = true,
     ) = HostStudioUiState(
-        session = session("deck.pdf", isAnalyzed).copy(analyzedContextNotesSignature = analyzedSignature),
+        sessionLookup = SessionLookup.Found(
+            session("deck.pdf", isAnalyzed).copy(analyzedContextNotesSignature = analyzedSignature),
+        ),
         slideDeckInfo = SlideDeckInfo(fileName = "deck.pdf", isAnalyzed = isAnalyzed),
         contextNotes = notes,
         areContextNotesLoaded = notesLoaded,

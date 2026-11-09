@@ -70,12 +70,22 @@
     <string name="host_studio_live_transcript">LIVE TRANSCRIPT</string>
     <string name="host_studio_audio_live">Audio Live · Broadcasting</string>
     <string name="host_studio_audio_start">Start Audio Broadcast</string>
-    <string name="host_studio_entries_format">%1$d entries</string>
+    <string name="host_studio_input_device_description">Recording from %1$s</string>
+    <string name="host_studio_input_builtin_mic">Phone mic</string>
+    <string name="host_studio_input_wired_headset">Wired headset</string>
+    <string name="host_studio_input_usb">USB mic</string>
+    <string name="host_studio_input_bluetooth">Bluetooth headset</string>
     <string name="transcript_jump_to_live">Jump to live</string>
     <string name="transcript_load_earlier">Load earlier lines</string>
     <string name="transcript_load_earlier_failed">Couldn\'t load earlier lines. Tap to retry.</string>
     <string name="transcript_live_failed">Couldn\'t load the live transcript.</string>
     <string name="transcript_retry">Retry</string>
+    <string name="session_not_found_title">Session not found</string>
+    <string name="session_not_found_message">This session may have been deleted by its host, or the link is wrong.</string>
+    <string name="session_not_found_action">Back to sessions</string>
+    <string name="session_load_failed_title">Couldn\'t load this session</string>
+    <string name="session_load_failed_message">Check your connection and try again.</string>
+    <string name="session_loading_description">Loading session</string>
     <string name="host_studio_audience_format">%1$d audience</string>
     <string name="host_studio_mic_permission_required">Microphone permission is required to stream audio live.</string>
     <string name="firebase_web_client_id" translatable="false">328928803643-0rlsa0e1nul8msn8q0901tmktgtis9ig.apps.googleusercontent.com</string>

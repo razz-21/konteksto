@@ -39,7 +39,7 @@ fun SessionStudioTopBar(
 ) {
     val clipboardManager = LocalClipboardManager.current
 
-    val talkCodeText = session.talkCode.ifBlank { "4VY4N6" }
+    val talkCodeText = session.talkCode.trim()
 
     Row(
         modifier = modifier
@@ -78,36 +78,38 @@ fun SessionStudioTopBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            // Talk Code Pill Button
-            Surface(
-                onClick = {
-                    clipboardManager.setText(AnnotatedString(talkCodeText))
-                    onShowMessage("Copied $talkCodeText to clipboard")
-                    onPresentQrClick(session)
-                },
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer,
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+            // Talk Code Pill Button, left out when the session has no code to share
+            if (talkCodeText.isNotEmpty()) {
+                Surface(
+                    onClick = {
+                        clipboardManager.setText(AnnotatedString(talkCodeText))
+                        onShowMessage("Copied $talkCodeText to clipboard")
+                        onPresentQrClick(session)
+                    },
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
                 ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_copy),
-                        contentDescription = "Copy Talk Code",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = talkCodeText,
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.5.sp,
-                            letterSpacing = 0.5.sp,
-                        ),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_copy),
+                            contentDescription = "Copy Talk Code",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = talkCodeText,
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.5.sp,
+                                letterSpacing = 0.5.sp,
+                            ),
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        )
+                    }
                 }
             }
 
