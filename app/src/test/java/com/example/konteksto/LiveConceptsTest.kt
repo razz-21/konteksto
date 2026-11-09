@@ -1,17 +1,24 @@
 package com.example.konteksto
 
+import com.example.konteksto.data.repository.AuthRepository
 import com.example.konteksto.data.repository.ExplanationRepository
+import com.example.konteksto.data.repository.FirebaseAuthRepository
 import com.example.konteksto.data.repository.FirebaseSessionRepository
 import com.example.konteksto.data.repository.GlossaryRepository
 import com.example.konteksto.data.repository.GlossaryTermItem
 import com.example.konteksto.data.repository.SessionRepository
+import com.example.konteksto.data.repository.UserProfileRepository
+import com.example.konteksto.domain.model.AuthUser
+import com.example.konteksto.domain.model.ExplanationLanguage
 import com.example.konteksto.domain.model.LiveConceptExplanationItem
+import com.example.konteksto.domain.model.UserProfile
 import com.example.konteksto.ui.sessions.studio.CompanionTranscriptItem
 import com.example.konteksto.ui.sessions.studio.SessionStudioViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -27,12 +34,36 @@ import org.junit.Test
 private const val CONCEPT_SESSION_ID = "session_concepts"
 
 private class FakeExplanationRepository : ExplanationRepository {
+    var requestedLanguage: ExplanationLanguage? = null
+
     override suspend fun explainSelection(
         sessionId: String,
         segmentIds: List<String>,
         selectedTexts: List<String>,
         speakerName: String,
-    ) = Result.success(concept("Selection Explanation"))
+        language: ExplanationLanguage,
+    ): Result<LiveConceptExplanationItem> {
+        requestedLanguage = language
+        return Result.success(concept("Selection Explanation"))
+    }
+}
+
+private val signedInAttendee = AuthUser(uid = "attendee_1", email = "attendee@example.com", displayName = "Attendee", photoUrl = null)
+
+private val fakeAuth = object : AuthRepository by FirebaseAuthRepository(authProvider = { error("No auth in unit test") }) {
+    override val currentUser: AuthUser = signedInAttendee
+    override fun getAuthStateStream(): Flow<AuthUser?> = flowOf(signedInAttendee)
+}
+
+/** Stands in for the users/{uid} document, which the Profile screen writes. */
+private class FakeUserProfileRepository : UserProfileRepository {
+    val profile = MutableStateFlow<UserProfile?>(null)
+
+    override fun getProfileStream(uid: String): Flow<UserProfile?> = profile
+    override suspend fun saveProfile(profile: UserProfile): Result<Unit> {
+        this.profile.value = profile
+        return Result.success(Unit)
+    }
 }
 
 private class FakeGlossaryRepository : GlossaryRepository {
@@ -72,6 +103,8 @@ class LiveConceptsTest {
         override fun getLiveConceptsStream(sessionId: String): Flow<List<LiveConceptExplanationItem>> = serverConcepts
     }
     private val glossary = FakeGlossaryRepository()
+    private val explanations = FakeExplanationRepository()
+    private val profiles = FakeUserProfileRepository()
 
     @Before
     fun setUp() {
@@ -84,7 +117,15 @@ class LiveConceptsTest {
     }
 
     private fun attendee() =
-        SessionStudioViewModel(CONCEPT_SESSION_ID, sessionRepository, FakeExplanationRepository(), glossary, clock = { OPENED_AT })
+        SessionStudioViewModel(
+            CONCEPT_SESSION_ID,
+            sessionRepository,
+            explanations,
+            glossary,
+            clock = { OPENED_AT },
+            authRepository = fakeAuth,
+            userProfileRepository = profiles,
+        )
 
     @Test
     fun savedConceptsShowWhenReturningToTheSession() = runTest(testDispatcher) {
@@ -149,6 +190,32 @@ class LiveConceptsTest {
         assertEquals("Selection Explanation", viewModel.uiState.value.activeExplanation?.explanation?.title)
         assertTrue(viewModel.uiState.value.conceptExplanations.isEmpty())
         viewModel.stopObserving()
+    }
+
+    @Test
+    fun explanationUsesTheAttendeesProfileLanguage() = runTest(testDispatcher) {
+        val viewModel = attendee()
+        val selection = listOf(CompanionTranscriptItem("tr_1", "Host", "10:00", "Some line"))
+
+        viewModel.explainSelection(selection)
+        assertEquals(ExplanationLanguage.ENGLISH, explanations.requestedLanguage)
+
+        profiles.saveProfile(UserProfile.fromAuthUser(signedInAttendee).copy(explanationLanguage = ExplanationLanguage.TAGALOG))
+        viewModel.explainSelection(selection)
+        assertEquals(ExplanationLanguage.TAGALOG, explanations.requestedLanguage)
+
+        profiles.saveProfile(UserProfile.fromAuthUser(signedInAttendee).copy(explanationLanguage = ExplanationLanguage.TAGLISH))
+        viewModel.explainSelection(selection)
+        assertEquals(ExplanationLanguage.TAGLISH, explanations.requestedLanguage)
+    }
+
+    @Test
+    fun savedLanguageValuesParseAndUnknownOnesFallBackToEnglish() {
+        assertEquals(ExplanationLanguage.TAGALOG, ExplanationLanguage.fromStorageValue("tagalog"))
+        assertEquals(ExplanationLanguage.TAGLISH, ExplanationLanguage.fromStorageValue(" Taglish "))
+        assertEquals(ExplanationLanguage.ENGLISH, ExplanationLanguage.fromStorageValue("english"))
+        assertEquals(ExplanationLanguage.ENGLISH, ExplanationLanguage.fromStorageValue("klingon"))
+        assertEquals(ExplanationLanguage.ENGLISH, ExplanationLanguage.fromStorageValue(null))
     }
 
     @Test

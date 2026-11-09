@@ -2,6 +2,7 @@ package com.example.konteksto.data.repository
 
 import android.util.Log
 import com.example.konteksto.BuildConfig
+import com.example.konteksto.domain.model.ExplanationLanguage
 import com.example.konteksto.domain.model.LiveConceptExplanationItem
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.firebase.Firebase
@@ -18,6 +19,7 @@ interface ExplanationRepository {
         segmentIds: List<String>,
         selectedTexts: List<String> = emptyList(),
         speakerName: String = "",
+        language: ExplanationLanguage = ExplanationLanguage.Default,
     ): Result<LiveConceptExplanationItem>
 }
 
@@ -38,6 +40,7 @@ class FirebaseExplanationRepository(
         segmentIds: List<String>,
         selectedTexts: List<String>,
         speakerName: String,
+        language: ExplanationLanguage,
     ): Result<LiveConceptExplanationItem> {
         val functions = functionsOrNull
         if (functions != null) {
@@ -47,6 +50,7 @@ class FirebaseExplanationRepository(
                     "segmentIds" to segmentIds,
                     "selectedTexts" to selectedTexts,
                     "speakerName" to speakerName,
+                    "explanationLanguage" to language.storageValue,
                 )
 
                 val result = functions
@@ -81,13 +85,14 @@ class FirebaseExplanationRepository(
         }
 
         // Fallback to Gemini AI Model on device
-        return explainWithGeminiFallback(sessionId, selectedTexts, speakerName)
+        return explainWithGeminiFallback(sessionId, selectedTexts, speakerName, language)
     }
 
     private suspend fun explainWithGeminiFallback(
         sessionId: String,
         selectedTexts: List<String>,
         speakerName: String,
+        language: ExplanationLanguage,
     ): Result<LiveConceptExplanationItem> = withContext(Dispatchers.IO) {
         val textsToAnalyze = selectedTexts.filter { it.isNotBlank() }
         if (textsToAnalyze.isEmpty()) {
@@ -112,6 +117,9 @@ class FirebaseExplanationRepository(
             - "analogy": simple, relatable real-world analogy to make it clear (1-2 sentences)
             - "whyItMatters": why this concept matters in the context of the talk (1-2 sentences)
             - "percentGrounded": integer between 88 and 99 indicating accuracy grounding
+            
+            OUTPUT LANGUAGE:
+            ${explanationLanguageInstruction(language)}
         """.trimIndent()
 
         val candidateModelNames = listOf(
@@ -181,6 +189,23 @@ class FirebaseExplanationRepository(
 
         Result.failure(IllegalStateException("Could not generate concept explanation for selected statements."))
     }
+}
+
+/**
+ * Tells Gemini which language to write the user-facing fields in. Keep in sync with
+ * `explanationLanguageInstruction` in functions/src/index.ts.
+ */
+internal fun explanationLanguageInstruction(language: ExplanationLanguage): String = when (language) {
+    ExplanationLanguage.ENGLISH ->
+        "Write \"type\", \"title\", \"definition\", \"analogy\", and \"whyItMatters\" in clear, plain English."
+    ExplanationLanguage.TAGALOG ->
+        "Write \"type\", \"title\", \"definition\", \"analogy\", and \"whyItMatters\" in natural, conversational Tagalog (Filipino). " +
+            "Keep technical terms, product names, and code identifiers in English when there is no common Tagalog equivalent, " +
+            "and use everyday Filipino examples in the analogy. Even if the speaker talked in English, answer in Tagalog."
+    ExplanationLanguage.TAGLISH ->
+        "Write \"type\", \"title\", \"definition\", \"analogy\", and \"whyItMatters\" in natural Taglish, the way Filipinos casually mix " +
+            "Tagalog and English in one sentence (e.g. \"Ang API ay parang waiter na nagdadala ng order mo sa kitchen.\"). " +
+            "Keep technical terms in English, use Tagalog for the connecting words and explanation, and use everyday Filipino examples in the analogy."
 }
 
 private const val CONTEXT_ID_TOKEN = """(?:ID:\s*)?(?:term|tr|note|slide|concept|seg|segment|glossary)_[A-Za-z0-9_\-]+"""

@@ -11,7 +11,7 @@ const db = admin.firestore();
 const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 // Cache version key for explainSelection
-const CACHE_VERSION = "v7_strip_context_ids";
+const CACHE_VERSION = "v8_explanation_languages";
 
 function getCacheHash(segmentIds: string[], language: string): string {
   const sortedIds = [...segmentIds].sort().join(",");
@@ -31,6 +31,37 @@ function stripContextIdReferences(text: string): string {
   return text.replace(CONTEXT_ID_GROUP_REGEX, "").replace(BRACKETED_ID_TAG_REGEX, "");
 }
 
+type ExplanationLanguage = "english" | "tagalog" | "taglish";
+const EXPLANATION_LANGUAGES: readonly ExplanationLanguage[] = ["english", "tagalog", "taglish"];
+
+/** Accepts only known languages so the value is safe to use in the prompt and the cache key. */
+function parseExplanationLanguage(value: unknown): ExplanationLanguage | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().toLowerCase();
+  return (EXPLANATION_LANGUAGES as readonly string[]).includes(normalized)
+    ? (normalized as ExplanationLanguage)
+    : null;
+}
+
+/**
+ * Tells Gemini which language to write the user-facing fields in. Keep in sync with
+ * explanationLanguageInstruction in the app's ExplanationRepository.kt.
+ */
+function explanationLanguageInstruction(language: ExplanationLanguage): string {
+  switch (language) {
+    case "tagalog":
+      return "Write \"type\", \"title\", and \"definition\" in natural, conversational Tagalog (Filipino). " +
+        "Keep technical terms, product names, and code identifiers in English when there is no common Tagalog equivalent, " +
+        "and use everyday Filipino examples. Even if the speaker talked in English, answer in Tagalog.";
+    case "taglish":
+      return "Write \"type\", \"title\", and \"definition\" in natural Taglish, the way Filipinos casually mix " +
+        "Tagalog and English in one sentence (e.g. \"Ang API ay parang waiter na nagdadala ng order mo sa kitchen.\"). " +
+        "Keep technical terms in English, use Tagalog for the connecting words and explanation, and use everyday Filipino examples.";
+    default:
+      return "Write \"type\", \"title\", and \"definition\" in clear, plain English.";
+  }
+}
+
 function normalizeKey(str: string): string {
   return str
     .toLowerCase()
@@ -47,16 +78,20 @@ export const explainSelection = onCall({ region: "asia-southeast1" }, async (req
     throw new HttpsError("unauthenticated", "User must be signed in.");
   }
 
-  const { sessionId, segmentIds, forceRefresh } = request.data;
+  const { sessionId, segmentIds, forceRefresh, explanationLanguage: requestedLanguage } = request.data;
   if (!sessionId || !Array.isArray(segmentIds) || segmentIds.length === 0 || segmentIds.length > 5) {
     throw new HttpsError("invalid-argument", "Invalid session ID or segment selection (max 5).");
   }
 
   const uid = request.auth.uid;
 
-  // 1. Fetch User Profile for language preference
-  const userDoc = await db.collection("users").doc(uid).get();
-  const explanationLanguage = userDoc.exists ? (userDoc.data()?.explanationLanguage || "english") : "english";
+  // 1. Language preference: the app sends the attendee's current choice, so a change applies before
+  // the profile write reaches Firestore. Older app versions fall back to the saved profile.
+  let explanationLanguage = parseExplanationLanguage(requestedLanguage);
+  if (!explanationLanguage) {
+    const userDoc = await db.collection("users").doc(uid).get();
+    explanationLanguage = parseExplanationLanguage(userDoc.data()?.explanationLanguage) ?? "english";
+  }
 
   // 2. Check cache
   const cacheHash = getCacheHash(segmentIds, explanationLanguage);
@@ -141,7 +176,7 @@ Category: ${sessionData.category}
 1. Deep Contextual Breakdown: Do NOT output a single generic textbook definition. Unpack and elaborate on EVERYTHING the speaker explicitly mentioned in <selected_transcript>.
 2. Detailed Itemization: If the speaker lists multiple items, types, or keywords, explain each clearly using bullet points or sections.
 3. Synthesize & Address ALL Selected Statements: Address and explain what the speaker meant across ALL ${validSelected.length} selected statement(s).
-4. Output Language: Use the language: ${explanationLanguage}. If 'taglish', mix Tagalog and English naturally.
+4. Output Language: ${explanationLanguageInstruction(explanationLanguage)}
 5. Markdown Formatting: Structure thoroughly with Markdown (bold headers, bullet points, line breaks).
 6. Evidence Grounding: Provide evidence IDs in the "explanationGroundedIn" array using ONLY the IDs provided in context tags below.
 7. No IDs in Prose: NEVER mention, cite, or parenthesize any ID (e.g. "term_...", "tr_...", "note_...", "slide_...") in "type", "title", or "definition". IDs belong ONLY in "explanationGroundedIn".

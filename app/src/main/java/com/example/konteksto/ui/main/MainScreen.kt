@@ -105,6 +105,7 @@ fun MainScreen(
                     isDarkMode = isDarkMode,
                     onDarkModeChange = onDarkModeChange,
                     onSignOutClick = onSignOut,
+                    onShowMessage = showMessage,
                 )
             }
         }

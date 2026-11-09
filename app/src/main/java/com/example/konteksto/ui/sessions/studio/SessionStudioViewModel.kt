@@ -3,11 +3,17 @@ package com.example.konteksto.ui.sessions.studio
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.konteksto.data.repository.AuthRepository
+import com.example.konteksto.data.repository.FirebaseAuthRepository
 import com.example.konteksto.data.repository.FirebaseGlossaryRepository
+import com.example.konteksto.data.repository.FirebaseUserProfileRepository
 import com.example.konteksto.data.repository.GlossaryRepository
 import com.example.konteksto.data.repository.GlossaryTermItem
 import com.example.konteksto.data.repository.SessionRepository
+import com.example.konteksto.data.repository.UserProfileRepository
+import com.example.konteksto.domain.model.ExplanationLanguage
 import com.example.konteksto.domain.model.LiveConceptExplanationItem
+import com.example.konteksto.domain.usecase.ObserveCurrentProfileUseCase
 import com.example.konteksto.ui.components.SessionLookup
 import com.example.konteksto.ui.host.studio.TranscriptEntry
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -15,10 +21,12 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -34,7 +42,6 @@ data class ActiveExplanationRequest(
 )
 
 data class SessionStudioUiState(
-    val sessionLookup: SessionLookup = SessionLookup.Loading,
     val transcripts: List<CompanionTranscriptItem> = emptyList(),
     val livePartialText: String = "",
     val hasEarlierTranscripts: Boolean = false,
@@ -85,10 +92,19 @@ class SessionStudioViewModel(
     private val explanationRepository: com.example.konteksto.data.repository.ExplanationRepository = com.example.konteksto.data.repository.FirebaseExplanationRepository(),
     private val glossaryRepository: GlossaryRepository = FirebaseGlossaryRepository(),
     clock: () -> Long = System::currentTimeMillis,
+    authRepository: AuthRepository = FirebaseAuthRepository(),
+    userProfileRepository: UserProfileRepository = FirebaseUserProfileRepository(),
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SessionStudioUiState())
     val uiState: StateFlow<SessionStudioUiState> = _uiState.asStateFlow()
+
+    /** The attendee's chosen explanation language, kept current so a change in Profile applies to the next explanation. */
+    private val explanationLanguage: StateFlow<ExplanationLanguage> =
+        ObserveCurrentProfileUseCase(authRepository, userProfileRepository)()
+            .map { profile -> profile?.explanationLanguage ?: ExplanationLanguage.Default }
+            .catch { emit(ExplanationLanguage.Default) }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, ExplanationLanguage.Default)
 
     private var knownTranscripts = emptyList<TranscriptEntry>()
     private var observeJob: Job? = null
@@ -177,12 +193,6 @@ class SessionStudioViewModel(
         startObserving()
     }
 
-    fun retrySessionLookup() {
-        _uiState.update { it.copy(sessionLookup = SessionLookup.Loading) }
-        stopObserving()
-        startObserving()
-    }
-
     private fun onTranscriptWindow(window: List<TranscriptEntry>) {
         knownTranscripts = mergeTranscriptWindow(knownTranscripts, window)
         val companionItems = knownTranscripts.map { it.toCompanionItem() }
@@ -245,7 +255,13 @@ class SessionStudioViewModel(
             val selectedTexts = selectedItems.map { it.text }
             val speakerName = selectedItems.firstOrNull()?.speakerName.orEmpty()
 
-            explanationRepository.explainSelection(sessionId, segmentIds, selectedTexts, speakerName)
+            explanationRepository.explainSelection(
+                sessionId = sessionId,
+                segmentIds = segmentIds,
+                selectedTexts = selectedTexts,
+                speakerName = speakerName,
+                language = explanationLanguage.value,
+            )
                 .onSuccess { explanation ->
                     _uiState.update {
                         it.copy(
@@ -329,10 +345,17 @@ class SessionStudioViewModel(
         fun provideFactory(
             sessionId: String,
             sessionRepository: SessionRepository,
+            authRepository: AuthRepository = FirebaseAuthRepository(),
+            userProfileRepository: UserProfileRepository = FirebaseUserProfileRepository(),
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return SessionStudioViewModel(sessionId, sessionRepository) as T
+                return SessionStudioViewModel(
+                    sessionId = sessionId,
+                    sessionRepository = sessionRepository,
+                    authRepository = authRepository,
+                    userProfileRepository = userProfileRepository,
+                ) as T
             }
         }
     }
