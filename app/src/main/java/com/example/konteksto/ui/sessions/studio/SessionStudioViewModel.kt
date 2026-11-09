@@ -42,6 +42,7 @@ data class ActiveExplanationRequest(
 )
 
 data class SessionStudioUiState(
+    val sessionLookup: SessionLookup = SessionLookup.Loading,
     val transcripts: List<CompanionTranscriptItem> = emptyList(),
     val livePartialText: String = "",
     val hasEarlierTranscripts: Boolean = false,
@@ -189,6 +190,12 @@ class SessionStudioViewModel(
     }
 
     fun retryLiveTranscript() {
+        stopObserving()
+        startObserving()
+    }
+
+    fun retrySessionLookup() {
+        _uiState.update { it.copy(sessionLookup = SessionLookup.Loading) }
         stopObserving()
         startObserving()
     }
