@@ -1,6 +1,8 @@
 package com.example.konteksto.ui.profile
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -8,10 +10,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -44,10 +46,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.AvatarGradients
 import com.example.konteksto.domain.model.UserProfile
@@ -56,7 +60,7 @@ import com.example.konteksto.domain.model.UserProfile
 fun EditProfileScreen(
     profile: UserProfile,
     onBackClick: () -> Unit,
-    onSaveClick: (name: String, role: String, organization: String, bio: String, avatarColorIndex: Int) -> Unit,
+    onSaveClick: (name: String, role: String, organization: String, bio: String, avatarColorIndex: Int, photoUrl: String?) -> Unit,
     modifier: Modifier = Modifier,
     isSaving: Boolean = false,
     errorMessage: String? = null,
@@ -65,8 +69,17 @@ fun EditProfileScreen(
     var role by rememberSaveable(profile.uid) { mutableStateOf(profile.role) }
     var organization by rememberSaveable(profile.uid) { mutableStateOf(profile.organization) }
     var bio by rememberSaveable(profile.uid) { mutableStateOf(profile.bio) }
+    var photoUrl by rememberSaveable(profile.uid, profile.photoUrl) { mutableStateOf(profile.photoUrl) }
     var selectedGradientIndex by rememberSaveable(profile.uid, profile.avatarColorIndex) {
         mutableStateOf(profile.avatarColorIndex)
+    }
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+    ) { uri ->
+        if (uri != null) {
+            photoUrl = uri.toString()
+        }
     }
 
     val initials = remember(name, profile.email) {
@@ -128,7 +141,7 @@ fun EditProfileScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Centered Avatar & Color Selection Section
+            // Centered Avatar & Photo Action Section
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -148,12 +161,21 @@ fun EditProfileScreen(
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            text = initials,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 32.sp,
-                        )
+                        if (!photoUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = photoUrl,
+                                contentDescription = "Profile photo",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        } else {
+                            Text(
+                                text = initials,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 32.sp,
+                            )
+                        }
                     }
 
                     // Verified shield badge
@@ -177,6 +199,64 @@ fun EditProfileScreen(
                             modifier = Modifier.size(15.dp),
                             tint = Color.White,
                         )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Upload & Remove Photo Buttons
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    OutlinedButton(
+                        onClick = { photoPickerLauncher.launch("image/*") },
+                        enabled = !isSaving,
+                        shape = CircleShape,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_camera),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Upload Photo",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                            ),
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+
+                    if (!photoUrl.isNullOrBlank()) {
+                        OutlinedButton(
+                            onClick = { photoUrl = null },
+                            enabled = !isSaving,
+                            shape = CircleShape,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_delete),
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Remove Photo",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                ),
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
                     }
                 }
 
@@ -380,29 +460,17 @@ fun EditProfileScreen(
             OutlinedTextField(
                 value = bio,
                 onValueChange = { bio = it },
-                label = {
-                    Text(
-                        text = "Bio",
-                        modifier = Modifier.offset(y = (-3).dp)
-                    )
-                },
-                placeholder = {
-                    Text(
-                        text = "Tell speakers a little about yourself",
-                        modifier = Modifier.offset(y = (-3).dp)
-                    )
-                },
+                label = { Text("Bio") },
+                placeholder = { Text("Tell speakers a little about yourself") },
                 leadingIcon = {
                     Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .offset(y = (-15).dp),
-                        contentAlignment = Alignment.Center
+                        modifier = Modifier.padding(top = 12.dp),
+                        contentAlignment = Alignment.TopCenter,
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_align_left),
                             contentDescription = null,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                 },
@@ -411,7 +479,7 @@ fun EditProfileScreen(
                 enabled = !isSaving,
                 shape = textFieldShape,
                 colors = activeTextFieldColors,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             )
 
             if (!errorMessage.isNullOrBlank()) {
@@ -470,6 +538,7 @@ fun EditProfileScreen(
                             organization,
                             bio,
                             selectedGradientIndex,
+                            photoUrl,
                         )
                     },
                     enabled = !isSaving,

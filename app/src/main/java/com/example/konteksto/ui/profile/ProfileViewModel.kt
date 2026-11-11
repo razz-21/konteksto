@@ -91,13 +91,14 @@ class ProfileViewModel(
         _uiState.value = ProfileUiState(isLoading = false, errorMessage = message)
     }
 
-    // Saves the Edit Profile fields and avatar color to Firestore.
+    // Saves the Edit Profile fields, avatar color, and uploaded photo URL to Firestore & SharedPreferences.
     fun saveProfile(
         name: String,
         role: String,
         organization: String,
         bio: String,
         avatarColorIndex: Int = 3,
+        photoUrl: String? = null,
         onComplete: (Boolean) -> Unit,
     ) {
         val user = currentUser
@@ -119,7 +120,7 @@ class ProfileViewModel(
                 email = user.email ?: "",
                 organization = organization.trim(),
                 bio = bio.trim(),
-                photoUrl = user.photoUrl,
+                photoUrl = photoUrl,
                 avatarColorIndex = avatarColorIndex,
                 explanationLanguage = _profile.value?.explanationLanguage ?: ExplanationLanguage.Default,
             )
