@@ -103,7 +103,6 @@ fun SessionLiveCompanionView(
     val followState = rememberLiveTranscriptFollowState(
         listState = transcriptListState,
         itemCount = transcriptItemCount,
-        liveText = livePartialText,
         isPaused = selectedIds.isNotEmpty(),
     )
 
