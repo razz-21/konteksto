@@ -72,6 +72,7 @@ fun KontekstoTopBar(
             UserAvatar(
                 initials = currentProfile.initials,
                 gradientColors = currentProfile.avatarGradientColors,
+                photoUrl = currentProfile.photoUrl,
                 contentDescription = stringResource(id = R.string.profile_avatar_description),
                 onClick = onProfileClick,
             )

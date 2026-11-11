@@ -93,8 +93,8 @@ fun ProfileScreen(
             isSaving = uiState.isLoading,
             errorMessage = uiState.errorMessage,
             onBackClick = { showEditProfile = false },
-            onSaveClick = { name, role, organization, bio, avatarColorIndex ->
-                viewModel.saveProfile(name, role, organization, bio, avatarColorIndex) { wasSaved ->
+            onSaveClick = { name, role, organization, bio, avatarColorIndex, photoUrl ->
+                viewModel.saveProfile(name, role, organization, bio, avatarColorIndex, photoUrl) { wasSaved ->
                     if (wasSaved) {
                         showEditProfile = false
                     }
