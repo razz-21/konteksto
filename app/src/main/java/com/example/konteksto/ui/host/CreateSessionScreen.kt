@@ -1,5 +1,7 @@
 package com.example.konteksto.ui.host
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -75,19 +77,42 @@ fun CreateSessionScreen(
     val scrollState = rememberScrollState()
     val snackbarScope = rememberCoroutineScope()
 
+    var customBannerUri by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedBannerId by rememberSaveable {
         mutableStateOf(ConferenceThemeBanner.DefaultCategories.first().id)
     }
-    val selectedBanner = remember(selectedBannerId) {
-        ConferenceThemeBanner.DefaultCategories.find { it.id == selectedBannerId }
-            ?: ConferenceThemeBanner.DefaultCategories.first()
+
+    var categoryTrack by rememberSaveable {
+        mutableStateOf(ConferenceThemeBanner.DefaultCategories.first().categoryName)
     }
+
+    val selectedBanner = remember(selectedBannerId, customBannerUri, categoryTrack) {
+        if (selectedBannerId == "custom_upload" && customBannerUri != null) {
+            ConferenceThemeBanner(
+                id = "custom_upload",
+                categoryName = categoryTrack.ifBlank { "Custom Cover" },
+                imageUrl = customBannerUri!!,
+            )
+        } else {
+            ConferenceThemeBanner.DefaultCategories.find { it.id == selectedBannerId }
+                ?: ConferenceThemeBanner.DefaultCategories.first()
+        }
+    }
+
+    val coverImagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+    ) { uri ->
+        if (uri != null) {
+            customBannerUri = uri.toString()
+            selectedBannerId = "custom_upload"
+        }
+    }
+
     var sessionTitle by rememberSaveable { mutableStateOf("") }
     var talkCode by rememberSaveable { mutableStateOf(generateAlphanumericCode()) }
     var speakerName by rememberSaveable(initialSpeakerName) {
         mutableStateOf(initialSpeakerName.ifBlank { "Zhar" })
     }
-    var categoryTrack by rememberSaveable { mutableStateOf(selectedBanner.categoryName) }
     var roomStage by rememberSaveable { mutableStateOf("") }
     var startTime by rememberSaveable { mutableStateOf("10:00 AM") }
     var endTime by rememberSaveable { mutableStateOf("") }
@@ -208,7 +233,9 @@ fun CreateSessionScreen(
                     categoryTrack = newBanner.categoryName
                     categoryError = null
                 },
-                onUploadClick = { /* Handle custom image upload */ },
+                onUploadClick = {
+                    coverImagePickerLauncher.launch("image/*")
+                },
             )
 
             Spacer(modifier = Modifier.height(20.dp))
