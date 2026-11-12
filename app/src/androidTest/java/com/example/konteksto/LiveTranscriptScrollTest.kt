@@ -114,6 +114,20 @@ class LiveTranscriptScrollTest {
     }
 
     @Test
+    fun keepsReadingPositionWhileInProgressTextGrows() {
+        showAttendeeView()
+        partial = "first words"
+        assertDisplayed("Line 30")
+
+        // New words keep updating the same live bubble, but the list must not follow each change.
+        partial = (1..400).joinToString(" ") { "word$it" }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Line 30").assertIsDisplayed()
+        composeRule.onNodeWithText("LIVE SPEAKING…").assertIsDisplayed()
+    }
+
+    @Test
     fun staysPutWhileSelectingLines() {
         showAttendeeView()
         composeRule.onNodeWithText("Line 30").performClick()

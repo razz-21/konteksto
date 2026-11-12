@@ -59,14 +59,15 @@ private suspend fun LazyListState.scrollToNewest(itemCount: Int) {
 }
 
 /**
- * Keeps the list on its newest line until the viewer scrolls up, then waits for them to return to the
- * bottom. [isPaused] also holds it in place, such as while the viewer is selecting lines.
+ * Keeps the list on its newest line when a new line is added, until the viewer scrolls up, then
+ * waits for them to return to the bottom. It does not follow changes inside the line the speaker is
+ * still saying, so the list stays still while new words are generated. [isPaused] also holds it in
+ * place, such as while the viewer is selecting lines.
  */
 @Composable
 fun rememberLiveTranscriptFollowState(
     listState: LazyListState,
     itemCount: Int,
-    liveText: String,
     isPaused: Boolean = false,
 ): LiveTranscriptFollowState {
     val followState = remember { LiveTranscriptFollowState() }
@@ -87,7 +88,7 @@ fun rememberLiveTranscriptFollowState(
     }
 
     val shouldFollow = followState.isFollowing && !isPaused
-    LaunchedEffect(shouldFollow, itemCount, liveText) {
+    LaunchedEffect(shouldFollow, itemCount) {
         if (shouldFollow) listState.scrollToNewest(itemCount)
     }
 

@@ -62,7 +62,6 @@ fun HostStudioBroadcastView(
     val followState = rememberLiveTranscriptFollowState(
         listState = transcriptListState,
         itemCount = transcriptItemCount,
-        liveText = partialTranscript,
     )
 
     Column(modifier = modifier.fillMaxWidth()) {
