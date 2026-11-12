@@ -65,6 +65,9 @@ data class CompanionTranscriptItem(
     val isSystemEvent: Boolean = false,
 )
 
+/** Space kept under the transcript card for the floating "What did they mean?" button. */
+internal val LiveCompanionActionAreaHeight = 80.dp
+
 @Composable
 fun SessionLiveCompanionView(
     session: HostSession,
@@ -125,7 +128,7 @@ fun SessionLiveCompanionView(
         Card(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 80.dp),
+                .padding(bottom = LiveCompanionActionAreaHeight),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.extendedColors.cardContainer,

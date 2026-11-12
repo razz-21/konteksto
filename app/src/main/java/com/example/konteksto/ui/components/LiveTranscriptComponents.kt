@@ -42,6 +42,9 @@ import com.example.konteksto.R
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.launch
 
+/** Smallest height of the live transcript card, so small phones still show several lines. */
+val LiveTranscriptMinHeight = 420.dp
+
 /** Tracks whether a live transcript should stay pinned to its newest line. */
 @Stable
 class LiveTranscriptFollowState {
