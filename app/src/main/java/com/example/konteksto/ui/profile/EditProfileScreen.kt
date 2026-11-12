@@ -55,6 +55,7 @@ import coil.compose.AsyncImage
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.AvatarGradients
 import com.example.konteksto.domain.model.UserProfile
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 
 @Composable
 fun EditProfileScreen(
@@ -212,9 +213,10 @@ fun EditProfileScreen(
                     OutlinedButton(
                         onClick = { photoPickerLauncher.launch("image/*") },
                         enabled = !isSaving,
-                        shape = CircleShape,
+                        shape = KontekstoButtonDefaults.shape,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                        modifier = Modifier.height(KontekstoButtonDefaults.Height),
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_camera),
@@ -237,9 +239,10 @@ fun EditProfileScreen(
                         OutlinedButton(
                             onClick = { photoUrl = null },
                             enabled = !isSaving,
-                            shape = CircleShape,
+                            shape = KontekstoButtonDefaults.shape,
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                            modifier = Modifier.height(KontekstoButtonDefaults.Height),
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_delete),
@@ -511,8 +514,8 @@ fun EditProfileScreen(
                     enabled = !isSaving,
                     modifier = Modifier
                         .weight(1f)
-                        .height(50.dp),
-                    shape = CircleShape,
+                        .height(KontekstoButtonDefaults.Height),
+                    shape = KontekstoButtonDefaults.shape,
                     border = BorderStroke(
                         1.dp,
                         MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
@@ -544,8 +547,8 @@ fun EditProfileScreen(
                     enabled = !isSaving,
                     modifier = Modifier
                         .weight(1.3f)
-                        .height(50.dp),
-                    shape = CircleShape,
+                        .height(KontekstoButtonDefaults.Height),
+                    shape = KontekstoButtonDefaults.shape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,

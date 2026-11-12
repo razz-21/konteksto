@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 
 @Composable
 fun GoogleSignInButton(
@@ -35,14 +36,14 @@ fun GoogleSignInButton(
     Button(
         onClick = onClick,
         enabled = !isLoading,
-        shape = MaterialTheme.shapes.medium,
+        shape = KontekstoButtonDefaults.shape,
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
             disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
             disabledContentColor = MaterialTheme.colorScheme.onPrimary,
         ),
-        modifier = modifier.height(44.dp),
+        modifier = modifier.height(KontekstoButtonDefaults.Height),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,

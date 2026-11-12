@@ -40,6 +40,7 @@ import com.example.konteksto.domain.model.AuthUser
 import com.example.konteksto.domain.model.ExplanationLanguage
 import com.example.konteksto.domain.model.UserProfile
 import com.example.konteksto.ui.login.GoogleSignInButton
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 import com.example.konteksto.ui.theme.extendedColors
 
@@ -89,7 +90,8 @@ fun ProfileScreenContent(
                         containerColor = MaterialTheme.colorScheme.error,
                         contentColor = MaterialTheme.colorScheme.onError,
                     ),
-                    shape = MaterialTheme.shapes.small,
+                    shape = KontekstoButtonDefaults.shape,
+                    modifier = Modifier.height(KontekstoButtonDefaults.Height),
                 ) {
                     Text(
                         text = "Sign Out",
@@ -100,7 +102,7 @@ fun ProfileScreenContent(
             dismissButton = {
                 TextButton(
                     onClick = { showSignOutDialog = false },
-                    shape = MaterialTheme.shapes.small,
+                    shape = KontekstoButtonDefaults.shape,
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     ),

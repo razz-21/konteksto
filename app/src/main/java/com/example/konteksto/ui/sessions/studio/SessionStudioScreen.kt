@@ -36,6 +36,7 @@ import com.example.konteksto.domain.model.LiveConceptExplanationItem
 import com.example.konteksto.ui.components.showKontekstoSnackbar
 import com.example.konteksto.ui.host.studio.DeleteDomainTermDialog
 import com.example.konteksto.ui.host.studio.DomainTermItem
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 import kotlinx.coroutines.launch
 
@@ -105,7 +106,8 @@ fun SessionStudioScreen(
                         containerColor = MaterialTheme.colorScheme.error,
                         contentColor = MaterialTheme.colorScheme.onError,
                     ),
-                    shape = MaterialTheme.shapes.small,
+                    shape = KontekstoButtonDefaults.shape,
+                    modifier = Modifier.height(KontekstoButtonDefaults.Height),
                 ) {
                     Text("Leave", fontWeight = FontWeight.Bold)
                 }
@@ -113,7 +115,8 @@ fun SessionStudioScreen(
             dismissButton = {
                 OutlinedButton(
                     onClick = { showLeaveConfirmDialog = false },
-                    shape = MaterialTheme.shapes.small,
+                    shape = KontekstoButtonDefaults.shape,
+                    modifier = Modifier.height(KontekstoButtonDefaults.Height),
                 ) {
                     Text("Cancel")
                 }

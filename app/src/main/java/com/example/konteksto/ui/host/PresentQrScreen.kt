@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -55,6 +54,7 @@ import coil.compose.AsyncImage
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.components.showKontekstoSnackbar
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 import com.example.konteksto.ui.theme.extendedColors
 import kotlinx.coroutines.launch
@@ -300,8 +300,8 @@ fun PresentQrScreen(
                     onClick = onBackClick,
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp),
-                    shape = CircleShape,
+                        .height(KontekstoButtonDefaults.Height),
+                    shape = KontekstoButtonDefaults.shape,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 ) {
                     Text(
@@ -321,8 +321,8 @@ fun PresentQrScreen(
                     },
                     modifier = Modifier
                         .weight(1.5f)
-                        .height(48.dp),
-                    shape = CircleShape,
+                        .height(KontekstoButtonDefaults.Height),
+                    shape = KontekstoButtonDefaults.shape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,

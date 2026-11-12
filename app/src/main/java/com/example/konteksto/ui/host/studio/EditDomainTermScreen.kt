@@ -41,6 +41,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -185,8 +186,8 @@ fun EditDomainTermScreen(
                         onClick = onBackRequested,
                         modifier = Modifier
                             .weight(1f)
-                            .height(48.dp),
-                        shape = CircleShape,
+                            .height(KontekstoButtonDefaults.Height),
+                        shape = KontekstoButtonDefaults.shape,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     ) {
                         Text(
@@ -214,8 +215,8 @@ fun EditDomainTermScreen(
                         enabled = hasChanges,
                         modifier = Modifier
                             .weight(1.5f)
-                            .height(48.dp),
-                        shape = CircleShape,
+                            .height(KontekstoButtonDefaults.Height),
+                        shape = KontekstoButtonDefaults.shape,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary,

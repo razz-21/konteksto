@@ -24,6 +24,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 
 @Composable
@@ -71,12 +72,13 @@ fun CreateSessionTopBar(
 
             Button(
                 onClick = onCreateClick,
-                shape = MaterialTheme.shapes.small,
+                shape = KontekstoButtonDefaults.shape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                modifier = Modifier.height(KontekstoButtonDefaults.Height),
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_check),

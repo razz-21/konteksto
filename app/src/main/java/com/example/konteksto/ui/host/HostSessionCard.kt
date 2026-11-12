@@ -48,9 +48,10 @@ import com.example.konteksto.R
 import com.example.konteksto.domain.model.ConferenceThemeBanner
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.domain.model.UserProfile
+import com.example.konteksto.ui.components.LiveOnAirBadge
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 import com.example.konteksto.ui.theme.extendedColors
-import com.example.konteksto.ui.components.LiveOnAirBadge
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -309,8 +310,8 @@ fun HostSessionCard(
                         onClick = { onPresentQrClick(session) },
                         modifier = Modifier
                             .weight(1f)
-                            .height(44.dp),
-                        shape = RoundedCornerShape(12.dp),
+                            .height(KontekstoButtonDefaults.Height),
+                        shape = KontekstoButtonDefaults.shape,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                             contentColor = MaterialTheme.colorScheme.primary,
@@ -339,8 +340,8 @@ fun HostSessionCard(
                         onClick = { onLiveRoomClick(session) },
                         modifier = Modifier
                             .weight(1f)
-                            .height(44.dp),
-                        shape = RoundedCornerShape(12.dp),
+                            .height(KontekstoButtonDefaults.Height),
+                        shape = KontekstoButtonDefaults.shape,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary,

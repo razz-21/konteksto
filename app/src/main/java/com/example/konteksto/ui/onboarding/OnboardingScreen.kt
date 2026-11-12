@@ -62,6 +62,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.konteksto.R
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 import com.example.konteksto.ui.theme.extendedColors
 
@@ -258,8 +259,8 @@ fun OnboardingScreen(
                         onClick = { currentStep-- },
                         modifier = Modifier
                             .width(100.dp)
-                            .height(52.dp),
-                        shape = MaterialTheme.shapes.small,
+                            .height(KontekstoButtonDefaults.Height),
+                        shape = KontekstoButtonDefaults.shape,
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                         colors = ButtonDefaults.outlinedButtonColors(
@@ -290,8 +291,8 @@ fun OnboardingScreen(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .height(52.dp),
-                    shape = MaterialTheme.shapes.small,
+                        .height(KontekstoButtonDefaults.Height),
+                    shape = KontekstoButtonDefaults.shape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF3B52D4),
                         contentColor = Color.White,
@@ -788,12 +789,13 @@ private fun PermissionCard(
             } else {
                 Button(
                     onClick = onActionClick,
-                    shape = MaterialTheme.shapes.medium,
+                    shape = KontekstoButtonDefaults.shape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFF1F5F9),
                         contentColor = Color(0xFF0F172A),
                     ),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    modifier = Modifier.height(KontekstoButtonDefaults.Height),
                 ) {
                     Text(
                         text = "Enable",

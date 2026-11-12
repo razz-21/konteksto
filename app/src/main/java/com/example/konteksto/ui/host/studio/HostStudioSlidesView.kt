@@ -54,6 +54,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.extendedColors
 import kotlin.math.roundToInt
 
@@ -436,11 +437,12 @@ fun HostStudioSlidesView(
 
                                 Button(
                                     onClick = { pdfPickerLauncher.launch("application/pdf") },
-                                    shape = CircleShape,
+                                    shape = KontekstoButtonDefaults.shape,
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.primary,
                                         contentColor = MaterialTheme.colorScheme.onPrimary,
                                     ),
+                                    modifier = Modifier.height(KontekstoButtonDefaults.Height),
                                 ) {
                                     Icon(
                                         painter = painterResource(id = R.drawable.ic_upload),
@@ -593,8 +595,8 @@ fun HostStudioSlidesView(
                                         onClick = onRemoveSlideDeckClick,
                                         modifier = Modifier
                                             .weight(1f)
-                                            .height(42.dp),
-                                        shape = CircleShape,
+                                            .height(KontekstoButtonDefaults.Height),
+                                        shape = KontekstoButtonDefaults.shape,
                                         border = BorderStroke(
                                             1.dp,
                                             MaterialTheme.colorScheme.error.copy(alpha = 0.4f),
@@ -629,8 +631,8 @@ fun HostStudioSlidesView(
                                         },
                                         modifier = Modifier
                                             .weight(1f)
-                                            .height(42.dp),
-                                        shape = CircleShape,
+                                            .height(KontekstoButtonDefaults.Height),
+                                        shape = KontekstoButtonDefaults.shape,
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = MaterialTheme.colorScheme.primary,
                                             contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -789,11 +791,12 @@ fun HostStudioSlidesView(
 
                                             Button(
                                                 onClick = onAnalyzeSlideDeckClick,
-                                                shape = CircleShape,
+                                                shape = KontekstoButtonDefaults.shape,
                                                 colors = ButtonDefaults.buttonColors(
                                                     containerColor = MaterialTheme.colorScheme.primary,
                                                     contentColor = MaterialTheme.colorScheme.onPrimary,
                                                 ),
+                                                modifier = Modifier.height(KontekstoButtonDefaults.Height),
                                             ) {
                                                 Icon(
                                                     painter = painterResource(id = R.drawable.ic_sparkle),
@@ -965,8 +968,8 @@ fun HostStudioSlidesView(
                         onClick = onAddNoteClick,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(44.dp),
-                        shape = CircleShape,
+                            .height(KontekstoButtonDefaults.Height),
+                        shape = KontekstoButtonDefaults.shape,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                             contentColor = MaterialTheme.colorScheme.primary,

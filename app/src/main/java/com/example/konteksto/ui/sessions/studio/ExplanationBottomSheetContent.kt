@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.LiveConceptExplanationItem
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 
 @Composable
@@ -175,8 +176,8 @@ fun ExplanationBottomSheetContent(
                 onClick = onDismiss,
                 modifier = Modifier
                     .weight(1f)
-                    .height(48.dp),
-                shape = CircleShape,
+                    .height(KontekstoButtonDefaults.Height),
+                shape = KontekstoButtonDefaults.shape,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 colors = ButtonDefaults.outlinedButtonColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
@@ -198,8 +199,8 @@ fun ExplanationBottomSheetContent(
                 onClick = onDismiss,
                 modifier = Modifier
                     .weight(1f)
-                    .height(48.dp),
-                shape = CircleShape,
+                    .height(KontekstoButtonDefaults.Height),
+                shape = KontekstoButtonDefaults.shape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
