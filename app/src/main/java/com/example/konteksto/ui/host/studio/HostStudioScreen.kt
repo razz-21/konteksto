@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -116,134 +117,141 @@ fun HostStudioScreen(
             .safeDrawingPadding(),
         color = MaterialTheme.colorScheme.background,
     ) {
-        BoxWithConstraints {
-            Column(
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Kept outside the scrolling content so it stays pinned to the top.
+            HostStudioTopBar(
+                session = session,
+                onBackClick = onBackClick,
+                onPresentQrClick = onPresentQrClick,
+                modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp),
+            )
+
+            BoxWithConstraints(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .then(
-                        if (selectedTab == 1) {
-                            Modifier.height(max(maxHeight - 16.dp, MIN_SLIDES_TAB_HEIGHT))
-                        } else {
-                            Modifier
-                        },
-                    ),
+                    .fillMaxWidth()
+                    .weight(1f),
             ) {
-                // Top Bar
-                HostStudioTopBar(
-                    session = session,
-                    onBackClick = onBackClick,
-                    onPresentQrClick = onPresentQrClick,
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(scrollState)
+                        .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+                        .then(
+                            if (selectedTab == 1) {
+                                Modifier.height(max(maxHeight - 8.dp, MIN_SLIDES_TAB_HEIGHT))
+                            } else {
+                                Modifier
+                            },
+                        ),
+                ) {
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Segmented Tabs Row
-                HostStudioSegmentedTabs(
-                    selectedTab = selectedTab,
-                    onTabSelected = { tab ->
-                        localSelectedTab = tab
-                        onTabSelected(tab)
-                    },
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Tab View Content
-                if (selectedTab == 0) {
-                    // Session Header Card (Title, Venue, Start Session & Audio Broadcast)
-                    HostStudioHeaderCard(
-                        session = session,
-                        isAudioBroadcasting = isAudioBroadcasting,
-                        onStartSessionClick = { showStartConfirmDialog = true },
-                        onEndSessionClick = { showEndConfirmDialog = true },
-                        onToggleAudioBroadcasting = {
-                            localIsAudioBroadcasting = !localIsAudioBroadcasting
-                            onToggleAudioBroadcasting()
+                    // Segmented Tabs Row
+                    HostStudioSegmentedTabs(
+                        selectedTab = selectedTab,
+                        onTabSelected = { tab ->
+                            localSelectedTab = tab
+                            onTabSelected(tab)
                         },
                     )
 
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    HostStudioBroadcastView(
-                        isAudioBroadcasting = isAudioBroadcasting,
-                        transcripts = transcripts,
-                        partialTranscript = uiState?.partialTranscript ?: "",
-                        inputDevice = uiState?.inputDevice,
-                        onAddTranscript = { text ->
-                            if (uiState != null) {
-                                onAddTranscript(text)
-                            } else {
-                                val newEntry = TranscriptEntry(
-                                    id = System.currentTimeMillis().toString(),
-                                    speakerName = session.speakerName.ifBlank { "Host" },
-                                    timestamp = "Just now",
-                                    text = text,
-                                )
-                                localTranscripts += newEntry
-                            }
-                        },
-                    )
-                } else {
-                    HostStudioSlidesView(
-                        modifier = Modifier.weight(1f),
-                        contextNotes = contextNotes,
-                        slideDeckInfo = slideDeckInfo,
-                        hasUnappliedContextNotes = uiState?.hasUnappliedContextNotes ?: false,
-                        analyzedSlides = analyzedSlides,
-                        domainTerms = uiState?.domainTerms ?: emptyList(),
-                        isUploadingPdf = uiState?.isUploadingPdf ?: false,
-                        isAnalyzingPdf = uiState?.isAnalyzingPdf ?: false,
-                        onAddNoteClick = onAddContextNoteClick,
-                        onUploadPdfSubmitted = { uri, fileName, fileSizeMb, pageCount, pdfBytes ->
-                            if (uiState != null) {
-                                onUploadPdfSubmitted(uri, fileName, fileSizeMb, pageCount, pdfBytes)
-                            } else {
-                                localSlideDeckInfo = SlideDeckInfo(
-                                    fileName = fileName,
-                                    fileSizeMb = fileSizeMb,
-                                    pageCount = pageCount,
-                                    uploadTime = "Uploaded Just now",
-                                    isAnalyzed = false,
-                                    pdfBytes = pdfBytes,
-                                )
-                                localAnalyzedSlides = emptyList()
-                            }
-                        },
-                        onRemoveSlideDeckClick = {
-                            if (uiState != null) {
-                                onRemoveSlideDeckClicked()
-                            } else {
-                                localSlideDeckInfo = null
-                                localAnalyzedSlides = emptyList()
-                            }
-                        },
-                        onAnalyzeSlideDeckClick = {
-                            if (uiState != null) {
-                                onAnalyzeSlideDeckClicked()
-                            } else {
-                                val currentDeckName = localSlideDeckInfo?.fileName ?: "Presentation.pdf"
-                                val pageCount = localSlideDeckInfo?.pageCount ?: 13
-                                localSlideDeckInfo = localSlideDeckInfo?.copy(isAnalyzed = true)
-                                localAnalyzedSlides = (1..pageCount).map { i ->
-                                    AnalyzedSlideItem(
-                                        id = "s_$i",
-                                        slideNumber = i,
-                                        title = "${currentDeckName.substringBeforeLast(".")}: Slide $i",
-                                        summary = "Overview summary of topics and main structure presented on Slide $i.",
-                                        explanation = "In-depth explanation of Slide $i concepts, mechanics, and context for live session listeners.",
-                                        keyTakeaway = "Slide $i grounds AI live terminology definitions in real time.",
+                    // Tab View Content
+                    if (selectedTab == 0) {
+                        // Session Header Card (Title, Venue, Start Session & Audio Broadcast)
+                        HostStudioHeaderCard(
+                            session = session,
+                            isAudioBroadcasting = isAudioBroadcasting,
+                            onStartSessionClick = { showStartConfirmDialog = true },
+                            onEndSessionClick = { showEndConfirmDialog = true },
+                            onToggleAudioBroadcasting = {
+                                localIsAudioBroadcasting = !localIsAudioBroadcasting
+                                onToggleAudioBroadcasting()
+                            },
+                        )
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        HostStudioBroadcastView(
+                            isAudioBroadcasting = isAudioBroadcasting,
+                            transcripts = transcripts,
+                            partialTranscript = uiState?.partialTranscript ?: "",
+                            inputDevice = uiState?.inputDevice,
+                            onAddTranscript = { text ->
+                                if (uiState != null) {
+                                    onAddTranscript(text)
+                                } else {
+                                    val newEntry = TranscriptEntry(
+                                        id = System.currentTimeMillis().toString(),
+                                        speakerName = session.speakerName.ifBlank { "Host" },
+                                        timestamp = "Just now",
+                                        text = text,
                                     )
+                                    localTranscripts += newEntry
                                 }
-                            }
-                        },
-                        onEditSlideClick = onEditSlideClick,
-                        onEditDomainTermClick = onEditDomainTermClick,
-                        onDeleteDomainTermClick = onDeleteDomainTermClick,
-                        onEditContextNoteClick = onEditContextNoteClick,
-                        onDeleteContextNoteClick = onDeleteContextNoteClick,
-                    )
+                            },
+                        )
+                    } else {
+                        HostStudioSlidesView(
+                            modifier = Modifier.weight(1f),
+                            contextNotes = contextNotes,
+                            slideDeckInfo = slideDeckInfo,
+                            hasUnappliedContextNotes = uiState?.hasUnappliedContextNotes ?: false,
+                            analyzedSlides = analyzedSlides,
+                            domainTerms = uiState?.domainTerms ?: emptyList(),
+                            isUploadingPdf = uiState?.isUploadingPdf ?: false,
+                            isAnalyzingPdf = uiState?.isAnalyzingPdf ?: false,
+                            onAddNoteClick = onAddContextNoteClick,
+                            onUploadPdfSubmitted = { uri, fileName, fileSizeMb, pageCount, pdfBytes ->
+                                if (uiState != null) {
+                                    onUploadPdfSubmitted(uri, fileName, fileSizeMb, pageCount, pdfBytes)
+                                } else {
+                                    localSlideDeckInfo = SlideDeckInfo(
+                                        fileName = fileName,
+                                        fileSizeMb = fileSizeMb,
+                                        pageCount = pageCount,
+                                        uploadTime = "Uploaded Just now",
+                                        isAnalyzed = false,
+                                        pdfBytes = pdfBytes,
+                                    )
+                                    localAnalyzedSlides = emptyList()
+                                }
+                            },
+                            onRemoveSlideDeckClick = {
+                                if (uiState != null) {
+                                    onRemoveSlideDeckClicked()
+                                } else {
+                                    localSlideDeckInfo = null
+                                    localAnalyzedSlides = emptyList()
+                                }
+                            },
+                            onAnalyzeSlideDeckClick = {
+                                if (uiState != null) {
+                                    onAnalyzeSlideDeckClicked()
+                                } else {
+                                    val currentDeckName = localSlideDeckInfo?.fileName ?: "Presentation.pdf"
+                                    val pageCount = localSlideDeckInfo?.pageCount ?: 13
+                                    localSlideDeckInfo = localSlideDeckInfo?.copy(isAnalyzed = true)
+                                    localAnalyzedSlides = (1..pageCount).map { i ->
+                                        AnalyzedSlideItem(
+                                            id = "s_$i",
+                                            slideNumber = i,
+                                            title = "${currentDeckName.substringBeforeLast(".")}: Slide $i",
+                                            summary = "Overview summary of topics and main structure presented on Slide $i.",
+                                            explanation = "In-depth explanation of Slide $i concepts, mechanics, and context for live session listeners.",
+                                            keyTakeaway = "Slide $i grounds AI live terminology definitions in real time.",
+                                        )
+                                    }
+                                }
+                            },
+                            onEditSlideClick = onEditSlideClick,
+                            onEditDomainTermClick = onEditDomainTermClick,
+                            onDeleteDomainTermClick = onDeleteDomainTermClick,
+                            onEditContextNoteClick = onEditContextNoteClick,
+                            onDeleteContextNoteClick = onDeleteContextNoteClick,
+                        )
+                    }
                 }
             }
         }

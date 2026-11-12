@@ -83,121 +83,126 @@ fun ContextNoteFormScreen(
             .safeDrawingPadding(),
         color = MaterialTheme.colorScheme.background,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Kept outside the scrolling form so it stays pinned to the top.
             EditFormTopBar(
                 title = screenTitle,
                 subtitle = screenSubtitle,
                 onBackClick = onBackRequested,
+                modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp),
             )
 
-            if (isAvailable) {
-                Text(
-                    text = "Add what your slides don't show, like what a term means in this talk, who your " +
-                        "audience is, or what to emphasize. This helps the AI explain your slides more clearly " +
-                        "and accurately. Notes apply the next time you analyze your slides.",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = 12.sp,
-                        lineHeight = 17.sp,
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-
-                EditFormField(
-                    label = "Title / Concept",
-                    value = title,
-                    onValueChange = {
-                        title = it
-                        titleError = null
-                    },
-                    errorMessage = titleError,
-                    singleLine = true,
-                    placeholder = "e.g. System Architecture Assumptions",
-                )
-
-                EditFormField(
-                    label = "Details / Summary",
-                    value = content,
-                    onValueChange = { content = it },
-                    placeholder = "e.g. Focus on zero latency requirements for distributed edge nodes...",
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Bottom Action Buttons: Back & Save
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    OutlinedButton(
-                        onClick = onBackRequested,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(KontekstoButtonDefaults.Height),
-                        shape = KontekstoButtonDefaults.shape,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                    ) {
-                        Text(
-                            text = "Back",
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                            ),
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-
-                    Button(
-                        onClick = {
-                            if (title.isBlank()) {
-                                titleError = "Title is required"
-                            } else if (!isSubmitted) {
-                                isSubmitted = true
-                                onSaveClick(title, content)
-                            }
-                        },
-                        enabled = hasChanges,
-                        modifier = Modifier
-                            .weight(1.5f)
-                            .height(KontekstoButtonDefaults.Height),
-                        shape = KontekstoButtonDefaults.shape,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_check),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Save",
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                            ),
-                        )
-                    }
-                }
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 48.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                if (isAvailable) {
                     Text(
-                        text = "This note is no longer available.",
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = "Add what your slides don't show, like what a term means in this talk, who your " +
+                            "audience is, or what to emphasize. This helps the AI explain your slides more clearly " +
+                            "and accurately. Notes apply the next time you analyze your slides.",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 12.sp,
+                            lineHeight = 17.sp,
+                        ),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+
+                    EditFormField(
+                        label = "Title / Concept",
+                        value = title,
+                        onValueChange = {
+                            title = it
+                            titleError = null
+                        },
+                        errorMessage = titleError,
+                        singleLine = true,
+                        placeholder = "e.g. System Architecture Assumptions",
+                    )
+
+                    EditFormField(
+                        label = "Details / Summary",
+                        value = content,
+                        onValueChange = { content = it },
+                        placeholder = "e.g. Focus on zero latency requirements for distributed edge nodes...",
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Bottom Action Buttons: Back & Save
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        OutlinedButton(
+                            onClick = onBackRequested,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(KontekstoButtonDefaults.Height),
+                            shape = KontekstoButtonDefaults.shape,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        ) {
+                            Text(
+                                text = "Back",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                ),
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+
+                        Button(
+                            onClick = {
+                                if (title.isBlank()) {
+                                    titleError = "Title is required"
+                                } else if (!isSubmitted) {
+                                    isSubmitted = true
+                                    onSaveClick(title, content)
+                                }
+                            },
+                            enabled = hasChanges,
+                            modifier = Modifier
+                                .weight(1.5f)
+                                .height(KontekstoButtonDefaults.Height),
+                            shape = KontekstoButtonDefaults.shape,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                            ),
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_check),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Save",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                ),
+                            )
+                        }
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 48.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "This note is no longer available.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }

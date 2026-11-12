@@ -89,152 +89,157 @@ fun EditDomainTermScreen(
             .safeDrawingPadding(),
         color = MaterialTheme.colorScheme.background,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Kept outside the scrolling form so it stays pinned to the top.
             EditFormTopBar(
                 title = "Edit Domain Term",
                 subtitle = null,
                 onBackClick = onBackRequested,
+                modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp),
             )
 
-            if (domainTerm == null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 48.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = "This term is no longer available.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            } else {
-                EditFormField(
-                    label = "Term",
-                    value = term,
-                    onValueChange = {
-                        term = it
-                        termError = null
-                    },
-                    errorMessage = termError,
-                    singleLine = true,
-                    placeholder = "e.g. Point of Presence (POP)",
-                )
-
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = "Category",
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 12.sp,
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                if (domainTerm == null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 48.dp),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        (DOMAIN_TERM_CATEGORIES + domainTerm.category).distinct().forEach { option ->
-                            FilterChip(
-                                selected = category == option,
-                                onClick = { category = option },
-                                label = {
-                                    Text(
-                                        text = option,
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontWeight = FontWeight.Bold,
-                                        ),
-                                    )
-                                },
-                                shape = CircleShape,
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    selectedLabelColor = MaterialTheme.colorScheme.primary,
+                        Text(
+                            text = "This term is no longer available.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                } else {
+                    EditFormField(
+                        label = "Term",
+                        value = term,
+                        onValueChange = {
+                            term = it
+                            termError = null
+                        },
+                        errorMessage = termError,
+                        singleLine = true,
+                        placeholder = "e.g. Point of Presence (POP)",
+                    )
+
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "Category",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp,
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            (DOMAIN_TERM_CATEGORIES + domainTerm.category).distinct().forEach { option ->
+                                FilterChip(
+                                    selected = category == option,
+                                    onClick = { category = option },
+                                    label = {
+                                        Text(
+                                            text = option,
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontWeight = FontWeight.Bold,
+                                            ),
+                                        )
+                                    },
+                                    shape = CircleShape,
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        selectedLabelColor = MaterialTheme.colorScheme.primary,
+                                    ),
+                                )
+                            }
+                        }
+                    }
+
+                    EditFormField(
+                        label = "Description",
+                        value = description,
+                        onValueChange = {
+                            description = it
+                            descriptionError = null
+                        },
+                        errorMessage = descriptionError,
+                        placeholder = "e.g. A local edge data center that reduces latency for connected users.",
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Bottom Action Buttons: Back & Save
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        OutlinedButton(
+                            onClick = onBackRequested,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(KontekstoButtonDefaults.Height),
+                            shape = KontekstoButtonDefaults.shape,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        ) {
+                            Text(
+                                text = "Back",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                ),
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+
+                        Button(
+                            onClick = {
+                                termError = when {
+                                    term.isBlank() -> "Term is required"
+                                    isNameTaken(term) -> "This term is already in your list"
+                                    else -> null
+                                }
+                                descriptionError = if (description.isBlank()) "Description is required" else null
+                                if (termError == null && descriptionError == null) {
+                                    onSaveClick(domainTerm.withEdits(term, category, description))
+                                }
+                            },
+                            enabled = hasChanges,
+                            modifier = Modifier
+                                .weight(1.5f)
+                                .height(KontekstoButtonDefaults.Height),
+                            shape = KontekstoButtonDefaults.shape,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                            ),
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_check),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Save",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
                                 ),
                             )
                         }
-                    }
-                }
-
-                EditFormField(
-                    label = "Description",
-                    value = description,
-                    onValueChange = {
-                        description = it
-                        descriptionError = null
-                    },
-                    errorMessage = descriptionError,
-                    placeholder = "e.g. A local edge data center that reduces latency for connected users.",
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Bottom Action Buttons: Back & Save
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    OutlinedButton(
-                        onClick = onBackRequested,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(KontekstoButtonDefaults.Height),
-                        shape = KontekstoButtonDefaults.shape,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                    ) {
-                        Text(
-                            text = "Back",
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                            ),
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-
-                    Button(
-                        onClick = {
-                            termError = when {
-                                term.isBlank() -> "Term is required"
-                                isNameTaken(term) -> "This term is already in your list"
-                                else -> null
-                            }
-                            descriptionError = if (description.isBlank()) "Description is required" else null
-                            if (termError == null && descriptionError == null) {
-                                onSaveClick(domainTerm.withEdits(term, category, description))
-                            }
-                        },
-                        enabled = hasChanges,
-                        modifier = Modifier
-                            .weight(1.5f)
-                            .height(KontekstoButtonDefaults.Height),
-                        shape = KontekstoButtonDefaults.shape,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_check),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Save",
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                            ),
-                        )
                     }
                 }
             }

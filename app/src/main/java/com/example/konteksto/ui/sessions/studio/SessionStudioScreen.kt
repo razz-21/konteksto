@@ -162,6 +162,17 @@ fun SessionStudioScreen(
             .fillMaxSize()
             .safeDrawingPadding(),
         containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            // Top Bar: Back button navigates directly back, Leave button opens prompt
+            SessionStudioTopBar(
+                session = session,
+                onBackClick = onBackClick,
+                onPresentQrClick = onPresentQrClick,
+                onLeaveClick = { showLeaveConfirmDialog = true },
+                modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp),
+                onShowMessage = showMessage,
+            )
+        },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
     ) { innerPadding ->
         // The tabs take the height left under the header, but never less than the transcript
@@ -171,17 +182,8 @@ fun SessionStudioScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
             header = {
-                // Top Bar: Back button navigates directly back, Leave button opens prompt
-                SessionStudioTopBar(
-                    session = session,
-                    onBackClick = onBackClick,
-                    onPresentQrClick = onPresentQrClick,
-                    onLeaveClick = { showLeaveConfirmDialog = true },
-                    onShowMessage = showMessage,
-                )
-
                 Spacer(modifier = Modifier.height(10.dp))
 
                 // Hero Banner Card & Speaker Info Card with session details

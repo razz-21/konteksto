@@ -203,6 +203,12 @@ fun CreateSessionScreen(
             .safeDrawingPadding(),
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0),
+        topBar = {
+            CreateSessionTopBar(
+                onBackClick = onBackClick,
+                modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp),
+            )
+        },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
     ) { innerPadding ->
         Column(
@@ -210,13 +216,9 @@ fun CreateSessionScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(scrollState)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 8.dp),
         ) {
-            // Top Bar
-            CreateSessionTopBar(
-                onBackClick = onBackClick,
-            )
-
             Spacer(modifier = Modifier.height(10.dp))
 
             // Section 1: Cover

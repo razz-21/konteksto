@@ -65,130 +65,136 @@ fun HostSessionsScreen(
         Box(
             modifier = Modifier.fillMaxSize(),
         ) {
-            PullToRefreshBox(
-                isRefreshing = isRefreshing,
-                onRefresh = onRefresh,
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                Column(
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Kept outside the scrolling content so it stays pinned to the top.
+                KontekstoTopBar(
+                    modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp),
+                    currentProfile = currentProfile,
+                    onProfileClick = onProfileClick,
+                )
+
+                PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = onRefresh,
                     modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(scrollState)
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .fillMaxWidth()
+                        .weight(1f),
                 ) {
-                    KontekstoTopBar(
-                        currentProfile = currentProfile,
-                        onProfileClick = onProfileClick,
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(scrollState)
+                            .padding(horizontal = 16.dp),
+                    ) {
+                        Spacer(modifier = Modifier.height(14.dp))
 
-                    Spacer(modifier = Modifier.height(14.dp))
+                        HostSessionHeader(
+                            sessionCount = sessions.size,
+                        )
 
-                    HostSessionHeader(
-                        sessionCount = sessions.size,
-                    )
+                        Spacer(modifier = Modifier.height(14.dp))
 
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    if (sessions.isEmpty()) {
-                        // Empty State View
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = MaterialTheme.shapes.medium,
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.extendedColors.cardContainer,
-                                contentColor = MaterialTheme.colorScheme.onBackground,
-                            ),
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 24.dp, horizontal = 18.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center,
+                        if (sessions.isEmpty()) {
+                            // Empty State View
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = MaterialTheme.shapes.medium,
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.extendedColors.cardContainer,
+                                    contentColor = MaterialTheme.colorScheme.onBackground,
+                                ),
                             ) {
-                                Box(
+                                Column(
                                     modifier = Modifier
-                                        .size(52.dp)
-                                        .background(
-                                            color = MaterialTheme.colorScheme.primaryContainer,
-                                            shape = MaterialTheme.shapes.medium,
-                                        ),
-                                    contentAlignment = Alignment.Center,
+                                        .fillMaxWidth()
+                                        .padding(vertical = 24.dp, horizontal = 18.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center,
                                 ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_nav_host),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(26.dp),
-                                        tint = MaterialTheme.colorScheme.primary,
-                                    )
-                                }
+                                    Box(
+                                        modifier = Modifier
+                                            .size(52.dp)
+                                            .background(
+                                                color = MaterialTheme.colorScheme.primaryContainer,
+                                                shape = MaterialTheme.shapes.medium,
+                                            ),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.ic_nav_host),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(26.dp),
+                                            tint = MaterialTheme.colorScheme.primary,
+                                        )
+                                    }
 
-                                Spacer(modifier = Modifier.height(12.dp))
+                                    Spacer(modifier = Modifier.height(12.dp))
 
-                                Text(
-                                    text = stringResource(id = R.string.host_empty_title),
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp,
-                                    ),
-                                    color = MaterialTheme.colorScheme.onBackground,
-                                    textAlign = TextAlign.Center,
-                                )
-
-                                Spacer(modifier = Modifier.height(6.dp))
-
-                                Text(
-                                    text = stringResource(id = R.string.host_empty_subtitle),
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontSize = 12.sp,
-                                        lineHeight = 16.sp,
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center,
-                                )
-
-                                Spacer(modifier = Modifier.height(20.dp))
-
-                                Button(
-                                    onClick = onNewSessionClick,
-                                    shape = KontekstoButtonDefaults.shape,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                                    ),
-                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
-                                    modifier = Modifier.height(KontekstoButtonDefaults.Height),
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_add),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp),
-                                        tint = MaterialTheme.colorScheme.onPrimary,
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = stringResource(id = R.string.host_create_first_session),
-                                        style = MaterialTheme.typography.labelLarge.copy(
+                                        text = stringResource(id = R.string.host_empty_title),
+                                        style = MaterialTheme.typography.titleMedium.copy(
                                             fontWeight = FontWeight.Bold,
+                                            fontSize = 15.sp,
                                         ),
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                        textAlign = TextAlign.Center,
                                     )
+
+                                    Spacer(modifier = Modifier.height(6.dp))
+
+                                    Text(
+                                        text = stringResource(id = R.string.host_empty_subtitle),
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontSize = 12.sp,
+                                            lineHeight = 16.sp,
+                                        ),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center,
+                                    )
+
+                                    Spacer(modifier = Modifier.height(20.dp))
+
+                                    Button(
+                                        onClick = onNewSessionClick,
+                                        shape = KontekstoButtonDefaults.shape,
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                                        ),
+                                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                                        modifier = Modifier.height(KontekstoButtonDefaults.Height),
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.ic_add),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp),
+                                            tint = MaterialTheme.colorScheme.onPrimary,
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = stringResource(id = R.string.host_create_first_session),
+                                            style = MaterialTheme.typography.labelLarge.copy(
+                                                fontWeight = FontWeight.Bold,
+                                            ),
+                                        )
+                                    }
                                 }
                             }
+                        } else {
+                            sessions.forEach { session ->
+                                HostSessionCard(
+                                    session = session,
+                                    onPresentQrClick = onPresentQrClick,
+                                    onLiveRoomClick = onLiveRoomClick,
+                                    onShowMessage = onShowMessage,
+                                    currentProfile = currentProfile,
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
                         }
-                    } else {
-                        sessions.forEach { session ->
-                            HostSessionCard(
-                                session = session,
-                                onPresentQrClick = onPresentQrClick,
-                                onLiveRoomClick = onLiveRoomClick,
-                                onShowMessage = onShowMessage,
-                                currentProfile = currentProfile,
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                        }
-                    }
 
-                    Spacer(modifier = Modifier.height(80.dp))
+                        Spacer(modifier = Modifier.height(80.dp))
+                    }
                 }
             }
 
