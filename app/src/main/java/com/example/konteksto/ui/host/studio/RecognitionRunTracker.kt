@@ -8,6 +8,15 @@ import kotlinx.coroutines.flow.asStateFlow
 internal const val SILENCE_RESTART_DELAY_MS = 300L
 internal const val ERROR_RESTART_DELAY_MS = 600L
 
+/** A speaker who stops for this long has finished a thought, so their words become a card. */
+internal const val PAUSE_COMMIT_DELAY_MS = 2_000L
+
+/**
+ * The recognizer can still fix a word or two it already sent, so a new text whose opening differs
+ * from the saved words by at most this share of them still continues them.
+ */
+private const val SAVED_WORDS_ALLOWED_CHANGES = 0.2
+
 /** Seams only ever repeat a short run of words, so a longer match is real speech said twice. */
 private const val MAX_REPEATED_WORDS = 20
 
@@ -44,6 +53,13 @@ internal class RecognitionRunTracker(private val onSegmentComplete: (String) -> 
     /** The last words saved, for spotting a new segment that opens by repeating them. */
     private var savedTail = emptyList<String>()
 
+    /**
+     * This run's words already saved at a pause. Some recognizers keep sending the whole run's text,
+     * so these are left out of its later partials and its final result. Others start fresh text
+     * after a pause, which then doesn't open with these words and is kept whole.
+     */
+    private var runSavedWords = emptyList<String>()
+
     private val _partialText = MutableStateFlow("")
     val partialText: StateFlow<String> = _partialText.asStateFlow()
 
@@ -65,6 +81,7 @@ internal class RecognitionRunTracker(private val onSegmentComplete: (String) -> 
     /** Returns the new run's id, for checking later whether it ever got going. */
     fun onRunStarting(): Int {
         phase = Phase.STARTING
+        runSavedWords = emptyList()
         return ++runId
     }
 
@@ -74,21 +91,40 @@ internal class RecognitionRunTracker(private val onSegmentComplete: (String) -> 
         if (phase == Phase.STARTING) phase = Phase.LISTENING
     }
 
-    /** Partials before the run is ready are leftovers from the previous run, whose words are already saved. */
-    fun onPartial(text: String) {
-        if (phase != Phase.LISTENING || text.isBlank()) return
-        _partialText.value = text.trim()
+    /**
+     * Partials before the run is ready are leftovers from the previous run, whose words are already saved.
+     * Returns whether the words in progress changed, which means the speaker is still talking.
+     */
+    fun onPartial(text: String): Boolean {
+        if (phase != Phase.LISTENING || text.isBlank()) return false
+        val unsaved = text.withoutSavedRunWords()
+        if (unsaved == _partialText.value) return false
+        _partialText.value = unsaved
+        return true
+    }
+
+    /**
+     * The speaker stopped talking but the recognizer kept the run open, so the words so far are saved
+     * now instead of waiting for the run to end, which can take until the broadcast stops.
+     */
+    fun onPause() {
+        if (phase != Phase.LISTENING) return
+        val text = _partialText.value
+        if (text.isBlank()) return
+        runSavedWords = runSavedWords + text.words()
+        save(text)
     }
 
     /** A segmented run finished part of the speech and is still listening. */
     fun onSegment(text: String) {
         if (!isActive) return
-        save(text.ifBlank { _partialText.value })
+        save(text.withoutSavedRunWords().ifBlank { _partialText.value })
+        runSavedWords = emptyList()
     }
 
     fun onResults(text: String): Next {
         if (!isActive) return Next.KeepGoing
-        save(text.ifBlank { _partialText.value })
+        save(text.withoutSavedRunWords().ifBlank { _partialText.value })
         // A late result while the next run starts must not restart over that run.
         if (phase == Phase.STARTING) return Next.KeepGoing
         phase = Phase.STARTING
@@ -122,9 +158,19 @@ internal class RecognitionRunTracker(private val onSegmentComplete: (String) -> 
         return Next.Restart(if (isSilence) SILENCE_RESTART_DELAY_MS else ERROR_RESTART_DELAY_MS)
     }
 
+    private fun String.withoutSavedRunWords(): String {
+        val words = words()
+        if (!words.continues(runSavedWords)) {
+            // The recognizer started fresh text, so none of it was saved yet.
+            runSavedWords = emptyList()
+            return words.joinToString(" ")
+        }
+        return words.drop(runSavedWords.size).joinToString(" ")
+    }
+
     private fun save(text: String) {
         _partialText.value = ""
-        val words = text.trim().split(WHITESPACE).filter { it.isNotEmpty() }
+        val words = text.words()
         val newWords = words.drop(repeatedOpeningLength(savedTail, words))
         if (newWords.isEmpty()) return
         savedTail = (savedTail + newWords).takeLast(MAX_REPEATED_WORDS)
@@ -141,5 +187,15 @@ private fun repeatedOpeningLength(previous: List<String>, next: List<String>): I
     }
     return 0
 }
+
+/** Whether these words open with [saved], allowing for the few words the recognizer may have fixed since. */
+private fun List<String>.continues(saved: List<String>): Boolean {
+    if (saved.isEmpty()) return true
+    if (size < saved.size) return false
+    val changed = saved.indices.count { saved[it].comparable() != this[it].comparable() }
+    return changed <= (saved.size * SAVED_WORDS_ALLOWED_CHANGES).toInt()
+}
+
+private fun String.words(): List<String> = trim().split(WHITESPACE).filter { it.isNotEmpty() }
 
 private fun String.comparable(): String = filter { it.isLetterOrDigit() }.lowercase()

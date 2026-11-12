@@ -198,4 +198,115 @@ class RecognitionRunTrackerTest {
 
         assertEquals(listOf("good morning everyone", "Good morning everyone, welcome back."), saved)
     }
+
+    @Test
+    fun pauseSavesTheWordsSoFarWhileTheRunStaysOpen() {
+        tracker.start()
+        listeningRun()
+        tracker.onPartial("Edge computing moves work closer to users")
+
+        tracker.onPause()
+
+        assertEquals(listOf("Edge computing moves work closer to users"), saved)
+        assertEquals("", tracker.partialText.value)
+    }
+
+    @Test
+    fun partialsAfterAPauseOnlyShowTheNewWords() {
+        tracker.start()
+        listeningRun()
+        tracker.onPartial("Edge computing moves work closer")
+        tracker.onPause()
+
+        assertFalse(tracker.onPartial("Edge computing moves work closer"))
+        assertTrue(tracker.onPartial("Edge computing moves work closer so pages load faster"))
+
+        assertEquals("so pages load faster", tracker.partialText.value)
+    }
+
+    @Test
+    fun finalResultAfterAPauseOnlySavesTheNewWords() {
+        tracker.start()
+        listeningRun()
+        tracker.onPartial("Edge computing moves work closer")
+        tracker.onPause()
+        tracker.onPartial("Edge computing moves work closer so pages load faster")
+
+        tracker.onResults("Edge computing moves work closer so pages load faster.")
+
+        assertEquals(listOf("Edge computing moves work closer", "so pages load faster."), saved)
+    }
+
+    @Test
+    fun finalResultWithNothingNewAfterAPauseSavesNothingMore() {
+        tracker.start()
+        listeningRun()
+        tracker.onPartial("Edge computing moves work closer")
+        tracker.onPause()
+
+        tracker.onResults("Edge computing moves work closer.")
+
+        assertEquals(listOf("Edge computing moves work closer"), saved)
+    }
+
+    @Test
+    fun nextRunShowsItsPartialsInFull() {
+        tracker.start()
+        listeningRun()
+        tracker.onPartial("Edge computing moves work closer")
+        tracker.onPause()
+        tracker.onResults("Edge computing moves work closer.")
+        listeningRun()
+
+        tracker.onPartial("Caching helps too")
+
+        assertEquals("Caching helps too", tracker.partialText.value)
+    }
+
+    @Test
+    fun pauseWithNoWordsInProgressSavesNothing() {
+        tracker.start()
+        listeningRun()
+
+        tracker.onPause()
+
+        assertTrue(saved.isEmpty())
+    }
+
+    @Test
+    fun freshTextAfterAPauseIsShownInFull() {
+        tracker.start()
+        listeningRun()
+        tracker.onPartial("Edge computing moves work closer")
+        tracker.onPause()
+
+        tracker.onPartial("Caching helps pages load faster")
+
+        assertEquals("Caching helps pages load faster", tracker.partialText.value)
+    }
+
+    @Test
+    fun freshFinalResultAfterAPauseIsSavedInFull() {
+        tracker.start()
+        listeningRun()
+        tracker.onPartial("Edge computing moves work closer")
+        tracker.onPause()
+        tracker.onPartial("Caching helps")
+
+        tracker.onResults("Caching helps pages load faster.")
+
+        assertEquals(listOf("Edge computing moves work closer", "Caching helps pages load faster."), saved)
+    }
+
+    @Test
+    fun aFixedWordInTheSavedTextStillOnlyShowsTheNewWords() {
+        tracker.start()
+        listeningRun()
+        tracker.onPartial("Edge computing moves work closer to the users")
+        tracker.onPause()
+
+        tracker.onPartial("Edge computing moves work closer to our users so pages load faster")
+
+        assertEquals("so pages load faster", tracker.partialText.value)
+    }
 }
