@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class SessionsViewModel(
@@ -73,21 +74,30 @@ class SessionsViewModel(
     private val _snackbarMessage = MutableSharedFlow<String>()
     val snackbarMessage: SharedFlow<String> = _snackbarMessage.asSharedFlow()
 
-    private val _isLoading = MutableStateFlow(true)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    private val _hasLoadedSessions = MutableStateFlow(false)
+    private val _hasLoadedJoinedIds = MutableStateFlow(false)
+
+    // Stays true until both sessions and joined IDs have arrived, so the empty state never flashes.
+    val isLoading: StateFlow<Boolean> = combine(_hasLoadedSessions, _hasLoadedJoinedIds) { sessionsLoaded, idsLoaded ->
+        !(sessionsLoaded && idsLoaded)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = true,
+    )
 
     init {
         viewModelScope.launch {
             sessionRepository.getAllSessionsStream().collect { sessions ->
-                _allSessions.value = sessions
-                _isLoading.value = false
+                _allSessions.update { sessions }
+                _hasLoadedSessions.update { true }
             }
         }
 
         viewModelScope.launch {
             sessionRepository.getJoinedSessionIdsStream(userUid).collect { ids ->
-                _joinedSessionIds.value = ids
-                _isLoading.value = false
+                _joinedSessionIds.update { ids }
+                _hasLoadedJoinedIds.update { true }
             }
         }
     }

@@ -12,8 +12,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -47,6 +48,7 @@ import com.example.konteksto.ui.theme.extendedColors
 fun HostSessionsScreen(
     modifier: Modifier = Modifier,
     sessions: List<HostSession> = emptyList(),
+    isLoading: Boolean = false,
     isRefreshing: Boolean = false,
     currentProfile: UserProfile? = null,
     onRefresh: () -> Unit = {},
@@ -56,7 +58,7 @@ fun HostSessionsScreen(
     onProfileClick: (() -> Unit)? = null,
     onShowMessage: (String) -> Unit = {},
 ) {
-    val scrollState = rememberScrollState()
+    val listState = rememberLazyListState()
 
     Surface(
         modifier = modifier.fillMaxSize(),
@@ -80,108 +82,115 @@ fun HostSessionsScreen(
                         .fillMaxWidth()
                         .weight(1f),
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(scrollState)
-                            .padding(horizontal = 16.dp),
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        state = listState,
+                        contentPadding = PaddingValues(start = 16.dp, top = 14.dp, end = 16.dp, bottom = 80.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        Spacer(modifier = Modifier.height(14.dp))
+                        item(key = "header") {
+                            HostSessionHeader(
+                                sessionCount = if (isLoading) null else sessions.size,
+                            )
+                        }
 
-                        HostSessionHeader(
-                            sessionCount = sessions.size,
-                        )
+                        when {
+                            isLoading -> items(count = 2, key = { "skeleton_$it" }) {
+                                HostSessionCardSkeleton()
+                            }
 
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        if (sessions.isEmpty()) {
-                            // Empty State View
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = MaterialTheme.shapes.medium,
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.extendedColors.cardContainer,
-                                    contentColor = MaterialTheme.colorScheme.onBackground,
-                                ),
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 24.dp, horizontal = 18.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center,
+                            sessions.isEmpty() -> item(key = "empty") {
+                                // Empty State View
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = MaterialTheme.shapes.medium,
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.extendedColors.cardContainer,
+                                        contentColor = MaterialTheme.colorScheme.onBackground,
+                                    ),
                                 ) {
-                                    Box(
+                                    Column(
                                         modifier = Modifier
-                                            .size(52.dp)
-                                            .background(
-                                                color = MaterialTheme.colorScheme.primaryContainer,
-                                                shape = MaterialTheme.shapes.medium,
-                                            ),
-                                        contentAlignment = Alignment.Center,
+                                            .fillMaxWidth()
+                                            .padding(vertical = 24.dp, horizontal = 18.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center,
                                     ) {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.ic_nav_host),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(26.dp),
-                                            tint = MaterialTheme.colorScheme.primary,
-                                        )
-                                    }
+                                        Box(
+                                            modifier = Modifier
+                                                .size(52.dp)
+                                                .background(
+                                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                                    shape = MaterialTheme.shapes.medium,
+                                                ),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.ic_nav_host),
+                                                contentDescription = null,
+                                                modifier = Modifier.size(26.dp),
+                                                tint = MaterialTheme.colorScheme.primary,
+                                            )
+                                        }
 
-                                    Spacer(modifier = Modifier.height(12.dp))
+                                        Spacer(modifier = Modifier.height(12.dp))
 
-                                    Text(
-                                        text = stringResource(id = R.string.host_empty_title),
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 15.sp,
-                                        ),
-                                        color = MaterialTheme.colorScheme.onBackground,
-                                        textAlign = TextAlign.Center,
-                                    )
-
-                                    Spacer(modifier = Modifier.height(6.dp))
-
-                                    Text(
-                                        text = stringResource(id = R.string.host_empty_subtitle),
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontSize = 12.sp,
-                                            lineHeight = 16.sp,
-                                        ),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        textAlign = TextAlign.Center,
-                                    )
-
-                                    Spacer(modifier = Modifier.height(20.dp))
-
-                                    Button(
-                                        onClick = onNewSessionClick,
-                                        shape = KontekstoButtonDefaults.shape,
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.primary,
-                                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                                        ),
-                                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
-                                        modifier = Modifier.height(KontekstoButtonDefaults.Height),
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.ic_add),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(18.dp),
-                                            tint = MaterialTheme.colorScheme.onPrimary,
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
                                         Text(
-                                            text = stringResource(id = R.string.host_create_first_session),
-                                            style = MaterialTheme.typography.labelLarge.copy(
+                                            text = stringResource(id = R.string.host_empty_title),
+                                            style = MaterialTheme.typography.titleMedium.copy(
                                                 fontWeight = FontWeight.Bold,
+                                                fontSize = 15.sp,
                                             ),
+                                            color = MaterialTheme.colorScheme.onBackground,
+                                            textAlign = TextAlign.Center,
                                         )
+
+                                        Spacer(modifier = Modifier.height(6.dp))
+
+                                        Text(
+                                            text = stringResource(id = R.string.host_empty_subtitle),
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                fontSize = 12.sp,
+                                                lineHeight = 16.sp,
+                                            ),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Center,
+                                        )
+
+                                        Spacer(modifier = Modifier.height(20.dp))
+
+                                        Button(
+                                            onClick = onNewSessionClick,
+                                            shape = KontekstoButtonDefaults.shape,
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary,
+                                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                            ),
+                                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                                            modifier = Modifier.height(KontekstoButtonDefaults.Height),
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.ic_add),
+                                                contentDescription = null,
+                                                modifier = Modifier.size(18.dp),
+                                                tint = MaterialTheme.colorScheme.onPrimary,
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = stringResource(id = R.string.host_create_first_session),
+                                                style = MaterialTheme.typography.labelLarge.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                ),
+                                            )
+                                        }
                                     }
                                 }
                             }
-                        } else {
-                            sessions.forEach { session ->
+
+                            else -> items(
+                                items = sessions,
+                                key = { it.id },
+                            ) { session ->
                                 HostSessionCard(
                                     session = session,
                                     onPresentQrClick = onPresentQrClick,
@@ -189,11 +198,8 @@ fun HostSessionsScreen(
                                     onShowMessage = onShowMessage,
                                     currentProfile = currentProfile,
                                 )
-                                Spacer(modifier = Modifier.height(16.dp))
                             }
                         }
-
-                        Spacer(modifier = Modifier.height(80.dp))
                     }
                 }
             }
@@ -241,6 +247,14 @@ fun HostSessionsScreen(
 fun HostSessionsScreenEmptyPreview() {
     KontekstoTheme(darkTheme = false) {
         HostSessionsScreen(sessions = emptyList())
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun HostSessionsScreenLoadingPreview() {
+    KontekstoTheme(darkTheme = false) {
+        HostSessionsScreen(isLoading = true)
     }
 }
 
