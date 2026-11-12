@@ -227,6 +227,7 @@ fun SessionsScreen(
                                 onActionClick = {
                                     onNavigateToAttendeeRoom(session.id)
                                 },
+                                currentProfile = currentProfile,
                             )
                         }
                     }

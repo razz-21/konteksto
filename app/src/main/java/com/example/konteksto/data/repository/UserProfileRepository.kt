@@ -7,7 +7,10 @@ import com.example.konteksto.domain.model.UserProfile
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 interface UserProfileRepository {
@@ -60,18 +63,40 @@ class FirebaseUserProfileRepository(
             .apply()
     }
 
+    // Every repository instance shares this cache, so a profile saved on one screen
+    // is immediately visible on Sessions, Host Sessions, and Profile & Settings.
+    private fun cacheProfile(profile: UserProfile) {
+        savedProfiles.update { profiles -> profiles + (profile.uid to profile) }
+    }
+
     override fun getProfileStream(uid: String): Flow<UserProfile?> = callbackFlow {
-        val cached = getLocalProfile(uid)
-        if (cached != null) {
-            trySend(cached)
+        val cachedInMemory = savedProfiles.value[uid]
+        val localProfile = cachedInMemory ?: getLocalProfile(uid)
+        if (localProfile != null) {
+            if (cachedInMemory == null) {
+                cacheProfile(localProfile)
+            }
+            trySend(localProfile)
+        }
+
+        // Emit the saved profile as soon as it changes, even if Firestore has stale data.
+        var lastEmittedProfile = localProfile
+        val cacheJob = launch {
+            savedProfiles.collect { profiles ->
+                val profile = profiles[uid] ?: return@collect
+                if (profile != lastEmittedProfile) {
+                    lastEmittedProfile = profile
+                    trySend(profile)
+                }
+            }
         }
 
         val firestore = firestoreOrNull
         if (firestore == null) {
-            if (cached == null) {
+            if (localProfile == null) {
                 trySend(null)
             }
-            awaitClose { }
+            awaitClose { cacheJob.cancel() }
             return@callbackFlow
         }
 
@@ -79,14 +104,21 @@ class FirebaseUserProfileRepository(
             .document(uid)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    trySend(getLocalProfile(uid))
+                    if (savedProfiles.value[uid] == null && getLocalProfile(uid) == null) {
+                        trySend(null)
+                    }
                     return@addSnapshotListener
                 }
 
                 val data = snapshot?.data
                 if (data == null) {
-                    trySend(getLocalProfile(uid))
-                } else {
+                    if (savedProfiles.value[uid] == null && getLocalProfile(uid) == null) {
+                        trySend(null)
+                    }
+                } else if (savedProfiles.value[uid] == null && getLocalProfile(uid) == null) {
+                    // Only use Firestore when this device has no saved profile yet.
+                    // Otherwise a stale remote document could overwrite a newer local save
+                    // (for example, after removing a photo or changing the avatar color).
                     val remoteProfile = UserProfile(
                         uid = uid,
                         name = data["name"] as? String ?: "",
@@ -99,17 +131,19 @@ class FirebaseUserProfileRepository(
                         explanationLanguage = ExplanationLanguage.fromStorageValue(data["explanationLanguage"] as? String),
                     )
                     saveLocalProfile(remoteProfile)
-                    trySend(remoteProfile)
+                    cacheProfile(remoteProfile)
                 }
             }
 
         awaitClose {
+            cacheJob.cancel()
             listener.remove()
         }
     }
 
     override suspend fun saveProfile(profile: UserProfile): Result<Unit> = runCatching {
         saveLocalProfile(profile)
+        cacheProfile(profile)
 
         val firestore = firestoreOrNull
         if (firestore != null) {
@@ -133,5 +167,10 @@ class FirebaseUserProfileRepository(
                 Log.e("FirebaseUserProfileRepo", "Firestore save profile failed: ${e.message}")
             }
         }
+    }
+
+    private companion object {
+        // Shared by all repository instances so every screen observes the same profile.
+        val savedProfiles = MutableStateFlow<Map<String, UserProfile>>(emptyMap())
     }
 }

@@ -181,6 +181,7 @@ fun HostSessionsScreen(
                                 onPresentQrClick = onPresentQrClick,
                                 onLiveRoomClick = onLiveRoomClick,
                                 onShowMessage = onShowMessage,
+                                currentProfile = currentProfile,
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                         }

@@ -467,7 +467,9 @@ fun KontekstoNavHost(
             val createScope = rememberCoroutineScope()
             val currentUser = (sessionState as? SessionBootstrapState.Authenticated)?.user
                 ?: authRepository.currentUser
-            val currentSpeakerName = currentUser?.displayName?.takeIf { it.isNotBlank() }
+            // Use the name saved in Profile & Settings, then fall back to Firebase Auth.
+            val currentSpeakerName = currentProfile?.name?.takeIf { it.isNotBlank() }
+                ?: currentUser?.displayName?.takeIf { it.isNotBlank() }
                 ?: currentUser?.email?.substringBefore("@")?.takeIf { it.isNotBlank() }
                 ?: ""
 
