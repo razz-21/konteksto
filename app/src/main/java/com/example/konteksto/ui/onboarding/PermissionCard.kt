@@ -30,6 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 import com.example.konteksto.ui.theme.extendedColors
 
@@ -127,12 +128,13 @@ fun PermissionCard(
             } else {
                 Button(
                     onClick = onActionClick,
-                    shape = MaterialTheme.shapes.medium,
+                    shape = KontekstoButtonDefaults.shape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFF1F5F9),
                         contentColor = Color(0xFF0F172A),
                     ),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    modifier = Modifier.height(KontekstoButtonDefaults.Height),
                 ) {
                     Text(
                         text = "Enable",

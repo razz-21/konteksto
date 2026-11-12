@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -26,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 
 @Composable
 internal fun RoomCodeEntryView(
@@ -67,8 +67,8 @@ internal fun RoomCodeEntryView(
             enabled = roomCode.isNotBlank() && !isVerifying,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp),
-            shape = MaterialTheme.shapes.small,
+                .height(KontekstoButtonDefaults.Height),
+            shape = KontekstoButtonDefaults.shape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFF3B52D4),
                 contentColor = Color.White,
@@ -105,8 +105,8 @@ internal fun RoomCodeEntryView(
             onClick = onScanQrClick,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp),
-            shape = CircleShape,
+                .height(KontekstoButtonDefaults.Height),
+            shape = KontekstoButtonDefaults.shape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
                 contentColor = MaterialTheme.colorScheme.primary,

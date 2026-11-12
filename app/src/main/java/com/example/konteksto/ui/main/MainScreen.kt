@@ -34,6 +34,7 @@ fun MainScreen(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
     hostSessions: List<HostSession> = emptyList(),
+    isLoadingHostSessions: Boolean = false,
     currentProfile: UserProfile? = null,
     isHostRefreshing: Boolean = false,
     onHostRefresh: () -> Unit = {},
@@ -87,6 +88,7 @@ fun MainScreen(
             composable(MainTab.HostSessions.route) {
                 HostSessionsScreen(
                     sessions = hostSessions,
+                    isLoading = isLoadingHostSessions,
                     currentProfile = currentProfile,
                     isRefreshing = isHostRefreshing,
                     onRefresh = onHostRefresh,

@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -53,6 +52,7 @@ import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.ConferenceThemeBanner
 import com.example.konteksto.ui.components.showKontekstoSnackbar
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 import java.util.Locale
 import kotlinx.coroutines.launch
@@ -203,6 +203,12 @@ fun CreateSessionScreen(
             .safeDrawingPadding(),
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0),
+        topBar = {
+            CreateSessionTopBar(
+                onBackClick = onBackClick,
+                modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp),
+            )
+        },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
     ) { innerPadding ->
         Column(
@@ -210,13 +216,9 @@ fun CreateSessionScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(scrollState)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 8.dp),
         ) {
-            // Top Bar
-            CreateSessionTopBar(
-                onBackClick = onBackClick,
-            )
-
             Spacer(modifier = Modifier.height(10.dp))
 
             // Section 1: Cover
@@ -551,8 +553,8 @@ fun CreateSessionScreen(
                     onClick = onBackClick,
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp),
-                    shape = CircleShape,
+                        .height(KontekstoButtonDefaults.Height),
+                    shape = KontekstoButtonDefaults.shape,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 ) {
                     Text(
@@ -569,8 +571,8 @@ fun CreateSessionScreen(
                     onClick = { validateAndSubmit() },
                     modifier = Modifier
                         .weight(1.5f)
-                        .height(48.dp),
-                    shape = CircleShape,
+                        .height(KontekstoButtonDefaults.Height),
+                    shape = KontekstoButtonDefaults.shape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,

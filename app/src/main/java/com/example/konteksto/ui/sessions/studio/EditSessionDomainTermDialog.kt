@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
@@ -23,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.ui.host.studio.DOMAIN_TERM_CATEGORIES
 import com.example.konteksto.ui.host.studio.DomainTermItem
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -87,12 +89,18 @@ fun EditSessionDomainTermDialog(
                     onConfirm(domainTerm.copy(term = term.trim(), category = category, description = description.trim()))
                 },
                 enabled = term.isNotBlank() && description.isNotBlank(),
+                shape = KontekstoButtonDefaults.shape,
+                modifier = Modifier.height(KontekstoButtonDefaults.Height),
             ) {
                 Text("Save")
             }
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
+            OutlinedButton(
+                onClick = onDismiss,
+                modifier = Modifier.height(KontekstoButtonDefaults.Height),
+                shape = KontekstoButtonDefaults.shape,
+            ) {
                 Text("Cancel")
             }
         },

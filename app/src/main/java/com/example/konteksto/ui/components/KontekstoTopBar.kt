@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.UserProfile
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 
 @Composable
@@ -98,9 +99,9 @@ private fun TopBarButton(
     Button(
         onClick = onClick,
         modifier = modifier
-            .height(36.dp)
+            .height(KontekstoButtonDefaults.Height)
             .defaultMinSize(minWidth = 118.dp),
-        shape = MaterialTheme.shapes.small,
+        shape = KontekstoButtonDefaults.shape,
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,

@@ -134,21 +134,23 @@ fun SessionsScreen(
                         color = MaterialTheme.colorScheme.onBackground,
                     )
 
-                    Spacer(modifier = Modifier.width(8.dp))
+                    if (!isLoading) {
+                        Spacer(modifier = Modifier.width(8.dp))
 
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    ) {
-                        Text(
-                            text = filteredSessions.size.toString(),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                            ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        ) {
+                            Text(
+                                text = filteredSessions.size.toString(),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
 
@@ -161,7 +163,7 @@ fun SessionsScreen(
                         contentPadding = PaddingValues(bottom = 80.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        items(count = 2) {
+                        items(count = 2, key = { "skeleton_$it" }) {
                             AttendeeSessionCardSkeleton()
                         }
                     }

@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.ConferenceThemeBanner
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 
 @Composable
@@ -217,10 +218,10 @@ fun CoverPhotoSelectorCard(
         // Upload your own Button
         OutlinedButton(
             onClick = onUploadClick,
-            shape = RoundedCornerShape(10.dp),
+            shape = KontekstoButtonDefaults.shape,
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-            modifier = Modifier.height(38.dp),
+            modifier = Modifier.height(KontekstoButtonDefaults.Height),
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_upload),

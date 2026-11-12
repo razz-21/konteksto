@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 
 @Composable
@@ -98,8 +99,8 @@ internal fun SessionConfirmationContent(
             onClick = onConfirmJoin,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp),
-            shape = CircleShape,
+                .height(KontekstoButtonDefaults.Height),
+            shape = KontekstoButtonDefaults.shape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFF3B52D4),
                 contentColor = Color.White,

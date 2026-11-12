@@ -139,8 +139,8 @@ class FirebaseSessionRepository(
             return@callbackFlow
         }
 
-        trySend(localCreatedSessions.value)
-
+        // Wait for the first Firestore snapshot instead of emitting the local cache up front,
+        // so collectors can tell "still loading" apart from "no sessions".
         val listenerRegistration = try {
             firestore.collection("sessions")
                 .addSnapshotListener { snapshot, error ->

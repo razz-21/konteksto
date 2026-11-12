@@ -38,10 +38,10 @@ import coil.compose.AsyncImage
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.domain.model.UserProfile
-import com.example.konteksto.ui.theme.KontekstoTheme
-import androidx.compose.foundation.clickable
-import com.example.konteksto.ui.theme.extendedColors
 import com.example.konteksto.ui.components.LiveOnAirBadge
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
+import com.example.konteksto.ui.theme.KontekstoTheme
+import com.example.konteksto.ui.theme.extendedColors
 
 @Composable
 fun AttendeeSessionCard(
@@ -292,8 +292,8 @@ fun AttendeeSessionCard(
                     // Enter Room Button
                     Button(
                         onClick = onActionClick,
-                        modifier = Modifier.height(40.dp),
-                        shape = CircleShape,
+                        modifier = Modifier.height(KontekstoButtonDefaults.Height),
+                        shape = KontekstoButtonDefaults.shape,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary,

@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,6 +36,7 @@ fun CreateSessionTimePickerDialog(
                 onClick = {
                     onConfirm(timePickerState.hour, timePickerState.minute)
                 },
+                shape = KontekstoButtonDefaults.shape,
             ) {
                 Text(
                     text = stringResource(id = android.R.string.ok),
@@ -43,7 +45,7 @@ fun CreateSessionTimePickerDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismissRequest) {
+            TextButton(onClick = onDismissRequest, shape = KontekstoButtonDefaults.shape) {
                 Text(
                     text = stringResource(id = android.R.string.cancel),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

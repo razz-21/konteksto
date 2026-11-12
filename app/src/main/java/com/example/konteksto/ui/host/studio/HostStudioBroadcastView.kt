@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -43,6 +42,7 @@ import com.example.konteksto.R
 import com.example.konteksto.domain.model.AudioInputDevice
 import com.example.konteksto.ui.components.JumpToLiveButton
 import com.example.konteksto.ui.components.LiveSpeakingBubble
+import com.example.konteksto.ui.components.LiveTranscriptMinHeight
 import com.example.konteksto.ui.components.rememberLiveTranscriptFollowState
 import com.example.konteksto.ui.sessions.studio.SystemEventPill
 import com.example.konteksto.ui.theme.extendedColors
@@ -65,11 +65,12 @@ fun HostStudioBroadcastView(
     )
 
     Column(modifier = modifier.fillMaxWidth()) {
-        // Outer Container Card with Border for the Whole Transcript Panel
+        // Outer Container Card for the Whole Transcript Panel. The host page scrolls, so the card
+        // keeps the same height on every phone instead of shrinking with the screen.
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = 420.dp),
+                .height(LiveTranscriptMinHeight),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.extendedColors.cardContainer,

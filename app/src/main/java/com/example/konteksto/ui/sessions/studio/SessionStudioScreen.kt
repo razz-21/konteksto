@@ -1,10 +1,8 @@
 package com.example.konteksto.ui.sessions.studio
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -33,9 +31,12 @@ import androidx.compose.ui.unit.dp
 import com.example.konteksto.data.repository.GlossaryTermItem
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.domain.model.LiveConceptExplanationItem
+import com.example.konteksto.ui.components.FillRemainingHeightColumn
+import com.example.konteksto.ui.components.LiveTranscriptMinHeight
 import com.example.konteksto.ui.components.showKontekstoSnackbar
 import com.example.konteksto.ui.host.studio.DeleteDomainTermDialog
 import com.example.konteksto.ui.host.studio.DomainTermItem
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 import kotlinx.coroutines.launch
 
@@ -105,7 +106,8 @@ fun SessionStudioScreen(
                         containerColor = MaterialTheme.colorScheme.error,
                         contentColor = MaterialTheme.colorScheme.onError,
                     ),
-                    shape = MaterialTheme.shapes.small,
+                    shape = KontekstoButtonDefaults.shape,
+                    modifier = Modifier.height(KontekstoButtonDefaults.Height),
                 ) {
                     Text("Leave", fontWeight = FontWeight.Bold)
                 }
@@ -113,7 +115,8 @@ fun SessionStudioScreen(
             dismissButton = {
                 OutlinedButton(
                     onClick = { showLeaveConfirmDialog = false },
-                    shape = MaterialTheme.shapes.small,
+                    shape = KontekstoButtonDefaults.shape,
+                    modifier = Modifier.height(KontekstoButtonDefaults.Height),
                 ) {
                     Text("Cancel")
                 }
@@ -159,94 +162,94 @@ fun SessionStudioScreen(
             .fillMaxSize()
             .safeDrawingPadding(),
         containerColor = MaterialTheme.colorScheme.background,
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-        ) {
+        topBar = {
             // Top Bar: Back button navigates directly back, Leave button opens prompt
             SessionStudioTopBar(
                 session = session,
                 onBackClick = onBackClick,
                 onPresentQrClick = onPresentQrClick,
                 onLeaveClick = { showLeaveConfirmDialog = true },
+                modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp),
                 onShowMessage = showMessage,
             )
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+    ) { innerPadding ->
+        // The tabs take the height left under the header, but never less than the transcript
+        // minimum; on a short phone the whole page scrolls instead of squeezing the transcript.
+        FillRemainingHeightColumn(
+            minBodyHeight = LiveTranscriptMinHeight + LiveCompanionActionAreaHeight,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+            header = {
+                Spacer(modifier = Modifier.height(10.dp))
 
-            Spacer(modifier = Modifier.height(10.dp))
+                // Hero Banner Card & Speaker Info Card with session details
+                SessionStudioHeaderCard(
+                    session = session,
+                )
 
-            // Hero Banner Card & Speaker Info Card with session details
-            SessionStudioHeaderCard(
-                session = session,
-            )
+                Spacer(modifier = Modifier.height(12.dp))
 
-            Spacer(modifier = Modifier.height(12.dp))
+                // Material Segmented Tabs directly below speaker section
+                // Contains 4 tabs: Live Companion, Concept Explanation, Terms, Glossary
+                SessionStudioSegmentedTabs(
+                    selectedTab = selectedTab,
+                    onTabSelected = { selectedTab = it },
+                    conceptCount = transcriptState.conceptExplanations.size,
+                    termsCount = termsList.size,
+                    glossaryCount = transcriptState.sessionGlossaryTerms.size,
+                )
 
-            // Material Segmented Tabs directly below speaker section
-            // Contains 4 tabs: Live Companion, Concept Explanation, Terms, Glossary
-            SessionStudioSegmentedTabs(
-                selectedTab = selectedTab,
-                onTabSelected = { selectedTab = it },
-                conceptCount = transcriptState.conceptExplanations.size,
-                termsCount = termsList.size,
-                glossaryCount = transcriptState.sessionGlossaryTerms.size,
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
+                Spacer(modifier = Modifier.height(12.dp))
+            },
+        ) {
             // Tab Content
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-            ) {
-                when (selectedTab) {
-                    SessionStudioTab.LiveCompanion -> {
-                        // Live Companion Tab View (Transcripts, What did they mean button)
-                        SessionLiveCompanionView(
-                            session = session,
-                            isAudioBroadcasting = session.isLive,
-                            customTranscripts = transcriptState.transcripts,
-                            livePartialText = transcriptState.livePartialText.takeIf { session.isLive }.orEmpty(),
-                            hasEarlierTranscripts = transcriptState.hasEarlierTranscripts,
-                            isLoadingEarlierTranscripts = transcriptState.isLoadingEarlierTranscripts,
-                            didEarlierTranscriptsFail = transcriptState.didEarlierTranscriptsFail,
-                            didLiveTranscriptFail = transcriptState.didLiveTranscriptFail,
-                            onLoadEarlierTranscripts = onLoadEarlierTranscripts,
-                            onRetryLiveTranscript = onRetryLiveTranscript,
-                            onAskWhatTheyMean = { selectedItems, clearSelection ->
-                                onAskWhatTheyMean(selectedItems)
-                                clearSelection()
-                            },
-                        )
-                    }
-                    SessionStudioTab.ConceptExplanation -> {
-                        // Concept Explanation Tab: concepts detected while the speaker talks
-                        SessionConceptExplanationsView(
-                            conceptExplanations = transcriptState.conceptExplanations,
-                            isSessionLive = session.isLive,
-                            onBookmarkConcept = onBookmarkConcept,
-                            onShowMessage = showMessage,
-                        )
-                    }
-                    SessionStudioTab.Terms -> {
-                        // Terms Tab
-                        SessionTermsView(
-                            domainTerms = termsList,
-                            showEditDeleteActions = false,
-                        )
-                    }
-                    SessionStudioTab.Glossary -> {
-                        // Glossary Tab: only the live concepts this attendee bookmarked
-                        SessionGlossaryView(
-                            glossaryTerms = transcriptState.sessionGlossaryTerms,
-                            onRemoveTerm = onRemoveGlossaryTerm,
-                            onShowMessage = showMessage,
-                        )
-                    }
+            when (selectedTab) {
+                SessionStudioTab.LiveCompanion -> {
+                    // Live Companion Tab View (Transcripts, What did they mean button)
+                    SessionLiveCompanionView(
+                        session = session,
+                        isAudioBroadcasting = session.isLive,
+                        customTranscripts = transcriptState.transcripts,
+                        livePartialText = transcriptState.livePartialText.takeIf { session.isLive }.orEmpty(),
+                        hasEarlierTranscripts = transcriptState.hasEarlierTranscripts,
+                        isLoadingEarlierTranscripts = transcriptState.isLoadingEarlierTranscripts,
+                        didEarlierTranscriptsFail = transcriptState.didEarlierTranscriptsFail,
+                        didLiveTranscriptFail = transcriptState.didLiveTranscriptFail,
+                        onLoadEarlierTranscripts = onLoadEarlierTranscripts,
+                        onRetryLiveTranscript = onRetryLiveTranscript,
+                        onAskWhatTheyMean = { selectedItems, clearSelection ->
+                            onAskWhatTheyMean(selectedItems)
+                            clearSelection()
+                        },
+                    )
+                }
+                SessionStudioTab.ConceptExplanation -> {
+                    // Concept Explanation Tab: concepts detected while the speaker talks
+                    SessionConceptExplanationsView(
+                        conceptExplanations = transcriptState.conceptExplanations,
+                        isSessionLive = session.isLive,
+                        onBookmarkConcept = onBookmarkConcept,
+                        onShowMessage = showMessage,
+                    )
+                }
+                SessionStudioTab.Terms -> {
+                    // Terms Tab
+                    SessionTermsView(
+                        domainTerms = termsList,
+                        showEditDeleteActions = false,
+                    )
+                }
+                SessionStudioTab.Glossary -> {
+                    // Glossary Tab: only the live concepts this attendee bookmarked
+                    SessionGlossaryView(
+                        glossaryTerms = transcriptState.sessionGlossaryTerms,
+                        onRemoveTerm = onRemoveGlossaryTerm,
+                        onShowMessage = showMessage,
+                    )
                 }
             }
         }

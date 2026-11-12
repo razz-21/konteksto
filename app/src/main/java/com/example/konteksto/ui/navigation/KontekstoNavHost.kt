@@ -82,6 +82,7 @@ fun KontekstoNavHost(
     val hostSessions by hostViewModel.hostSessions.collectAsStateWithLifecycle()
     val currentProfile by hostViewModel.currentProfile.collectAsStateWithLifecycle()
     val isHostRefreshing by hostViewModel.isRefreshing.collectAsStateWithLifecycle()
+    val isLoadingHostSessions by hostViewModel.isLoadingSessions.collectAsStateWithLifecycle()
 
     val sessionState by produceState<SessionBootstrapState>(
         initialValue = authRepository.currentUser?.let {
@@ -193,6 +194,7 @@ fun KontekstoNavHost(
             MainScreen(
                 snackbarHostState = mainSnackbarHostState,
                 hostSessions = hostSessions,
+                isLoadingHostSessions = isLoadingHostSessions,
                 currentProfile = currentProfile,
                 isHostRefreshing = isHostRefreshing,
                 onHostRefresh = { hostViewModel.refreshSessions() },

@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.extendedColors
 
 @Composable
@@ -211,8 +212,8 @@ fun HostStudioHeaderCard(
                     onClick = onStartSessionClick,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(44.dp),
-                    shape = RoundedCornerShape(12.dp),
+                        .height(KontekstoButtonDefaults.Height),
+                    shape = KontekstoButtonDefaults.shape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -237,8 +238,8 @@ fun HostStudioHeaderCard(
                     onClick = onEndSessionClick,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(44.dp),
-                    shape = RoundedCornerShape(12.dp),
+                        .height(KontekstoButtonDefaults.Height),
+                    shape = KontekstoButtonDefaults.shape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error,
                         contentColor = MaterialTheme.colorScheme.onError,
@@ -276,8 +277,8 @@ fun HostStudioHeaderCard(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(44.dp),
-                shape = RoundedCornerShape(12.dp),
+                    .height(KontekstoButtonDefaults.Height),
+                shape = KontekstoButtonDefaults.shape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isAudioBroadcasting) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primaryContainer,
                     contentColor = if (isAudioBroadcasting) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.primary,

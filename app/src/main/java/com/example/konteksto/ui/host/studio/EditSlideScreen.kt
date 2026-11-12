@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -36,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 
 @Composable
 fun EditSlideScreen(
@@ -81,115 +81,120 @@ fun EditSlideScreen(
             .safeDrawingPadding(),
         color = MaterialTheme.colorScheme.background,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Kept outside the scrolling form so it stays pinned to the top.
             EditFormTopBar(
                 title = "Edit Slide",
                 subtitle = slide?.let { "Slide ${it.slideNumber}" },
                 onBackClick = onBackRequested,
+                modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp),
             )
 
-            if (slide == null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 48.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = "This slide is no longer available.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            } else {
-                EditFormField(
-                    label = "Title",
-                    value = title,
-                    onValueChange = {
-                        title = it
-                        titleError = null
-                    },
-                    errorMessage = titleError,
-                    singleLine = true,
-                )
-                EditFormField(
-                    label = "Summary",
-                    value = summary,
-                    onValueChange = { summary = it },
-                )
-                EditFormField(
-                    label = "Explanation",
-                    value = explanation,
-                    onValueChange = { explanation = it },
-                )
-                EditFormField(
-                    label = "Takeaway",
-                    value = keyTakeaway,
-                    onValueChange = { keyTakeaway = it },
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Bottom Action Buttons: Back & Save
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    OutlinedButton(
-                        onClick = onBackRequested,
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                if (slide == null) {
+                    Box(
                         modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp),
-                        shape = CircleShape,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                            .fillMaxWidth()
+                            .padding(vertical = 48.dp),
+                        contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = "Back",
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                            ),
-                            color = MaterialTheme.colorScheme.primary,
+                            text = "This slide is no longer available.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-
-                    Button(
-                        onClick = {
-                            if (title.isBlank()) {
-                                titleError = "Title is required"
-                            } else {
-                                onSaveClick(slide.withEdits(title, summary, explanation, keyTakeaway))
-                            }
+                } else {
+                    EditFormField(
+                        label = "Title",
+                        value = title,
+                        onValueChange = {
+                            title = it
+                            titleError = null
                         },
-                        enabled = hasChanges,
-                        modifier = Modifier
-                            .weight(1.5f)
-                            .height(48.dp),
-                        shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
+                        errorMessage = titleError,
+                        singleLine = true,
+                    )
+                    EditFormField(
+                        label = "Summary",
+                        value = summary,
+                        onValueChange = { summary = it },
+                    )
+                    EditFormField(
+                        label = "Explanation",
+                        value = explanation,
+                        onValueChange = { explanation = it },
+                    )
+                    EditFormField(
+                        label = "Takeaway",
+                        value = keyTakeaway,
+                        onValueChange = { keyTakeaway = it },
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Bottom Action Buttons: Back & Save
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_check),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Save",
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
+                        OutlinedButton(
+                            onClick = onBackRequested,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(KontekstoButtonDefaults.Height),
+                            shape = KontekstoButtonDefaults.shape,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        ) {
+                            Text(
+                                text = "Back",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                ),
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+
+                        Button(
+                            onClick = {
+                                if (title.isBlank()) {
+                                    titleError = "Title is required"
+                                } else {
+                                    onSaveClick(slide.withEdits(title, summary, explanation, keyTakeaway))
+                                }
+                            },
+                            enabled = hasChanges,
+                            modifier = Modifier
+                                .weight(1.5f)
+                                .height(KontekstoButtonDefaults.Height),
+                            shape = KontekstoButtonDefaults.shape,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
                             ),
-                        )
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_check),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Save",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                ),
+                            )
+                        }
                     }
                 }
             }

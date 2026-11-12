@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -40,16 +42,35 @@ class HostViewModel(
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
+    // Null until the first snapshot for the signed-in host arrives, so the UI can show a skeleton.
     @OptIn(ExperimentalCoroutinesApi::class)
-    val hostSessions: StateFlow<List<HostSession>> = authRepository.getAuthStateStream()
+    private val loadedHostSessions: StateFlow<List<HostSession>?> = authRepository.getAuthStateStream()
         .flatMapLatest { user ->
             val hostUid = user?.uid ?: ""
             sessionRepository.getHostSessionsStream(hostUid)
+                .map<List<HostSession>, List<HostSession>?> { it }
+                .onStart { emit(null) }
         }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null,
+        )
+
+    val hostSessions: StateFlow<List<HostSession>> = loadedHostSessions
+        .map { it.orEmpty() }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
             initialValue = emptyList(),
+        )
+
+    val isLoadingSessions: StateFlow<Boolean> = loadedHostSessions
+        .map { it == null }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = true,
         )
 
     fun refreshSessions() {
