@@ -49,7 +49,9 @@ data class UserProfile(
             return savedProfile.copy(
                 name = savedProfile.name.ifBlank { authProfile.name },
                 email = authProfile.email.ifBlank { savedProfile.email },
-                photoUrl = savedProfile.photoUrl ?: authProfile.photoUrl,
+                // A saved profile owns its photo field, so removing the photo stays removed
+                // instead of falling back to the Google account photo.
+                photoUrl = savedProfile.photoUrl,
                 avatarColorIndex = savedProfile.avatarColorIndex,
                 explanationLanguage = savedProfile.explanationLanguage,
             )

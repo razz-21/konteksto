@@ -30,7 +30,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.painterResource
@@ -45,6 +47,7 @@ import coil.compose.AsyncImage
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.ConferenceThemeBanner
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.domain.model.UserProfile
 import com.example.konteksto.ui.theme.KontekstoTheme
 import com.example.konteksto.ui.theme.extendedColors
 import com.example.konteksto.ui.components.LiveOnAirBadge
@@ -57,6 +60,7 @@ fun HostSessionCard(
     onLiveRoomClick: (HostSession) -> Unit,
     modifier: Modifier = Modifier,
     onShowMessage: (String) -> Unit = {},
+    currentProfile: UserProfile? = null,
 ) {
     @Suppress("DEPRECATION")
     val clipboardManager = LocalClipboardManager.current
@@ -73,8 +77,13 @@ fun HostSessionCard(
         session.category?.ifBlank { null } ?: "Technology & digital"
     }
 
-    val speakerInitials = remember(session.speakerName) {
-        getInitials(session.speakerName)
+    // Use the signed-in user's profile avatar when this is their own session.
+    val ownProfile = currentProfile?.takeIf { profile ->
+        session.hostUid == profile.uid || session.speakerName == profile.name
+    }
+    val speakerName = ownProfile?.name ?: session.speakerName
+    val speakerInitials = remember(speakerName, ownProfile) {
+        ownProfile?.initials ?: getInitials(speakerName)
     }
 
     Card(
@@ -162,7 +171,11 @@ fun HostSessionCard(
                         modifier = Modifier
                             .size(26.dp)
                             .background(
-                                color = MaterialTheme.colorScheme.primaryContainer,
+                                brush = if (ownProfile != null) {
+                                    Brush.linearGradient(ownProfile.avatarGradientColors)
+                                } else {
+                                    SolidColor(MaterialTheme.colorScheme.primaryContainer)
+                                },
                                 shape = CircleShape,
                             ),
                         contentAlignment = Alignment.Center,
@@ -173,14 +186,18 @@ fun HostSessionCard(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 10.sp,
                             ),
-                            color = MaterialTheme.colorScheme.primary,
+                            color = if (ownProfile != null) {
+                                Color.White
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            },
                         )
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
 
                     Text(
-                        text = session.speakerName,
+                        text = speakerName,
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Medium,
                             fontSize = 13.sp,

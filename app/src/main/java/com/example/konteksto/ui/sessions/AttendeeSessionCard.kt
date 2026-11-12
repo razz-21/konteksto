@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -36,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.domain.model.UserProfile
 import com.example.konteksto.ui.theme.KontekstoTheme
 import androidx.compose.foundation.clickable
 import com.example.konteksto.ui.theme.extendedColors
@@ -47,9 +49,15 @@ fun AttendeeSessionCard(
     isAttending: Boolean,
     onActionClick: () -> Unit,
     modifier: Modifier = Modifier,
+    currentProfile: UserProfile? = null,
 ) {
-    val speakerInitials = remember(session.speakerName) {
-        session.speakerName
+    // Use the signed-in user's profile avatar when this is their own session.
+    val ownProfile = currentProfile?.takeIf { profile ->
+        session.hostUid == profile.uid || session.speakerName == profile.name
+    }
+    val speakerName = ownProfile?.name ?: session.speakerName
+    val speakerInitials = remember(speakerName, ownProfile) {
+        ownProfile?.initials ?: speakerName
             .trim()
             .split(" ")
             .filter { it.isNotBlank() }
@@ -57,6 +65,8 @@ fun AttendeeSessionCard(
             .joinToString("") { it.first().uppercase() }
             .ifEmpty { "K" }
     }
+    val speakerGradient = ownProfile?.avatarGradientColors
+        ?: listOf(Color(0xFF3B52D4), Color(0xFF3B52D4))
 
     val tagText = remember(session.category, session.venue) {
         session.category?.takeIf { it.isNotBlank() } ?: session.venue
@@ -131,7 +141,7 @@ fun AttendeeSessionCard(
                         modifier = Modifier
                             .size(28.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF3B52D4)),
+                            .background(Brush.linearGradient(speakerGradient)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
@@ -145,7 +155,7 @@ fun AttendeeSessionCard(
                     Spacer(modifier = Modifier.width(8.dp))
 
                     Text(
-                        text = session.speakerName,
+                        text = speakerName,
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Medium,
                             fontSize = 14.sp,

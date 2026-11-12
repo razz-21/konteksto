@@ -80,7 +80,10 @@ class HostViewModel(
         val currentUser = authRepository.currentUser
         val hostUid = currentUser?.uid ?: ""
         val speaker = speakerName.ifBlank {
-            currentUser?.displayName ?: currentUser?.email?.substringBefore("@") ?: "Host"
+            currentProfile.value?.name?.takeIf { it.isNotBlank() }
+                ?: currentUser?.displayName
+                ?: currentUser?.email?.substringBefore("@")
+                ?: "Host"
         }
 
         viewModelScope.launch {
