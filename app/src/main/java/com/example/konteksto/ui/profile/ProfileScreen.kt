@@ -1,6 +1,11 @@
 package com.example.konteksto.ui.profile
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -85,56 +90,79 @@ fun ProfileScreen(
     }
 
     // Show Edit Profile in place of the Profile & Settings content.
-    if (showEditProfile && visibleProfile != null) {
-        BackHandler { showEditProfile = false }
+    val isEditingProfile = showEditProfile && visibleProfile != null
 
-        EditProfileScreen(
-            profile = visibleProfile,
-            isSaving = uiState.isLoading,
-            errorMessage = uiState.errorMessage,
-            onBackClick = { showEditProfile = false },
-            onSaveClick = { name, role, organization, bio, avatarColorIndex, photoUrl ->
-                viewModel.saveProfile(name, role, organization, bio, avatarColorIndex, photoUrl) { wasSaved ->
-                    if (wasSaved) {
-                        showEditProfile = false
+    BackHandler(enabled = isEditingProfile) { showEditProfile = false }
+
+    AnimatedContent(
+        targetState = isEditingProfile,
+        modifier = modifier.fillMaxSize(),
+        transitionSpec = {
+            // Mirror the NavHost transitions: opening slides towards Start,
+            // going back slides towards End.
+            val direction = if (targetState) {
+                AnimatedContentTransitionScope.SlideDirection.Start
+            } else {
+                AnimatedContentTransitionScope.SlideDirection.End
+            }
+            slideIntoContainer(
+                towards = direction,
+                animationSpec = tween(400),
+            ) togetherWith slideOutOfContainer(
+                towards = direction,
+                animationSpec = tween(400),
+            )
+        },
+        label = "profile_edit_profile_transition",
+    ) { editingProfile ->
+        val profileToEdit = visibleProfile
+        if (editingProfile && profileToEdit != null) {
+            EditProfileScreen(
+                profile = profileToEdit,
+                isSaving = uiState.isLoading,
+                errorMessage = uiState.errorMessage,
+                onBackClick = { showEditProfile = false },
+                onSaveClick = { name, role, organization, bio, avatarColorIndex, photoUrl ->
+                    viewModel.saveProfile(name, role, organization, bio, avatarColorIndex, photoUrl) { wasSaved ->
+                        if (wasSaved) {
+                            showEditProfile = false
+                        }
                     }
-                }
-            },
-        )
-        return
-    }
-
-    ProfileScreenContent(
-        modifier = modifier,
-        currentUser = currentUser,
-        profile = visibleProfile,
-        isDarkMode = isDarkMode,
-        onDarkModeChange = onDarkModeChange,
-        explanationLanguage = visibleProfile?.explanationLanguage ?: ExplanationLanguage.Default,
-        onExplanationLanguageChange = { language ->
-            viewModel.updateLanguage(language) { wasSaved ->
-                onShowMessage(
-                    if (wasSaved) {
-                        context.getString(
-                            R.string.profile_explanation_language_saved,
-                            context.getString(language.labelRes),
+                },
+            )
+        } else {
+            ProfileScreenContent(
+                currentUser = currentUser,
+                profile = visibleProfile,
+                isDarkMode = isDarkMode,
+                onDarkModeChange = onDarkModeChange,
+                explanationLanguage = visibleProfile?.explanationLanguage ?: ExplanationLanguage.Default,
+                onExplanationLanguageChange = { language ->
+                    viewModel.updateLanguage(language) { wasSaved ->
+                        onShowMessage(
+                            if (wasSaved) {
+                                context.getString(
+                                    R.string.profile_explanation_language_saved,
+                                    context.getString(language.labelRes),
+                                )
+                            } else {
+                                context.getString(R.string.profile_explanation_language_save_failed)
+                            },
                         )
-                    } else {
-                        context.getString(R.string.profile_explanation_language_save_failed)
-                    },
-                )
-            }
-        },
-        isLoading = uiState.isLoading,
-        errorMessage = uiState.errorMessage,
-        onEditProfileClick = { showEditProfile = true },
-        onGoogleSignInClick = triggerGoogleLogin,
-        onConfirmSignOut = {
-            viewModel.signOut()
-            onSignOutClick()
-            coroutineScope.launch {
-                GoogleAuthHelper.clearCredentialState(context)
-            }
-        },
-    )
+                    }
+                },
+                isLoading = uiState.isLoading,
+                errorMessage = uiState.errorMessage,
+                onEditProfileClick = { showEditProfile = true },
+                onGoogleSignInClick = triggerGoogleLogin,
+                onConfirmSignOut = {
+                    viewModel.signOut()
+                    onSignOutClick()
+                    coroutineScope.launch {
+                        GoogleAuthHelper.clearCredentialState(context)
+                    }
+                },
+            )
+        }
+    }
 }
