@@ -11,9 +11,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -513,13 +515,15 @@ fun EditProfileScreen(
                     placeholder = { Text("Tell speakers a little about yourself") },
                     leadingIcon = {
                         Box(
-                            modifier = Modifier.padding(top = 12.dp),
+                            modifier = Modifier.fillMaxHeight(),
                             contentAlignment = Alignment.TopCenter,
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_align_left),
                                 contentDescription = null,
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier
+                                    .padding(top = 16.dp)
+                                    .size(20.dp),
                             )
                         }
                     },
@@ -528,7 +532,9 @@ fun EditProfileScreen(
                     enabled = !isSaving,
                     shape = textFieldShape,
                     colors = activeTextFieldColors,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min),
                 )
 
                 if (!errorMessage.isNullOrBlank()) {
@@ -631,3 +637,23 @@ fun EditProfileScreen(
         }
     }
 }
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+fun EditProfileScreenPreview() {
+    com.example.konteksto.ui.theme.KontekstoTheme(darkTheme = false) {
+        EditProfileScreen(
+            profile = UserProfile(
+                uid = "123",
+                name = "Jose Manuel R. Borjaqw",
+                role = "Attendee",
+                email = "josemanuelrborja@gmail.com",
+                organization = "hr",
+                bio = "qwe\nsecond line\nthird line",
+            ),
+            onBackClick = {},
+            onSaveClick = { _, _, _, _, _, _ -> },
+        )
+    }
+}
+
