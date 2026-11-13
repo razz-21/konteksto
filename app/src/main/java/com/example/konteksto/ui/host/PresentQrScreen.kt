@@ -1,5 +1,13 @@
 package com.example.konteksto.ui.host
 
+import android.content.ContentValues
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.drawable.BitmapDrawable
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -35,13 +43,17 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -50,14 +62,23 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.graphics.drawable.toBitmap
 import coil.compose.AsyncImage
+import coil.imageLoader
+import coil.request.ImageRequest
+import coil.request.SuccessResult
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.components.showKontekstoSnackbar
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 import com.example.konteksto.ui.theme.extendedColors
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -76,8 +97,11 @@ fun PresentQrScreen(
     @Suppress("DEPRECATION")
     val clipboardManager = LocalClipboardManager.current
     val qrDownloadedMessage = stringResource(id = R.string.qr_downloaded_toast)
+    val qrDownloadFailedMessage = stringResource(id = R.string.qr_download_failed)
+    val context = LocalContext.current
+    var isSavingQr by remember { mutableStateOf(false) }
 
-    val qrApiUrl = "https://api.qrserver.com/v1/create-qr-code/?size=450x450&data=${session.talkCode}"
+    val qrApiUrl = buildQrApiUrl(session.talkCode)
 
     Scaffold(
         modifier = modifier
@@ -316,12 +340,30 @@ fun PresentQrScreen(
 
                 Button(
                     onClick = {
-                        onDownloadQrClick?.invoke()
-                            ?: showMessage(qrDownloadedMessage)
+                        if (isSavingQr) return@Button
+                        if (onDownloadQrClick != null) {
+                            onDownloadQrClick.invoke()
+                        } else {
+                            isSavingQr = true
+                            snackbarScope.launch {
+                                val saved = saveQrCodeToGallery(
+                                    context = context,
+                                    talkCode = session.talkCode,
+                                    qrUrl = qrApiUrl,
+                                )
+                                isSavingQr = false
+                                if (saved) {
+                                    showMessage(qrDownloadedMessage)
+                                } else {
+                                    showMessage(qrDownloadFailedMessage)
+                                }
+                            }
+                        }
                     },
                     modifier = Modifier
                         .weight(1.5f)
                         .height(KontekstoButtonDefaults.Height),
+                    enabled = !isSavingQr,
                     shape = KontekstoButtonDefaults.shape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
@@ -380,6 +422,103 @@ private fun PresentQrBadge(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+}
+
+internal fun buildQrApiUrl(talkCode: String): String {
+    return "https://api.qrserver.com/v1/create-qr-code/?size=450x450&data=$talkCode"
+}
+
+internal fun qrFilenameForTalkCode(talkCode: String): String {
+    val safeTalkCode = talkCode.filter { it.isLetterOrDigit() }.ifBlank { "code" }
+    return "konteksto_qr_$safeTalkCode.png"
+}
+
+internal fun saveBitmapToMediaStore(
+    context: Context,
+    bitmap: Bitmap,
+    talkCode: String,
+): Boolean {
+    val softwareBitmap = if (bitmap.config == Bitmap.Config.HARDWARE) {
+        bitmap.copy(Bitmap.Config.ARGB_8888, false) ?: bitmap
+    } else {
+        bitmap
+    }
+
+    val filename = qrFilenameForTalkCode(talkCode)
+
+    val contentValues = ContentValues().apply {
+        put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+        put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Konteksto")
+            put(MediaStore.Images.Media.IS_PENDING, 1)
+        }
+    }
+
+    val resolver = context.contentResolver
+    val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+        ?: return false
+
+    val saved = try {
+        resolver.openOutputStream(uri)?.use { stream ->
+            softwareBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+        } ?: false
+    } catch (_: Exception) {
+        false
+    }
+
+    return if (saved) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            contentValues.clear()
+            contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
+            resolver.update(uri, contentValues, null, null)
+        }
+        true
+    } else {
+        resolver.delete(uri, null, null)
+        false
+    }
+}
+
+internal suspend fun saveQrCodeToGallery(
+    context: Context,
+    talkCode: String,
+    qrUrl: String,
+): Boolean = withContext(Dispatchers.IO) {
+    try {
+        val rawBitmap: Bitmap? = try {
+            val loader = context.imageLoader
+            val request = ImageRequest.Builder(context)
+                .data(qrUrl)
+                .allowHardware(false)
+                .build()
+            val result = loader.execute(request)
+            if (result is SuccessResult) {
+                (result.drawable as? BitmapDrawable)?.bitmap ?: result.drawable.toBitmap()
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            null
+        }
+
+        val bitmap = rawBitmap ?: try {
+            val connection = (URL(qrUrl).openConnection() as HttpURLConnection).apply {
+                connectTimeout = 10_000
+                readTimeout = 10_000
+            }
+            connection.inputStream.use { BitmapFactory.decodeStream(it) }
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            null
+        } ?: return@withContext false
+
+        saveBitmapToMediaStore(context, bitmap, talkCode)
+    } catch (e: Exception) {
+        if (e is CancellationException) throw e
+        false
     }
 }
 
