@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -220,9 +221,10 @@ fun SessionStudioHeaderCard(
 
                     // Venue & Time Pill Badges Row
                     if (venueText.isNotEmpty() || timeLabel.isNotEmpty()) {
-                        Row(
+                        FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
                             // Venue Pill
                             if (venueText.isNotEmpty()) {
@@ -286,5 +288,62 @@ fun SessionStudioHeaderCard(
                 }
             }
         }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+fun SessionStudioHeaderCardShortVenuePreview() {
+    val sampleSession = HostSession(
+        id = "1",
+        venue = "Room 301",
+        time = "10:00 AM",
+        talkCode = "RUMNXJ",
+        title = "Cybersecurity Basics",
+        speakerName = "Samantha Gayle Oliveros",
+        category = "Technology & Digital",
+        attendeesCount = 12,
+        isLive = true,
+    )
+    com.example.konteksto.ui.theme.KontekstoTheme(darkTheme = true) {
+        SessionStudioHeaderCard(session = sampleSession)
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+fun SessionStudioHeaderCardLongVenuePreview() {
+    val sampleSession = HostSession(
+        id = "2",
+        venue = "LAB 2 WAC Building 3rd Floor",
+        time = "10:00 AM",
+        talkCode = "RUMNXJ",
+        title = "Cybersecurity Basics",
+        speakerName = "Samantha Gayle Oliveros",
+        category = "Technology & Digital",
+        attendeesCount = 12,
+        isLive = true,
+    )
+    com.example.konteksto.ui.theme.KontekstoTheme(darkTheme = true) {
+        SessionStudioHeaderCard(session = sampleSession)
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+fun SessionStudioHeaderCardMultiLineVenuePreview() {
+    val sampleSession = HostSession(
+        id = "3",
+        venue = "Rodelsa Hall Liceo de Cagayan University, Sector 4 Main Auditorium",
+        time = "10:00 AM – 11:30 AM",
+        talkCode = "K38QZD",
+        title = "Introduction to Ethical Hacking",
+        speakerName = "Ernesto Razo",
+        category = "Technology & Digital",
+        attendeesCount = 50,
+        isLive = true,
+    )
+    com.example.konteksto.ui.theme.KontekstoTheme(darkTheme = true) {
+        SessionStudioHeaderCard(session = sampleSession)
     }
 }
