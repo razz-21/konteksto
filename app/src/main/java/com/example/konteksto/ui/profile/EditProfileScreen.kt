@@ -1,5 +1,6 @@
 package com.example.konteksto.ui.profile
 
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -36,6 +37,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,6 +51,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -65,6 +68,11 @@ fun EditProfileScreen(
     modifier: Modifier = Modifier,
     isSaving: Boolean = false,
     errorMessage: String? = null,
+    isUploadingPhoto: Boolean = false,
+    photoErrorMessage: String? = null,
+    uploadedPhotoUrl: String? = null,
+    onUploadPhoto: (Uri) -> Unit = {},
+    onUploadedPhotoShown: () -> Unit = {},
 ) {
     var name by rememberSaveable(profile.uid) { mutableStateOf(profile.name) }
     var role by rememberSaveable(profile.uid) { mutableStateOf(profile.role) }
@@ -79,7 +87,15 @@ fun EditProfileScreen(
         contract = ActivityResultContracts.GetContent(),
     ) { uri ->
         if (uri != null) {
-            photoUrl = uri.toString()
+            onUploadPhoto(uri)
+        }
+    }
+
+    // Only replace the preview once the image has actually been uploaded.
+    LaunchedEffect(uploadedPhotoUrl) {
+        if (!uploadedPhotoUrl.isNullOrBlank()) {
+            photoUrl = uploadedPhotoUrl
+            onUploadedPhotoShown()
         }
     }
 
@@ -181,6 +197,22 @@ fun EditProfileScreen(
                             }
                         }
 
+                        if (isUploadingPhoto) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.45f)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(28.dp),
+                                    strokeWidth = 3.dp,
+                                    color = Color.White,
+                                )
+                            }
+                        }
+
                         // Verified shield badge
                         Box(
                             modifier = Modifier
@@ -214,7 +246,7 @@ fun EditProfileScreen(
                     ) {
                         OutlinedButton(
                             onClick = { photoPickerLauncher.launch("image/*") },
-                            enabled = !isSaving,
+                            enabled = !isSaving && !isUploadingPhoto,
                             shape = KontekstoButtonDefaults.shape,
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
@@ -240,7 +272,7 @@ fun EditProfileScreen(
                         if (!photoUrl.isNullOrBlank()) {
                             OutlinedButton(
                                 onClick = { photoUrl = null },
-                                enabled = !isSaving,
+                                enabled = !isSaving && !isUploadingPhoto,
                                 shape = KontekstoButtonDefaults.shape,
                                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
@@ -263,6 +295,18 @@ fun EditProfileScreen(
                                 )
                             }
                         }
+                    }
+
+                    if (!photoErrorMessage.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = photoErrorMessage,
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))
@@ -506,35 +550,11 @@ fun EditProfileScreen(
 
                 Spacer(modifier = Modifier.height(28.dp))
 
-                // Bottom Action Buttons: Cancel & Save Changes
-                Row(
+                // Bottom Action Buttons: Save Changes above Cancel, each full width so labels never clip.
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    OutlinedButton(
-                        onClick = onBackClick,
-                        enabled = !isSaving,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(KontekstoButtonDefaults.Height),
-                        shape = KontekstoButtonDefaults.shape,
-                        border = BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                        ),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.onBackground,
-                        ),
-                    ) {
-                        Text(
-                            text = "Cancel",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp,
-                            ),
-                        )
-                    }
-
                     Button(
                         onClick = {
                             onSaveClick(
@@ -546,9 +566,10 @@ fun EditProfileScreen(
                                 photoUrl,
                             )
                         },
-                        enabled = !isSaving,
+                        // Saving mid-upload would store a photo URL that isn't ready yet.
+                        enabled = !isSaving && !isUploadingPhoto,
                         modifier = Modifier
-                            .weight(1.3f)
+                            .fillMaxWidth()
                             .height(KontekstoButtonDefaults.Height),
                         shape = KontekstoButtonDefaults.shape,
                         colors = ButtonDefaults.buttonColors(
@@ -578,6 +599,30 @@ fun EditProfileScreen(
                                 ),
                             )
                         }
+                    }
+
+                    OutlinedButton(
+                        onClick = onBackClick,
+                        enabled = !isSaving,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(KontekstoButtonDefaults.Height),
+                        shape = KontekstoButtonDefaults.shape,
+                        border = BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                        ),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onBackground,
+                        ),
+                    ) {
+                        Text(
+                            text = "Cancel",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                            ),
+                        )
                     }
                 }
 

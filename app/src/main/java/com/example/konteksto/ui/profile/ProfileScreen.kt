@@ -2,6 +2,7 @@ package com.example.konteksto.ui.profile
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,6 +55,11 @@ fun ProfileScreen(
         .collectAsStateWithLifecycle(initialValue = viewModel.currentUser)
     val profile by viewModel.profile.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uploadedPhotoUrl by viewModel.uploadedPhotoUrl.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        viewModel.photoMessage.collect { message -> onShowMessage(message) }
+    }
 
     var showEditProfile by rememberSaveable { mutableStateOf(false) }
 
@@ -92,6 +98,11 @@ fun ProfileScreen(
             profile = visibleProfile,
             isSaving = uiState.isLoading,
             errorMessage = uiState.errorMessage,
+            isUploadingPhoto = uiState.isUploadingPhoto,
+            photoErrorMessage = uiState.photoErrorMessage,
+            uploadedPhotoUrl = uploadedPhotoUrl,
+            onUploadPhoto = viewModel::uploadProfilePhoto,
+            onUploadedPhotoShown = viewModel::consumeUploadedPhotoUrl,
             onBackClick = { showEditProfile = false },
             onSaveClick = { name, role, organization, bio, avatarColorIndex, photoUrl ->
                 viewModel.saveProfile(name, role, organization, bio, avatarColorIndex, photoUrl) { wasSaved ->
@@ -127,7 +138,10 @@ fun ProfileScreen(
         },
         isLoading = uiState.isLoading,
         errorMessage = uiState.errorMessage,
-        onEditProfileClick = { showEditProfile = true },
+        onEditProfileClick = {
+            viewModel.clearPhotoUploadError()
+            showEditProfile = true
+        },
         onGoogleSignInClick = triggerGoogleLogin,
         onConfirmSignOut = {
             viewModel.signOut()

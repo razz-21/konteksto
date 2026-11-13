@@ -5,8 +5,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -16,6 +19,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -27,22 +32,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.konteksto.R
+import com.example.konteksto.domain.model.ConferenceThemeBanner
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.domain.model.UserProfile
 import com.example.konteksto.ui.components.LiveOnAirBadge
+import com.example.konteksto.ui.components.SessionBadge
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 import com.example.konteksto.ui.theme.extendedColors
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AttendeeSessionCard(
     session: HostSession,
@@ -65,53 +74,71 @@ fun AttendeeSessionCard(
             .joinToString("") { it.first().uppercase() }
             .ifEmpty { "K" }
     }
-    val speakerGradient = ownProfile?.avatarGradientColors
-        ?: listOf(Color(0xFF3B52D4), Color(0xFF3B52D4))
 
-    val tagText = remember(session.category, session.venue) {
-        session.category?.takeIf { it.isNotBlank() } ?: session.venue
+    val bannerUrl = remember(session.bannerImageUrl, session.category) {
+        session.bannerImageUrl?.ifBlank { null }
+            ?: ConferenceThemeBanner.DefaultCategories.find {
+                it.categoryName.equals(session.category, ignoreCase = true)
+            }?.imageUrl
+            ?: ConferenceThemeBanner.DefaultCategories.first().imageUrl
     }
 
-    Surface(
+    val categoryLabel = remember(session.category) {
+        session.category?.ifBlank { null } ?: "Technology & digital"
+    }
+
+    // Matches the Host Sessions card so both lists look the same.
+    Card(
         modifier = modifier
             .fillMaxWidth()
             .clickable { onActionClick() },
         shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.extendedColors.cardContainer,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ),
     ) {
-        Column {
-            // Banner Image Box
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            // Cover Image Banner
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(160.dp),
+                    .height(135.dp)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
             ) {
                 AsyncImage(
-                    model = session.bannerImageUrl ?: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1000",
-                    contentDescription = "Session Banner",
+                    model = bannerUrl,
+                    contentDescription = session.title,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxSize(),
                 )
 
-                // Category Tag Pill
-                Surface(
+                // Category overlay pill on top left
+                Box(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(12.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xCC000000),
+                        .padding(12.dp)
+                        .background(
+                            color = Color.Black.copy(alpha = 0.65f),
+                            shape = RoundedCornerShape(8.dp),
+                        )
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
                 ) {
                     Text(
-                        text = tagText,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        text = categoryLabel,
                         style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 11.sp,
                         ),
                         color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
 
+                // Live On Air badge overlay on top right if session is live
                 if (session.isLive) {
                     LiveOnAirBadge(
                         modifier = Modifier
@@ -121,35 +148,65 @@ fun AttendeeSessionCard(
                 }
             }
 
-            // Card Content
-            Column(modifier = Modifier.padding(16.dp)) {
+            // Card Details Content
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+            ) {
                 // Session Title
                 Text(
                     text = session.title,
-                    style = MaterialTheme.typography.titleMedium.copy(
+                    style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
                         lineHeight = 24.sp,
                     ),
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Speaker Row
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Box(
                         modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(Brush.linearGradient(speakerGradient)),
+                            .size(26.dp)
+                            .background(
+                                brush = if (ownProfile != null) {
+                                    Brush.linearGradient(ownProfile.avatarGradientColors)
+                                } else {
+                                    SolidColor(MaterialTheme.colorScheme.primaryContainer)
+                                },
+                                shape = CircleShape,
+                            ),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            text = speakerInitials,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                        )
+                        if (!ownProfile?.photoUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = ownProfile.photoUrl,
+                                contentDescription = "Profile photo",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape),
+                            )
+                        } else {
+                            Text(
+                                text = speakerInitials,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp,
+                                ),
+                                color = if (ownProfile != null) {
+                                    Color.White
+                                } else {
+                                    MaterialTheme.colorScheme.primary
+                                },
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
@@ -158,159 +215,117 @@ fun AttendeeSessionCard(
                         text = speakerName,
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Medium,
-                            fontSize = 14.sp,
+                            fontSize = 13.sp,
                         ),
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Info Chips Row 1: Location & Time
-                Row(
+                // Metadata Chips: Venue, Time, Attendees
+                FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
-                    // Location Chip
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_location),
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = session.venue,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontSize = 12.sp,
-                                ),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                    if (session.venue.isNotBlank()) {
+                        SessionBadge(
+                            iconRes = R.drawable.ic_location,
+                            text = session.venue,
+                        )
                     }
 
-                    // Time Chip
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_clock),
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = session.time,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontSize = 12.sp,
-                                ),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                    if (session.time.isNotBlank()) {
+                        SessionBadge(
+                            iconRes = R.drawable.ic_clock,
+                            text = session.time,
+                        )
                     }
+
+                    SessionBadge(
+                        iconRes = R.drawable.ic_people,
+                        text = "${session.attendeesCount} ${if (session.attendeesCount == 1) "attendee" else "attendees"}",
+                    )
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // Info Chips Row 2: Attendees Count
+                // Join Code Container
                 Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
-                            painter = painterResource(id = R.drawable.ic_people),
+                            painter = painterResource(id = R.drawable.ic_key),
                             contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary,
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "${session.attendeesCount} ${if (session.attendeesCount == 1) "attendee" else "attendees"}",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 12.sp,
-                            ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
 
-                // Bottom Action Row: Code Badge & Enter Room Button
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    // Code Badge Pill
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
+                        Column(
+                            modifier = Modifier.weight(1f),
                         ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_key),
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.primary,
+                            Text(
+                                text = "Join code",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.height(1.dp))
                             Text(
                                 text = session.talkCode,
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontFamily = FontFamily.Monospace,
+                                style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
                                     letterSpacing = 1.sp,
-                                    fontSize = 12.sp,
                                 ),
-                                color = MaterialTheme.colorScheme.primary,
+                                color = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                     }
+                }
 
-                    // Enter Room Button
-                    Button(
-                        onClick = onActionClick,
-                        modifier = Modifier.height(KontekstoButtonDefaults.Height),
-                        shape = KontekstoButtonDefaults.shape,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                    ) {
-                        Text(
-                            text = "Enter room",
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Enter Room Button
+                Button(
+                    onClick = onActionClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(KontekstoButtonDefaults.Height),
+                    shape = KontekstoButtonDefaults.shape,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                ) {
+                    Text(
+                        text = "Enter room",
+                        style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_arrow_forward),
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                        )
-                    }
+                        ),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_arrow_forward),
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                    )
                 }
             }
         }
