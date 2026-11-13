@@ -69,6 +69,7 @@ import coil.request.ImageRequest
 import coil.request.SuccessResult
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.components.showKontekstoSnackbar
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
@@ -127,7 +128,7 @@ fun PresentQrScreen(
                         .height(48.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = rememberDebouncedClick(onClick = onBackClick)) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_arrow_back),
                             contentDescription = "Back",
@@ -321,7 +322,7 @@ fun PresentQrScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 OutlinedButton(
-                    onClick = onBackClick,
+                    onClick = rememberDebouncedClick(onClick = onBackClick),
                     modifier = Modifier
                         .weight(1f)
                         .height(KontekstoButtonDefaults.Height),
@@ -339,8 +340,8 @@ fun PresentQrScreen(
                 }
 
                 Button(
-                    onClick = {
-                        if (isSavingQr) return@Button
+                    onClick = rememberDebouncedClick {
+                        if (isSavingQr) return@rememberDebouncedClick
                         if (onDownloadQrClick != null) {
                             onDownloadQrClick.invoke()
                         } else {

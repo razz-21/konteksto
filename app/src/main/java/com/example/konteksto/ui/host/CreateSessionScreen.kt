@@ -51,6 +51,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.ConferenceThemeBanner
+import com.example.konteksto.ui.components.debouncedClickable
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.components.showKontekstoSnackbar
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
@@ -417,7 +419,7 @@ fun CreateSessionScreen(
                         },
                         isError = startTimeError != null,
                         trailingIcon = {
-                            IconButton(onClick = { showStartTimePicker = true }) {
+                            IconButton(onClick = rememberDebouncedClick { showStartTimePicker = true }) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.ic_clock),
                                     contentDescription = "Pick Start Time",
@@ -433,7 +435,7 @@ fun CreateSessionScreen(
                     Box(
                         modifier = Modifier
                             .matchParentSize()
-                            .clickable { showStartTimePicker = true },
+                            .debouncedClickable { showStartTimePicker = true },
                     )
                 }
 
@@ -461,7 +463,7 @@ fun CreateSessionScreen(
                             )
                         },
                         trailingIcon = {
-                            IconButton(onClick = { showEndTimePicker = true }) {
+                            IconButton(onClick = rememberDebouncedClick { showEndTimePicker = true }) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.ic_clock),
                                     contentDescription = "Pick End Time",
@@ -477,7 +479,7 @@ fun CreateSessionScreen(
                     Box(
                         modifier = Modifier
                             .matchParentSize()
-                            .clickable { showEndTimePicker = true },
+                            .debouncedClickable { showEndTimePicker = true },
                     )
                 }
             }
@@ -510,7 +512,7 @@ fun CreateSessionScreen(
                 },
                 trailingIcon = {
                     IconButton(
-                        onClick = {
+                        onClick = rememberDebouncedClick {
                             talkCode = generateAlphanumericCode()
                             codeError = null
                         },
@@ -550,7 +552,7 @@ fun CreateSessionScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 OutlinedButton(
-                    onClick = onBackClick,
+                    onClick = rememberDebouncedClick(onClick = onBackClick),
                     modifier = Modifier
                         .weight(1f)
                         .height(KontekstoButtonDefaults.Height),
@@ -568,7 +570,7 @@ fun CreateSessionScreen(
                 }
 
                 Button(
-                    onClick = { validateAndSubmit() },
+                    onClick = rememberDebouncedClick { validateAndSubmit() },
                     modifier = Modifier
                         .weight(1.5f)
                         .height(KontekstoButtonDefaults.Height),

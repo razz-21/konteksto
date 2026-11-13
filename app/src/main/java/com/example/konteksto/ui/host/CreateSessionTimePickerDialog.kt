@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 
@@ -33,7 +34,7 @@ fun CreateSessionTimePickerDialog(
         onDismissRequest = onDismissRequest,
         confirmButton = {
             TextButton(
-                onClick = {
+                onClick = rememberDebouncedClick {
                     onConfirm(timePickerState.hour, timePickerState.minute)
                 },
                 shape = KontekstoButtonDefaults.shape,
@@ -45,7 +46,7 @@ fun CreateSessionTimePickerDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismissRequest, shape = KontekstoButtonDefaults.shape) {
+            TextButton(onClick = rememberDebouncedClick(onClick = onDismissRequest), shape = KontekstoButtonDefaults.shape) {
                 Text(
                     text = stringResource(id = android.R.string.cancel),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

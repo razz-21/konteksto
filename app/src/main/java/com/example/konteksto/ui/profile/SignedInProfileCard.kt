@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.UserProfile
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.theme.extendedColors
 
 /** Number of bio lines shown before the "Read More" toggle appears. */
@@ -106,7 +107,7 @@ fun SignedInProfileHeaderCard(
             Spacer(modifier = Modifier.width(8.dp))
 
             Surface(
-                onClick = onEditClick,
+                onClick = rememberDebouncedClick(onClick = onEditClick),
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 modifier = Modifier.size(40.dp),

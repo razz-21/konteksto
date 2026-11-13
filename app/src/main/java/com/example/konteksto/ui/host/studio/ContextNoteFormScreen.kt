@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 
 @Composable
@@ -49,6 +50,7 @@ fun ContextNoteFormScreen(
     onSaveClick: (title: String, content: String) -> Unit,
     modifier: Modifier = Modifier,
     isAvailable: Boolean = true,
+    useVerticalButtonLayout: Boolean = false,
 ) {
     var title by rememberSaveable(formKey) { mutableStateOf(initialTitle) }
     var content by rememberSaveable(formKey) { mutableStateOf(initialContent) }
@@ -133,61 +135,121 @@ fun ContextNoteFormScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Bottom Action Buttons: Back & Save
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        OutlinedButton(
-                            onClick = onBackRequested,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(KontekstoButtonDefaults.Height),
-                            shape = KontekstoButtonDefaults.shape,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    if (useVerticalButtonLayout) {
+                        // Bottom Action Buttons: Save & Cancel (stacked vertically)
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            Text(
-                                text = "Back",
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
+                            Button(
+                                onClick = rememberDebouncedClick {
+                                    if (title.isBlank()) {
+                                        titleError = "Title is required"
+                                    } else if (!isSubmitted) {
+                                        isSubmitted = true
+                                        onSaveClick(title, content)
+                                    }
+                                },
+                                enabled = hasChanges,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(KontekstoButtonDefaults.Height),
+                                shape = KontekstoButtonDefaults.shape,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
                                 ),
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_check),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Save",
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                    ),
+                                )
+                            }
 
-                        Button(
-                            onClick = {
-                                if (title.isBlank()) {
-                                    titleError = "Title is required"
-                                } else if (!isSubmitted) {
-                                    isSubmitted = true
-                                    onSaveClick(title, content)
-                                }
-                            },
-                            enabled = hasChanges,
-                            modifier = Modifier
-                                .weight(1.5f)
-                                .height(KontekstoButtonDefaults.Height),
-                            shape = KontekstoButtonDefaults.shape,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary,
-                            ),
+                            OutlinedButton(
+                                onClick = rememberDebouncedClick(onClick = onBackRequested),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(KontekstoButtonDefaults.Height),
+                                shape = KontekstoButtonDefaults.shape,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                            ) {
+                                Text(
+                                    text = "Cancel",
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                    ),
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                        }
+                    } else {
+                        // Bottom Action Buttons: Back & Save (side by side)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_check),
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Save",
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
+                            OutlinedButton(
+                                onClick = rememberDebouncedClick(onClick = onBackRequested),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(KontekstoButtonDefaults.Height),
+                                shape = KontekstoButtonDefaults.shape,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                            ) {
+                                Text(
+                                    text = "Back",
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                    ),
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+
+                            Button(
+                                onClick = rememberDebouncedClick {
+                                    if (title.isBlank()) {
+                                        titleError = "Title is required"
+                                    } else if (!isSubmitted) {
+                                        isSubmitted = true
+                                        onSaveClick(title, content)
+                                    }
+                                },
+                                enabled = hasChanges,
+                                modifier = Modifier
+                                    .weight(1.5f)
+                                    .height(KontekstoButtonDefaults.Height),
+                                shape = KontekstoButtonDefaults.shape,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
                                 ),
-                            )
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_check),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Save",
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                    ),
+                                )
+                            }
                         }
                     }
                 } else {

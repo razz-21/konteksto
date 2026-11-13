@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 
 @Composable
@@ -34,7 +35,7 @@ fun GoogleSignInButton(
     isLoading: Boolean = false,
 ) {
     Button(
-        onClick = onClick,
+        onClick = rememberDebouncedClick(onClick = onClick),
         enabled = !isLoading,
         shape = KontekstoButtonDefaults.shape,
         colors = ButtonDefaults.buttonColors(

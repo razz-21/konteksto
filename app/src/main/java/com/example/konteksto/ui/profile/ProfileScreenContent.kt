@@ -1,6 +1,6 @@
 package com.example.konteksto.ui.profile
 
-import androidx.compose.foundation.clickable
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -39,6 +39,8 @@ import com.example.konteksto.R
 import com.example.konteksto.domain.model.AuthUser
 import com.example.konteksto.domain.model.ExplanationLanguage
 import com.example.konteksto.domain.model.UserProfile
+import com.example.konteksto.ui.components.debouncedClickable
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.login.GoogleSignInButton
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
@@ -82,7 +84,7 @@ fun ProfileScreenContent(
             },
             confirmButton = {
                 Button(
-                    onClick = {
+                    onClick = rememberDebouncedClick {
                         showSignOutDialog = false
                         onConfirmSignOut()
                     },
@@ -101,7 +103,7 @@ fun ProfileScreenContent(
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showSignOutDialog = false },
+                    onClick = rememberDebouncedClick { showSignOutDialog = false },
                     shape = KontekstoButtonDefaults.shape,
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -205,7 +207,7 @@ fun ProfileScreenContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp)
-                        .clickable(enabled = !isLoading) { showSignOutDialog = true },
+                        .debouncedClickable(enabled = !isLoading) { showSignOutDialog = true },
                     shape = RoundedCornerShape(20.dp),
                     color = MaterialTheme.extendedColors.cardContainer,
                 ) {

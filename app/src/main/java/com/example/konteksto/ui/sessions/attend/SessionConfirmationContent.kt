@@ -1,6 +1,6 @@
 package com.example.konteksto.ui.sessions.attend
 
-import androidx.compose.foundation.clickable
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.ui.components.debouncedClickable
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 
@@ -96,7 +98,7 @@ internal fun SessionConfirmationContent(
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = onConfirmJoin,
+            onClick = rememberDebouncedClick(onClick = onConfirmJoin),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(KontekstoButtonDefaults.Height),
@@ -134,7 +136,7 @@ internal fun SessionConfirmationContent(
                 color = Color(0xFF3B52D4),
                 modifier = Modifier
                     .clip(CircleShape)
-                    .clickable { onBackToCode() }
+                    .debouncedClickable { onBackToCode() }
                     .padding(horizontal = 16.dp, vertical = 8.dp),
             )
         }

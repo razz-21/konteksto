@@ -30,6 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 import com.example.konteksto.ui.theme.extendedColors
@@ -98,7 +99,7 @@ fun PermissionCard(
 
             if (isGranted) {
                 Surface(
-                    onClick = onActionClick,
+                    onClick = rememberDebouncedClick(onClick = onActionClick),
                     shape = MaterialTheme.shapes.medium,
                     color = Color(0xFFECFDF5),
                     contentColor = Color(0xFF047857),
@@ -127,7 +128,7 @@ fun PermissionCard(
                 }
             } else {
                 Button(
-                    onClick = onActionClick,
+                    onClick = rememberDebouncedClick(onClick = onActionClick),
                     shape = KontekstoButtonDefaults.shape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFF1F5F9),

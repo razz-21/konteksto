@@ -44,6 +44,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.konteksto.R
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
@@ -71,7 +72,7 @@ internal fun QrScannerView(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        TextButton(onClick = onBackToCodeEntry, shape = KontekstoButtonDefaults.shape) {
+        TextButton(onClick = rememberDebouncedClick(onClick = onBackToCodeEntry), shape = KontekstoButtonDefaults.shape) {
             Text("Back to code entry", fontWeight = FontWeight.SemiBold)
         }
 
@@ -230,7 +231,7 @@ private fun CameraPermissionPrompt(
             )
             Spacer(modifier = Modifier.height(14.dp))
             Button(
-                onClick = onRequestCameraPermission,
+                onClick = rememberDebouncedClick(onClick = onRequestCameraPermission),
                 shape = KontekstoButtonDefaults.shape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF3B52D4),

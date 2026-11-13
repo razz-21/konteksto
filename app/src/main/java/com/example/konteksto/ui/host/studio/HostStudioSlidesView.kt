@@ -54,6 +54,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.extendedColors
 import kotlin.math.roundToInt
@@ -436,7 +437,7 @@ fun HostStudioSlidesView(
                                 Spacer(modifier = Modifier.height(16.dp))
 
                                 Button(
-                                    onClick = { pdfPickerLauncher.launch("application/pdf") },
+                                    onClick = rememberDebouncedClick { pdfPickerLauncher.launch("application/pdf") },
                                     shape = KontekstoButtonDefaults.shape,
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.primary,
@@ -592,7 +593,7 @@ fun HostStudioSlidesView(
                                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 ) {
                                     OutlinedButton(
-                                        onClick = onRemoveSlideDeckClick,
+                                        onClick = rememberDebouncedClick(onClick = onRemoveSlideDeckClick),
                                         modifier = Modifier
                                             .weight(1f)
                                             .height(KontekstoButtonDefaults.Height),
@@ -622,7 +623,7 @@ fun HostStudioSlidesView(
                                     }
 
                                     Button(
-                                        onClick = {
+                                        onClick = rememberDebouncedClick {
                                             if (analyzedSlides.isNotEmpty()) {
                                                 showReanalyzeDialog = true
                                             } else {
@@ -914,7 +915,7 @@ fun HostStudioSlidesView(
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
                                             IconButton(
-                                                onClick = { onEditContextNoteClick(note.id) },
+                                                onClick = rememberDebouncedClick { onEditContextNoteClick(note.id) },
                                                 modifier = Modifier.size(24.dp),
                                             ) {
                                                 Icon(
@@ -925,7 +926,7 @@ fun HostStudioSlidesView(
                                                 )
                                             }
                                             IconButton(
-                                                onClick = { noteIdToDelete = note.id },
+                                                onClick = rememberDebouncedClick { noteIdToDelete = note.id },
                                                 modifier = Modifier.size(24.dp),
                                             ) {
                                                 Icon(
@@ -965,7 +966,7 @@ fun HostStudioSlidesView(
                     }
 
                     Button(
-                        onClick = onAddNoteClick,
+                        onClick = rememberDebouncedClick(onClick = onAddNoteClick),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(KontekstoButtonDefaults.Height),
@@ -1086,7 +1087,7 @@ fun HostStudioSlidesView(
                                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                                         ) {
                                             IconButton(
-                                                onClick = { onEditDomainTermClick(domainTerm.id) },
+                                                onClick = rememberDebouncedClick { onEditDomainTermClick(domainTerm.id) },
                                                 modifier = Modifier.size(24.dp),
                                             ) {
                                                 Icon(
@@ -1097,7 +1098,7 @@ fun HostStudioSlidesView(
                                                 )
                                             }
                                             IconButton(
-                                                onClick = { termIdToDelete = domainTerm.id },
+                                                onClick = rememberDebouncedClick { termIdToDelete = domainTerm.id },
                                                 modifier = Modifier.size(24.dp),
                                             ) {
                                                 Icon(
@@ -1196,7 +1197,7 @@ private fun AnalyzedSlideCard(
                 }
 
                 IconButton(
-                    onClick = { onEditSlideClick(slide.id) },
+                    onClick = rememberDebouncedClick { onEditSlideClick(slide.id) },
                     modifier = Modifier.size(28.dp),
                 ) {
                     Icon(
