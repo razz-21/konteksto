@@ -1,5 +1,6 @@
 package com.example.konteksto
 
+import android.net.Uri
 import com.example.konteksto.data.repository.AuthRepository
 import com.example.konteksto.data.repository.ExplanationRepository
 import com.example.konteksto.data.repository.FirebaseAuthRepository
@@ -64,6 +65,9 @@ private class FakeUserProfileRepository : UserProfileRepository {
         this.profile.value = profile
         return Result.success(Unit)
     }
+
+    override suspend fun uploadProfilePhoto(uid: String, uri: Uri): Result<String> =
+        Result.success("https://example.com/users/$uid/avatar.jpg")
 }
 
 private class FakeGlossaryRepository : GlossaryRepository {

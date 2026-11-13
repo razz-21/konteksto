@@ -41,6 +41,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 
@@ -187,7 +188,7 @@ fun EditDomainTermScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         OutlinedButton(
-                            onClick = onBackRequested,
+                            onClick = rememberDebouncedClick(onClick = onBackRequested),
                             modifier = Modifier
                                 .weight(1f)
                                 .height(KontekstoButtonDefaults.Height),
@@ -205,7 +206,7 @@ fun EditDomainTermScreen(
                         }
 
                         Button(
-                            onClick = {
+                            onClick = rememberDebouncedClick {
                                 termError = when {
                                     term.isBlank() -> "Term is required"
                                     isNameTaken(term) -> "This term is already in your list"

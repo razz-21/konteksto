@@ -1,10 +1,16 @@
 package com.example.konteksto.data.repository
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
+import com.example.konteksto.BuildConfig
 import com.example.konteksto.domain.model.ExplanationLanguage
 import com.example.konteksto.domain.model.UserProfile
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageMetadata
+import com.google.firebase.storage.StorageReference
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +22,8 @@ import kotlinx.coroutines.tasks.await
 interface UserProfileRepository {
     fun getProfileStream(uid: String): Flow<UserProfile?>
     suspend fun saveProfile(profile: UserProfile): Result<Unit>
+    /** Uploads the image to Cloud Storage and returns its download URL. */
+    suspend fun uploadProfilePhoto(uid: String, uri: Uri): Result<String>
 }
 
 class FirebaseUserProfileRepository(
@@ -195,6 +203,36 @@ class FirebaseUserProfileRepository(
                 Log.e("FirebaseUserProfileRepo", "Firestore save profile failed: ${e.message}")
             }
         }
+    }
+
+    override suspend fun uploadProfilePhoto(uid: String, uri: Uri): Result<String> {
+        if (uid.isBlank()) {
+            return Result.failure(IllegalArgumentException("You must be signed in to upload a photo."))
+        }
+
+        return try {
+            val metadata = StorageMetadata.Builder()
+                .setContentType(context?.contentResolver?.getType(uri) ?: "image/jpeg")
+                .build()
+            val storageRef = profilePhotoStorageRef(uid)
+            storageRef.putFile(uri, metadata).await()
+            Result.success(storageRef.downloadUrl.await().toString())
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e("FirebaseUserProfileRepo", "Profile photo upload failed: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    private fun profilePhotoStorageRef(uid: String): StorageReference {
+        val bucketUrl = BuildConfig.FIREBASE_STORAGE_BUCKET
+        val storage = if (bucketUrl.isNotBlank()) {
+            FirebaseStorage.getInstance(bucketUrl)
+        } else {
+            FirebaseStorage.getInstance()
+        }
+        return storage.reference.child("users/$uid/profile/avatar.jpg")
     }
 
     private companion object {

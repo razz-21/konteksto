@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import kotlinx.coroutines.delay
 
@@ -56,7 +57,7 @@ fun StartSessionConfirmDialog(
         },
         confirmButton = {
             Button(
-                onClick = onConfirm,
+                onClick = rememberDebouncedClick(onClick = onConfirm),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -69,7 +70,7 @@ fun StartSessionConfirmDialog(
         },
         dismissButton = {
             TextButton(
-                onClick = onDismiss,
+                onClick = rememberDebouncedClick(onClick = onDismiss),
                 shape = KontekstoButtonDefaults.shape,
             ) {
                 Text(text = stringResource(id = R.string.action_cancel))
@@ -99,7 +100,7 @@ fun EndSessionConfirmDialog(
         },
         confirmButton = {
             Button(
-                onClick = onConfirm,
+                onClick = rememberDebouncedClick(onClick = onConfirm),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.error,
                     contentColor = MaterialTheme.colorScheme.onError,
@@ -112,7 +113,7 @@ fun EndSessionConfirmDialog(
         },
         dismissButton = {
             TextButton(
-                onClick = onDismiss,
+                onClick = rememberDebouncedClick(onClick = onDismiss),
                 shape = KontekstoButtonDefaults.shape,
             ) {
                 Text(text = stringResource(id = R.string.action_cancel))
@@ -143,7 +144,7 @@ fun DiscardChangesDialog(
         },
         confirmButton = {
             Button(
-                onClick = onConfirm,
+                onClick = rememberDebouncedClick(onClick = onConfirm),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.error,
                     contentColor = MaterialTheme.colorScheme.onError,
@@ -156,7 +157,7 @@ fun DiscardChangesDialog(
         },
         dismissButton = {
             TextButton(
-                onClick = onDismiss,
+                onClick = rememberDebouncedClick(onClick = onDismiss),
                 shape = KontekstoButtonDefaults.shape,
             ) {
                 Text(text = "Keep Editing")
@@ -189,7 +190,7 @@ fun DeleteContextNoteDialog(
         },
         confirmButton = {
             Button(
-                onClick = onConfirm,
+                onClick = rememberDebouncedClick(onClick = onConfirm),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.error,
                     contentColor = MaterialTheme.colorScheme.onError,
@@ -202,7 +203,7 @@ fun DeleteContextNoteDialog(
         },
         dismissButton = {
             TextButton(
-                onClick = onDismiss,
+                onClick = rememberDebouncedClick(onClick = onDismiss),
                 shape = KontekstoButtonDefaults.shape,
             ) {
                 Text(text = stringResource(id = R.string.action_cancel))
@@ -234,7 +235,7 @@ fun DeleteDomainTermDialog(
         },
         confirmButton = {
             Button(
-                onClick = onConfirm,
+                onClick = rememberDebouncedClick(onClick = onConfirm),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.error,
                     contentColor = MaterialTheme.colorScheme.onError,
@@ -247,7 +248,7 @@ fun DeleteDomainTermDialog(
         },
         dismissButton = {
             TextButton(
-                onClick = onDismiss,
+                onClick = rememberDebouncedClick(onClick = onDismiss),
                 shape = KontekstoButtonDefaults.shape,
             ) {
                 Text(text = stringResource(id = R.string.action_cancel))
@@ -278,7 +279,7 @@ fun ReanalyzeSlideDeckDialog(
         },
         confirmButton = {
             Button(
-                onClick = onConfirm,
+                onClick = rememberDebouncedClick(onClick = onConfirm),
                 modifier = Modifier.height(KontekstoButtonDefaults.Height),
                 shape = KontekstoButtonDefaults.shape,
             ) {
@@ -287,7 +288,7 @@ fun ReanalyzeSlideDeckDialog(
         },
         dismissButton = {
             TextButton(
-                onClick = onDismiss,
+                onClick = rememberDebouncedClick(onClick = onDismiss),
                 shape = KontekstoButtonDefaults.shape,
             ) {
                 Text(text = stringResource(id = R.string.action_cancel))
@@ -318,7 +319,7 @@ fun SlideDeckErrorDialog(
         },
         confirmButton = {
             Button(
-                onClick = onDismiss,
+                onClick = rememberDebouncedClick(onClick = onDismiss),
                 modifier = Modifier.height(KontekstoButtonDefaults.Height),
                 shape = KontekstoButtonDefaults.shape,
             ) {

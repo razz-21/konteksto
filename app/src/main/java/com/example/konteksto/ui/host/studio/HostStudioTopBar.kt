@@ -1,7 +1,7 @@
 package com.example.konteksto.ui.host.studio
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.ui.components.debouncedClickable
+import com.example.konteksto.ui.components.rememberDebouncedClick
 
 @Composable
 fun HostStudioTopBar(
@@ -44,7 +46,7 @@ fun HostStudioTopBar(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
-                .clickable { onBackClick() }
+                .debouncedClickable { onBackClick() }
                 .padding(end = 6.dp, top = 4.dp, bottom = 4.dp),
         ) {
             Icon(
@@ -67,7 +69,7 @@ fun HostStudioTopBar(
         // Talk Code Badge button, left out when the session has no code to share
         if (session.talkCode.isNotBlank()) {
             Surface(
-                onClick = { onPresentQrClick(session) },
+                onClick = rememberDebouncedClick { onPresentQrClick(session) },
                 shape = RoundedCornerShape(10.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 border = BorderStroke(

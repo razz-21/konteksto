@@ -1,6 +1,6 @@
 package com.example.konteksto.ui.sessions.studio
 
-import androidx.compose.foundation.clickable
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.ui.components.debouncedClickable
+import com.example.konteksto.ui.components.rememberDebouncedClick
 
 @Suppress("DEPRECATION")
 @Composable
@@ -53,7 +55,7 @@ fun SessionStudioTopBar(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .clip(MaterialTheme.shapes.small)
-                .clickable { onBackClick() }
+                .debouncedClickable { onBackClick() }
                 .padding(vertical = 6.dp, horizontal = 2.dp),
         ) {
             Icon(
@@ -81,7 +83,7 @@ fun SessionStudioTopBar(
             // Talk Code Pill Button, left out when the session has no code to share
             if (talkCodeText.isNotEmpty()) {
                 Surface(
-                    onClick = {
+                    onClick = rememberDebouncedClick {
                         clipboardManager.setText(AnnotatedString(talkCodeText))
                         onShowMessage("Copied $talkCodeText to clipboard")
                         onPresentQrClick(session)
@@ -115,7 +117,7 @@ fun SessionStudioTopBar(
 
             // Leave Session Button
             IconButton(
-                onClick = onLeaveClick,
+                onClick = rememberDebouncedClick(onClick = onLeaveClick),
                 modifier = Modifier.size(36.dp),
             ) {
                 Icon(

@@ -1,7 +1,7 @@
 package com.example.konteksto.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import com.example.konteksto.ui.components.debouncedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -43,7 +43,7 @@ fun UserAvatar(
             .background(Brush.linearGradient(gradientColors))
             .then(
                 if (onClick != null) {
-                    Modifier.clickable(role = Role.Button, onClick = onClick)
+                    Modifier.debouncedClickable(role = Role.Button, onClick = onClick)
                 } else {
                     Modifier
                 },

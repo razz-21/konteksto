@@ -39,6 +39,7 @@ import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.domain.model.UserProfile
 import com.example.konteksto.ui.components.KontekstoTopBar
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 import com.example.konteksto.ui.theme.extendedColors
@@ -160,7 +161,7 @@ fun HostSessionsScreen(
                                         Spacer(modifier = Modifier.height(20.dp))
 
                                         Button(
-                                            onClick = onNewSessionClick,
+                                            onClick = rememberDebouncedClick(onClick = onNewSessionClick),
                                             shape = KontekstoButtonDefaults.shape,
                                             colors = ButtonDefaults.buttonColors(
                                                 containerColor = MaterialTheme.colorScheme.primary,
@@ -206,7 +207,7 @@ fun HostSessionsScreen(
 
             // Floating Action Button: + New Session
             Button(
-                onClick = onNewSessionClick,
+                onClick = rememberDebouncedClick(onClick = onNewSessionClick),
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(end = 16.dp, bottom = 20.dp)

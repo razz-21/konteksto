@@ -20,6 +20,7 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.navigation.MainTab
 
 @Composable
@@ -41,7 +42,7 @@ fun KontekstoBottomBar(
 
             NavigationBarItem(
                 selected = isSelected,
-                onClick = {
+                onClick = rememberDebouncedClick {
                     if (currentDestination?.route != tab.route) {
                         navController.navigate(tab.route) {
                             popUpTo(navController.graph.findStartDestination().id) {

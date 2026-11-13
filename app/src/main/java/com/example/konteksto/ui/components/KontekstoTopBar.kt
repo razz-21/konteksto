@@ -97,7 +97,7 @@ private fun TopBarButton(
     modifier: Modifier = Modifier,
 ) {
     Button(
-        onClick = onClick,
+        onClick = rememberDebouncedClick(onClick = onClick),
         modifier = modifier
             .height(KontekstoButtonDefaults.Height)
             .defaultMinSize(minWidth = 118.dp),

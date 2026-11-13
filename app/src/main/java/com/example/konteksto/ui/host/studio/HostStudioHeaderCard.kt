@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.extendedColors
 
@@ -209,7 +210,7 @@ fun HostStudioHeaderCard(
             // Row 1: Session Live Control Button (Start/End Session - Full Width)
             if (!session.isLive) {
                 Button(
-                    onClick = onStartSessionClick,
+                    onClick = rememberDebouncedClick(onClick = onStartSessionClick),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(KontekstoButtonDefaults.Height),
@@ -235,7 +236,7 @@ fun HostStudioHeaderCard(
                 }
             } else {
                 Button(
-                    onClick = onEndSessionClick,
+                    onClick = rememberDebouncedClick(onClick = onEndSessionClick),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(KontekstoButtonDefaults.Height),
@@ -268,7 +269,7 @@ fun HostStudioHeaderCard(
 
             // Row 2: Audio Broadcast Toggle Button (Full Width)
             Button(
-                onClick = {
+                onClick = rememberDebouncedClick {
                     if (!isPermissionGranted && !isAudioBroadcasting) {
                         permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                     } else {

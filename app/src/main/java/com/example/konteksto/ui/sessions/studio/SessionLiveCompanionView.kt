@@ -53,6 +53,8 @@ import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.components.JumpToLiveButton
 import com.example.konteksto.ui.components.LiveSpeakingBubble
+import com.example.konteksto.ui.components.debouncedClickable
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.components.rememberLiveTranscriptFollowState
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.extendedColors
@@ -211,7 +213,7 @@ fun SessionLiveCompanionView(
                             color = MaterialTheme.colorScheme.error,
                         )
                         TextButton(
-                            onClick = onRetryLiveTranscript,
+                            onClick = rememberDebouncedClick(onClick = onRetryLiveTranscript),
                             shape = KontekstoButtonDefaults.shape,
                         ) {
                             Text(text = stringResource(id = R.string.transcript_retry))
@@ -251,7 +253,7 @@ fun SessionLiveCompanionView(
                         if (hasEarlierTranscripts) {
                             item(key = "load_earlier") {
                                 TextButton(
-                                    onClick = onLoadEarlierTranscripts,
+                                    onClick = rememberDebouncedClick(onClick = onLoadEarlierTranscripts),
                                     enabled = !isLoadingEarlierTranscripts,
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = KontekstoButtonDefaults.shape,
@@ -405,7 +407,7 @@ fun SessionLiveCompanionView(
                                     ) {
                                         Text(explainError, color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.weight(1f))
                                         TextButton(
-                                            onClick = onRetryExplain,
+                                            onClick = rememberDebouncedClick(onClick = onRetryExplain),
                                             shape = KontekstoButtonDefaults.shape,
                                         ) {
                                             Text("Retry", color = MaterialTheme.colorScheme.onErrorContainer)
@@ -445,7 +447,7 @@ fun SessionLiveCompanionView(
                 .padding(bottom = 8.dp),
         ) {
             Button(
-                onClick = {
+                onClick = rememberDebouncedClick {
                     onAskWhatTheyMean(selectedItems) {
                         selectedIds = emptySet()
                     }

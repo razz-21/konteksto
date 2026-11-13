@@ -20,6 +20,7 @@ fun AddContextNoteScreen(
         onBackClick = onBackClick,
         onSaveClick = onSaveClick,
         modifier = modifier,
+        useVerticalButtonLayout = true,
     )
 }
 
