@@ -14,7 +14,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -44,6 +45,7 @@ import com.example.konteksto.data.repository.UserProfileRepository
 import com.example.konteksto.ui.components.KontekstoTopBar
 import com.example.konteksto.ui.components.showKontekstoSnackbar
 import com.example.konteksto.ui.sessions.attend.AttendSessionSheet
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 
 @Composable
@@ -236,36 +238,39 @@ fun SessionsScreen(
                 }
             }
 
-            // Floating Action Button ("Attend session") on right side matching reference image
-            Surface(
+            // Floating Action Button ("Attend session"), styled like the Host Sessions "New Session" button.
+            Button(
                 onClick = { viewModel.openAttendSheet() },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 16.dp),
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.primaryContainer,
-                shadowElevation = 4.dp,
+                    .padding(end = 16.dp, bottom = 20.dp)
+                    .height(KontekstoButtonDefaults.Height),
+                shape = KontekstoButtonDefaults.shape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.primary,
+                ),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 4.dp,
+                    pressedElevation = 6.dp,
+                ),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp),
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_qr_code),
-                        contentDescription = "Attend session",
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "Attend session",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                        ),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                }
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_qr_code),
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Attend session",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                    ),
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
 
             SnackbarHost(
