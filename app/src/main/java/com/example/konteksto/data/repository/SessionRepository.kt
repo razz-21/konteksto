@@ -225,11 +225,12 @@ class FirebaseSessionRepository(
                     .collection("joined_sessions")
                     .addSnapshotListener { snapshot, error ->
                         if (error == null && snapshot != null) {
+                            // The backend is the source of truth, so sessions left here (or on
+                            // another device) are dropped instead of being kept forever.
                             val remoteIds = snapshot.documents.map { it.id }.toSet()
-                            val combined = joinedSessionIdsFlow.value + remoteIds
-                            if (combined != joinedSessionIdsFlow.value) {
-                                joinedSessionIdsFlow.value = combined
-                                saveJoinedSessionIds(userUid, combined)
+                            if (remoteIds != joinedSessionIdsFlow.value) {
+                                joinedSessionIdsFlow.value = remoteIds
+                                saveJoinedSessionIds(userUid, remoteIds)
                             }
                         }
                     }
@@ -340,42 +341,94 @@ class FirebaseSessionRepository(
     }
 
     override suspend fun leaveSession(userUid: String, sessionId: String): Result<Unit> {
-        val currentJoined = loadJoinedSessionIds(userUid).toMutableSet()
-        val isRemoved = currentJoined.remove(sessionId)
-        saveJoinedSessionIds(userUid, currentJoined)
-        joinedSessionIdsFlow.value = currentJoined
+        if (sessionId.isBlank()) {
+            return Result.failure(IllegalArgumentException("Session not found."))
+        }
 
-        if (isRemoved) {
-            val updatedLocal = localCreatedSessions.value.map { session ->
-                if (session.id == sessionId) {
-                    val newCount = (session.attendeesCount - 1).coerceAtLeast(0)
-                    session.copy(attendeesCount = newCount)
-                } else {
-                    session
+        val previousJoined = loadJoinedSessionIds(userUid) + joinedSessionIdsFlow.value
+        val wasJoined = sessionId in previousJoined
+
+        // Remove it locally right away so the dashboard never shows a session being left.
+        applyLocalLeave(userUid, sessionId, previousJoined, wasJoined)
+
+        try {
+            val firestore = firestoreOrNull
+            if (firestore != null) {
+                val sessionRef = firestore.collection("sessions").document(sessionId)
+
+                // Delete the membership first: the dashboard reads these documents, so the
+                // user must actually leave even if the count update below is rejected.
+                firestore.batch()
+                    .delete(sessionRef.collection("attendees").document(userUid))
+                    .delete(
+                        firestore.collection("users").document(userUid)
+                            .collection("joined_sessions").document(sessionId),
+                    )
+                    .commit()
+                    .await()
+
+                if (wasJoined) {
+                    // The server owns attendeesCount, so a failure here must not undo the leave.
+                    try {
+                        sessionRef.update("attendeesCount", FieldValue.increment(-1)).await()
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Log.w("FirebaseSessionRepo", "Failed to update attendee count: ${e.message}")
+                    }
                 }
             }
-            localCreatedSessions.value = updatedLocal
-            saveLocalSessions(updatedLocal)
-
-            try {
-                val firestore = firestoreOrNull
-                if (firestore != null) {
-                    val sessionRef = firestore.collection("sessions").document(sessionId)
-                    sessionRef.update("attendeesCount", FieldValue.increment(-1)).await()
-
-                    val attendeeDoc = sessionRef.collection("attendees").document(userUid)
-                    attendeeDoc.delete().await()
-
-                    val userJoinedDoc = firestore.collection("users").document(userUid)
-                        .collection("joined_sessions").document(sessionId)
-                    userJoinedDoc.delete().await()
-                }
-            } catch (e: Exception) {
-                Log.e("FirebaseSessionRepo", "Failed to sync leave session to Firestore: ${e.message}")
-            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e("FirebaseSessionRepo", "Failed to sync leave session to Firestore: ${e.message}")
+            // The membership still exists on the server, so put it back on the dashboard.
+            restoreLocalMembership(userUid, sessionId, previousJoined, wasJoined)
+            return Result.failure(e)
         }
 
         return Result.success(Unit)
+    }
+
+    private fun applyLocalLeave(
+        userUid: String,
+        sessionId: String,
+        previousJoined: Set<String>,
+        wasJoined: Boolean,
+    ) {
+        val updatedJoined = previousJoined - sessionId
+        saveJoinedSessionIds(userUid, updatedJoined)
+        joinedSessionIdsFlow.value = updatedJoined
+
+        if (wasJoined) {
+            updateLocalAttendeeCount(sessionId, delta = -1)
+        }
+    }
+
+    private fun restoreLocalMembership(
+        userUid: String,
+        sessionId: String,
+        previousJoined: Set<String>,
+        wasJoined: Boolean,
+    ) {
+        saveJoinedSessionIds(userUid, previousJoined)
+        joinedSessionIdsFlow.value = previousJoined
+
+        if (wasJoined) {
+            updateLocalAttendeeCount(sessionId, delta = 1)
+        }
+    }
+
+    private fun updateLocalAttendeeCount(sessionId: String, delta: Int) {
+        val updatedLocal = localCreatedSessions.value.map { session ->
+            if (session.id == sessionId) {
+                session.copy(attendeesCount = (session.attendeesCount + delta).coerceAtLeast(0))
+            } else {
+                session
+            }
+        }
+        localCreatedSessions.value = updatedLocal
+        saveLocalSessions(updatedLocal)
     }
 
     override fun getHostSessionsStream(hostUid: String): Flow<List<HostSession>> = callbackFlow {
