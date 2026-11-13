@@ -56,7 +56,6 @@ sealed class MainTab(
         route = "glossary",
         title = "Glossary",
         iconRes = R.drawable.ic_nav_glossary,
-        badgeCount = 1,
     )
 
     object Profile : MainTab(

@@ -3,6 +3,7 @@ package com.example.konteksto
 import com.example.konteksto.ui.navigation.MainTab
 import com.example.konteksto.ui.navigation.Screen
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class NavigationTest {
@@ -32,6 +33,6 @@ class NavigationTest {
         assertEquals("glossary", MainTab.Glossary.route)
         assertEquals("profile", MainTab.Profile.route)
 
-        assertEquals(1, MainTab.Glossary.badgeCount)
+        assertNull(MainTab.Glossary.badgeCount)
     }
 }
