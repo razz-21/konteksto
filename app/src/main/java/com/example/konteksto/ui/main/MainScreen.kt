@@ -18,6 +18,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.konteksto.data.repository.FirebaseSessionRepository
+import com.example.konteksto.data.repository.SessionRepository
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.domain.model.UserProfile
 import com.example.konteksto.ui.components.showKontekstoSnackbar
@@ -33,6 +35,8 @@ import kotlinx.coroutines.launch
 fun MainScreen(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
+    // Shared with the rest of the app so leaving a session updates this dashboard immediately.
+    sessionRepository: SessionRepository = remember { FirebaseSessionRepository() },
     hostSessions: List<HostSession> = emptyList(),
     isLoadingHostSessions: Boolean = false,
     currentProfile: UserProfile? = null,
@@ -82,6 +86,7 @@ fun MainScreen(
             composable(MainTab.Sessions.route) {
                 SessionsScreen(
                     onNavigateToAttendeeRoom = onNavigateToAttendeeRoom,
+                    sessionRepository = sessionRepository,
                     onProfileClick = navigateToProfileTab,
                 )
             }

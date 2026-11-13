@@ -97,4 +97,5 @@
     <string name="explanation_language_taglish">Taglish</string>
     <string name="profile_explanation_language_saved">Explanations will now be in %1$s</string>
     <string name="profile_explanation_language_save_failed">Couldn\'t save your explanation language. Please try again.</string>
+    <string name="session_leave_failed">Couldn\'t leave the session. Please try again.</string>
 </resources>

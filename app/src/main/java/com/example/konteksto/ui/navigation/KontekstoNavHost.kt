@@ -24,6 +24,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.konteksto.R
 import com.example.konteksto.data.repository.AuthRepository
 import com.example.konteksto.data.repository.FirebaseAuthRepository
 import com.example.konteksto.data.repository.FirebaseSessionRepository
@@ -192,6 +193,7 @@ fun KontekstoNavHost(
 
         composable(Screen.Main.route) {
             MainScreen(
+                sessionRepository = sessionRepository,
                 snackbarHostState = mainSnackbarHostState,
                 hostSessions = hostSessions,
                 isLoadingHostSessions = isLoadingHostSessions,
@@ -251,7 +253,6 @@ fun KontekstoNavHost(
             arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
         ) { backStackEntry ->
             val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
-            val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
             val transcriptViewModel: SessionStudioViewModel = viewModel(
                 key = sessionId,
                 factory = SessionStudioViewModel.provideFactory(
@@ -274,8 +275,15 @@ fun KontekstoNavHost(
                 },
                 onLeaveConfirm = {
                     val currentUid = authRepository.currentUser?.uid ?: "guest_user"
-                    coroutineScope.launch {
+                    // Run past the destination's lifetime so popping the screen can't cancel
+                    // the Firestore writes that update the user's joined sessions.
+                    navScope.launch {
                         sessionRepository.leaveSession(currentUid, sessionId)
+                            .onFailure {
+                                mainSnackbarHostState.showKontekstoSnackbar(
+                                    context.getString(R.string.session_leave_failed),
+                                )
+                            }
                     }
                     navController.popBackStack()
                 },
@@ -290,7 +298,6 @@ fun KontekstoNavHost(
             arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
         ) { backStackEntry ->
             val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
-            val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
             val transcriptViewModel: SessionStudioViewModel = viewModel(
                 key = sessionId,
                 factory = SessionStudioViewModel.provideFactory(
@@ -313,8 +320,15 @@ fun KontekstoNavHost(
                 },
                 onLeaveConfirm = {
                     val currentUid = authRepository.currentUser?.uid ?: "guest_user"
-                    coroutineScope.launch {
+                    // Run past the destination's lifetime so popping the screen can't cancel
+                    // the Firestore writes that update the user's joined sessions.
+                    navScope.launch {
                         sessionRepository.leaveSession(currentUid, sessionId)
+                            .onFailure {
+                                mainSnackbarHostState.showKontekstoSnackbar(
+                                    context.getString(R.string.session_leave_failed),
+                                )
+                            }
                     }
                     navController.popBackStack()
                 },
