@@ -60,6 +60,11 @@ fun ProfileScreen(
         .collectAsStateWithLifecycle(initialValue = viewModel.currentUser)
     val profile by viewModel.profile.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uploadedPhotoUrl by viewModel.uploadedPhotoUrl.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        viewModel.photoMessage.collect { message -> onShowMessage(message) }
+    }
 
     var showEditProfile by rememberSaveable { mutableStateOf(false) }
 
@@ -122,7 +127,15 @@ fun ProfileScreen(
                 profile = profileToEdit,
                 isSaving = uiState.isLoading,
                 errorMessage = uiState.errorMessage,
-                onBackClick = { showEditProfile = false },
+                isUploadingPhoto = uiState.isUploadingPhoto,
+                photoErrorMessage = uiState.photoErrorMessage,
+                uploadedPhotoUrl = uploadedPhotoUrl,
+                onUploadPhoto = viewModel::uploadProfilePhoto,
+                onUploadedPhotoShown = viewModel::consumeUploadedPhotoUrl,
+                onBackClick = {
+                    viewModel.clearPhotoUploadError()
+                    showEditProfile = false
+                },
                 onSaveClick = { name, role, organization, bio, avatarColorIndex, photoUrl ->
                     viewModel.saveProfile(name, role, organization, bio, avatarColorIndex, photoUrl) { wasSaved ->
                         if (wasSaved) {
@@ -154,7 +167,10 @@ fun ProfileScreen(
                 },
                 isLoading = uiState.isLoading,
                 errorMessage = uiState.errorMessage,
-                onEditProfileClick = { showEditProfile = true },
+                onEditProfileClick = {
+                    viewModel.clearPhotoUploadError()
+                    showEditProfile = true
+                },
                 onGoogleSignInClick = triggerGoogleLogin,
                 onConfirmSignOut = {
                     viewModel.signOut()

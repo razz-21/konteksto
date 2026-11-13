@@ -11,6 +11,7 @@ import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageMetadata
 import com.google.firebase.storage.StorageReference
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 
 interface UserProfileRepository {
     fun getProfileStream(uid: String): Flow<UserProfile?>
@@ -205,12 +207,12 @@ class FirebaseUserProfileRepository(
         }
     }
 
-    override suspend fun uploadProfilePhoto(uid: String, uri: Uri): Result<String> {
+    override suspend fun uploadProfilePhoto(uid: String, uri: Uri): Result<String> = withContext(Dispatchers.IO) {
         if (uid.isBlank()) {
-            return Result.failure(IllegalArgumentException("You must be signed in to upload a photo."))
+            return@withContext Result.failure(IllegalArgumentException("You must be signed in to upload a photo."))
         }
 
-        return try {
+        try {
             val metadata = StorageMetadata.Builder()
                 .setContentType(context?.contentResolver?.getType(uri) ?: "image/jpeg")
                 .build()
