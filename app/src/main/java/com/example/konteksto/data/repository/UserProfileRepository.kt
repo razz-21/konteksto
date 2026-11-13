@@ -142,25 +142,53 @@ class FirebaseUserProfileRepository(
     }
 
     override suspend fun saveProfile(profile: UserProfile): Result<Unit> = runCatching {
-        saveLocalProfile(profile)
-        cacheProfile(profile)
+        var finalProfile = profile
+        val photoUrl = profile.photoUrl
+
+        if (context != null && !photoUrl.isNullOrBlank() && photoUrl.startsWith("content://")) {
+            try {
+                val uri = android.net.Uri.parse(photoUrl)
+                val photosDir = java.io.File(context.filesDir, "profile_photos")
+                if (!photosDir.exists()) photosDir.mkdirs()
+                val destinationFile = java.io.File(photosDir, "profile_${profile.uid}.jpg")
+                context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    java.io.FileOutputStream(destinationFile).use { outputStream ->
+                        inputStream.copyTo(outputStream)
+                    }
+                }
+                val localUri = android.net.Uri.fromFile(destinationFile).toString()
+                finalProfile = profile.copy(photoUrl = localUri)
+            } catch (e: Exception) {
+                Log.e("FirebaseUserProfileRepo", "Failed to convert content URI to local file: ${e.message}")
+            }
+        } else if (context != null && photoUrl.isNullOrBlank()) {
+            try {
+                val destinationFile = java.io.File(java.io.File(context.filesDir, "profile_photos"), "profile_${profile.uid}.jpg")
+                if (destinationFile.exists()) {
+                    destinationFile.delete()
+                }
+            } catch (_: Exception) {}
+        }
+
+        saveLocalProfile(finalProfile)
+        cacheProfile(finalProfile)
 
         val firestore = firestoreOrNull
         if (firestore != null) {
             val data = mapOf(
-                "name" to profile.name,
-                "role" to profile.role,
-                "email" to profile.email,
-                "organization" to profile.organization,
-                "bio" to profile.bio,
-                "photoUrl" to profile.photoUrl,
-                "avatarColorIndex" to profile.avatarColorIndex,
-                "explanationLanguage" to profile.explanationLanguage.storageValue,
+                "name" to finalProfile.name,
+                "role" to finalProfile.role,
+                "email" to finalProfile.email,
+                "organization" to finalProfile.organization,
+                "bio" to finalProfile.bio,
+                "photoUrl" to finalProfile.photoUrl,
+                "avatarColorIndex" to finalProfile.avatarColorIndex,
+                "explanationLanguage" to finalProfile.explanationLanguage.storageValue,
             )
 
             try {
                 firestore.collection("users")
-                    .document(profile.uid)
+                    .document(finalProfile.uid)
                     .set(data)
                     .await()
             } catch (e: Exception) {

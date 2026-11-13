@@ -75,11 +75,14 @@ fun EditProfileScreen(
         mutableStateOf(profile.avatarColorIndex)
     }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
     ) { uri ->
         if (uri != null) {
-            photoUrl = uri.toString()
+            val localPhotoUri = savePhotoToInternalStorage(context, uri, profile.uid)
+            photoUrl = localPhotoUri ?: uri.toString()
         }
     }
 
@@ -506,16 +509,60 @@ fun EditProfileScreen(
 
                 Spacer(modifier = Modifier.height(28.dp))
 
-                // Bottom Action Buttons: Cancel & Save Changes
-                Row(
+                // Bottom Action Buttons: Save Changes (top) & Cancel (bottom)
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    Button(
+                        onClick = {
+                            onSaveClick(
+                                name,
+                                role,
+                                organization,
+                                bio,
+                                selectedGradientIndex,
+                                photoUrl,
+                            )
+                        },
+                        enabled = !isSaving,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(KontekstoButtonDefaults.Height),
+                        shape = KontekstoButtonDefaults.shape,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                    ) {
+                        if (isSaving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                            )
+                        } else {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_check),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Save changes",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                ),
+                            )
+                        }
+                    }
+
                     OutlinedButton(
                         onClick = onBackClick,
                         enabled = !isSaving,
                         modifier = Modifier
-                            .weight(1f)
+                            .fillMaxWidth()
                             .height(KontekstoButtonDefaults.Height),
                         shape = KontekstoButtonDefaults.shape,
                         border = BorderStroke(
@@ -534,55 +581,52 @@ fun EditProfileScreen(
                             ),
                         )
                     }
-
-                    Button(
-                        onClick = {
-                            onSaveClick(
-                                name,
-                                role,
-                                organization,
-                                bio,
-                                selectedGradientIndex,
-                                photoUrl,
-                            )
-                        },
-                        enabled = !isSaving,
-                        modifier = Modifier
-                            .weight(1.3f)
-                            .height(KontekstoButtonDefaults.Height),
-                        shape = KontekstoButtonDefaults.shape,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                    ) {
-                        if (isSaving) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                            )
-                        } else {
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_check),
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Save changes",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp,
-                                ),
-                            )
-                        }
-                    }
                 }
 
                 Spacer(modifier = Modifier.height(28.dp))
             }
         }
+    }
+}
+
+private fun savePhotoToInternalStorage(
+    context: android.content.Context,
+    uri: android.net.Uri,
+    uid: String,
+): String? {
+    return try {
+        val photosDir = java.io.File(context.filesDir, "profile_photos")
+        if (!photosDir.exists()) {
+            photosDir.mkdirs()
+        }
+        val destinationFile = java.io.File(photosDir, "profile_${uid}.jpg")
+        context.contentResolver.openInputStream(uri)?.use { inputStream ->
+            java.io.FileOutputStream(destinationFile).use { outputStream ->
+                inputStream.copyTo(outputStream)
+            }
+        }
+        android.net.Uri.fromFile(destinationFile).toString()
+    } catch (e: Exception) {
+        android.util.Log.e("EditProfileScreen", "Failed to save profile photo locally: ${e.message}")
+        null
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, heightDp = 1000)
+@Composable
+fun EditProfileScreenPreview() {
+    com.example.konteksto.ui.theme.KontekstoTheme(darkTheme = true) {
+        EditProfileScreen(
+            profile = UserProfile(
+                uid = "123",
+                name = "Sgayle1102",
+                role = "Attendee",
+                email = "gayleoliveros2016@gmail.com",
+                organization = "",
+                bio = "Curious cat.",
+            ),
+            onBackClick = {},
+            onSaveClick = { _, _, _, _, _, _ -> },
+        )
     }
 }
