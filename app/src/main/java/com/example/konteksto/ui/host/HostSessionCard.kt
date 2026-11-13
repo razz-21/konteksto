@@ -82,8 +82,11 @@ fun HostSessionCard(
 
     // Use the signed-in user's profile avatar when this is their own session.
     val ownProfile = currentProfile?.takeIf { profile ->
-        session.hostUid == profile.uid || session.speakerName == profile.name
-    }
+        session.hostUid.isNullOrBlank() ||
+        session.hostUid == profile.uid ||
+        session.speakerName.isBlank() ||
+        session.speakerName.trim().equals(profile.name.trim(), ignoreCase = true)
+    } ?: currentProfile
     val speakerName = ownProfile?.name ?: session.speakerName
     val speakerInitials = remember(speakerName, ownProfile) {
         ownProfile?.initials ?: getInitials(speakerName)

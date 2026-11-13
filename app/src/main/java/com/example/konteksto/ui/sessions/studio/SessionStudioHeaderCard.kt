@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
+import com.example.konteksto.domain.model.UserProfile
 import com.example.konteksto.ui.theme.extendedColors
 import com.example.konteksto.ui.components.LiveOnAirBadge
 
@@ -47,15 +49,24 @@ private const val DEFAULT_HERO_IMAGE_URL =
 fun SessionStudioHeaderCard(
     session: HostSession,
     modifier: Modifier = Modifier,
+    speakerProfile: UserProfile? = null,
 ) {
+    val ownProfile = speakerProfile?.takeIf { profile ->
+        session.hostUid.isNullOrBlank() ||
+        session.hostUid == profile.uid ||
+        session.speakerName.isBlank() ||
+        session.speakerName.trim().equals(profile.name.trim(), ignoreCase = true)
+    } ?: speakerProfile
+
     // Details the host left blank are left out rather than filled in.
-    val speakerName = session.speakerName.trim()
-    val speakerInitials = remember(speakerName) {
-        speakerName
+    val speakerName = ownProfile?.name?.ifBlank { null } ?: session.speakerName.trim()
+    val speakerInitials = remember(speakerName, ownProfile) {
+        ownProfile?.initials ?: speakerName
             .split(" ")
             .filter { it.isNotBlank() }
             .take(2)
             .joinToString("") { it.first().uppercase() }
+            .ifEmpty { "K" }
     }
 
     val titleText = session.title.trim()
@@ -173,22 +184,42 @@ fun SessionStudioHeaderCard(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            // Speaker Avatar Initials Circle
+                            // Speaker Avatar Circle
                             Box(
                                 modifier = Modifier
                                     .size(44.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                    .background(
+                                        brush = if (ownProfile != null) {
+                                            Brush.linearGradient(ownProfile.avatarGradientColors)
+                                        } else {
+                                            SolidColor(MaterialTheme.colorScheme.primaryContainer)
+                                        },
+                                        shape = CircleShape,
+                                    )
+                                    .clip(CircleShape),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                Text(
-                                    text = speakerInitials,
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp,
-                                    ),
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                )
+                                if (!ownProfile?.photoUrl.isNullOrBlank()) {
+                                    AsyncImage(
+                                        model = ownProfile.photoUrl,
+                                        contentDescription = "Profile photo",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                } else {
+                                    Text(
+                                        text = speakerInitials,
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 15.sp,
+                                        ),
+                                        color = if (ownProfile != null) {
+                                            Color.White
+                                        } else {
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        },
+                                    )
+                                }
                             }
 
                             Spacer(modifier = Modifier.width(12.dp))

@@ -23,6 +23,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -35,7 +36,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -60,10 +63,16 @@ fun AttendeeSessionCard(
     onActionClick: () -> Unit,
     modifier: Modifier = Modifier,
     currentProfile: UserProfile? = null,
+    onShowMessage: (String) -> Unit = {},
 ) {
+    val clipboardManager = LocalClipboardManager.current
+
     // Use the signed-in user's profile avatar when this is their own session.
     val ownProfile = currentProfile?.takeIf { profile ->
-        session.hostUid == profile.uid || session.speakerName == profile.name
+        session.hostUid.isNullOrBlank() ||
+        session.hostUid == profile.uid ||
+        session.speakerName.isBlank() ||
+        session.speakerName.trim().equals(profile.name.trim(), ignoreCase = true)
     }
     val speakerName = ownProfile?.name ?: session.speakerName
     val speakerInitials = remember(speakerName, ownProfile) {
@@ -290,6 +299,21 @@ fun AttendeeSessionCard(
                                         letterSpacing = 1.sp,
                                     ),
                                     color = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+
+                            IconButton(
+                                onClick = {
+                                    clipboardManager.setText(AnnotatedString(session.talkCode))
+                                    onShowMessage("Join code copied!")
+                                },
+                                modifier = Modifier.size(32.dp),
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_copy),
+                                    contentDescription = "Copy join code",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }

@@ -26,6 +26,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -73,6 +75,10 @@ fun SessionsScreen(
     val currentProfile by viewModel.currentProfile.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarScope = rememberCoroutineScope()
+    val showMessage: (String) -> Unit = { message ->
+        snackbarScope.launch { snackbarHostState.showKontekstoSnackbar(message) }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.snackbarMessage.collect { message ->
@@ -232,6 +238,7 @@ fun SessionsScreen(
                                     onNavigateToAttendeeRoom(session.id)
                                 },
                                 currentProfile = currentProfile,
+                                onShowMessage = showMessage,
                             )
                         }
                     }

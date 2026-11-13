@@ -13,6 +13,7 @@ import com.example.konteksto.data.repository.SessionRepository
 import com.example.konteksto.data.repository.UserProfileRepository
 import com.example.konteksto.domain.model.ExplanationLanguage
 import com.example.konteksto.domain.model.LiveConceptExplanationItem
+import com.example.konteksto.domain.model.UserProfile
 import com.example.konteksto.domain.usecase.ObserveCurrentProfileUseCase
 import com.example.konteksto.ui.components.SessionLookup
 import com.example.konteksto.ui.host.studio.TranscriptEntry
@@ -25,6 +26,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transformLatest
@@ -54,6 +57,7 @@ data class SessionStudioUiState(
     val newConceptAnnouncement: LiveConceptExplanationItem? = null,
     val activeExplanation: ActiveExplanationRequest? = null,
     val sessionGlossaryTerms: List<GlossaryTermItem> = emptyList(),
+    val speakerProfile: UserProfile? = null,
 )
 
 /**
@@ -93,16 +97,18 @@ class SessionStudioViewModel(
     private val explanationRepository: com.example.konteksto.data.repository.ExplanationRepository = com.example.konteksto.data.repository.FirebaseExplanationRepository(),
     private val glossaryRepository: GlossaryRepository = FirebaseGlossaryRepository(),
     clock: () -> Long = System::currentTimeMillis,
-    authRepository: AuthRepository = FirebaseAuthRepository(),
-    userProfileRepository: UserProfileRepository = FirebaseUserProfileRepository(),
+    private val authRepository: AuthRepository = FirebaseAuthRepository(),
+    private val userProfileRepository: UserProfileRepository = FirebaseUserProfileRepository(),
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SessionStudioUiState())
     val uiState: StateFlow<SessionStudioUiState> = _uiState.asStateFlow()
 
+    private val observeCurrentProfile = ObserveCurrentProfileUseCase(authRepository, userProfileRepository)
+
     /** The attendee's chosen explanation language, kept current so a change in Profile applies to the next explanation. */
     private val explanationLanguage: StateFlow<ExplanationLanguage> =
-        ObserveCurrentProfileUseCase(authRepository, userProfileRepository)()
+        observeCurrentProfile()
             .map { profile -> profile?.explanationLanguage ?: ExplanationLanguage.Default }
             .catch { emit(ExplanationLanguage.Default) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, ExplanationLanguage.Default)
@@ -118,10 +124,27 @@ class SessionStudioViewModel(
     private var seenConceptIds = emptySet<String>()
 
     /** Live updates only run while the screen is visible, so a backgrounded attendee costs no reads. */
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun startObserving() {
         if (observeJob?.isActive == true) return
         _uiState.update { it.copy(didLiveTranscriptFail = false) }
         observeJob = viewModelScope.launch {
+            launch {
+                observeCurrentProfile()
+                    .flatMapLatest { currentProf: UserProfile? ->
+                        val hostUid = (uiState.value.sessionLookup as? SessionLookup.Found)?.session?.hostUid
+                        if (!hostUid.isNullOrBlank() && hostUid != currentProf?.uid) {
+                            userProfileRepository.getProfileStream(hostUid)
+                                .map { hostProf -> hostProf ?: currentProf }
+                        } else {
+                            flowOf(currentProf)
+                        }
+                    }
+                    .catch { emit(null) }
+                    .collect { profile ->
+                        _uiState.update { state -> state.copy(speakerProfile = profile) }
+                    }
+            }
             launch {
                 sessionRepository.getSessionStream(sessionId)
                     .catch {
