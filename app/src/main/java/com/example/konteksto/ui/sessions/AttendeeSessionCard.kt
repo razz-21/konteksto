@@ -235,103 +235,16 @@ fun AttendeeSessionCard(
                             iconRes = R.drawable.ic_location,
                             text = session.venue,
                         )
-                        // Location Chip
-                        if (session.venue.isNotBlank()) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(
-                                        horizontal = 10.dp,
-                                        vertical = 6.dp
-                                    ),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_location),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(14.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = session.venue,
-                                        style = MaterialTheme.typography.bodySmall.copy(
-                                            fontSize = 12.sp,
-                                        ),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-                        }
-
                         if (session.time.isNotBlank()) {
                             SessionBadge(
                                 iconRes = R.drawable.ic_clock,
                                 text = session.time,
                             )
                         }
-                        // Time Chip
-                        if (session.time.isNotBlank()) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(
-                                        horizontal = 10.dp,
-                                        vertical = 6.dp
-                                    ),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_clock),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(14.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = session.time,
-                                        style = MaterialTheme.typography.bodySmall.copy(
-                                            fontSize = 12.sp,
-                                        ),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-                        }
-
                         SessionBadge(
                             iconRes = R.drawable.ic_people,
                             text = "${session.attendeesCount} ${if (session.attendeesCount == 1) "attendee" else "attendees"}",
                         )
-                        // Attendees Chip
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.ic_people),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(14.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "${session.attendeesCount} ${if (session.attendeesCount == 1) "attendee" else "attendees"}",
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontSize = 12.sp,
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))
