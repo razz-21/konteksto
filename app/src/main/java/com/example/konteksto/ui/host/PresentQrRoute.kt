@@ -12,6 +12,7 @@ fun PresentQrRoute(
     viewModel: PresentQrViewModel,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onDownloadQrClick: (() -> Unit)? = null,
 ) {
     val sessionLookup by viewModel.sessionLookup.collectAsStateWithLifecycle()
 
@@ -20,6 +21,7 @@ fun PresentQrRoute(
             session = lookup.session,
             onBackClick = onBackClick,
             modifier = modifier,
+            onDownloadQrClick = onDownloadQrClick,
         )
 
         else -> SessionUnavailableScreen(

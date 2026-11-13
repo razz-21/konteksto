@@ -31,6 +31,7 @@
     <string name="action_download_qr">Download QR</string>
     <string name="action_back">Back</string>
     <string name="qr_downloaded_toast">QR Code saved to gallery!</string>
+    <string name="qr_download_failed">Failed to save QR code</string>
     <string name="create_session_title">New session</string>
     <string name="create_session_subtitle">Host Session Setup</string>
     <string name="create_session_action">Create</string>
@@ -97,4 +98,5 @@
     <string name="explanation_language_taglish">Taglish</string>
     <string name="profile_explanation_language_saved">Explanations will now be in %1$s</string>
     <string name="profile_explanation_language_save_failed">Couldn\'t save your explanation language. Please try again.</string>
+    <string name="session_leave_failed">Couldn\'t leave the session. Please try again.</string>
 </resources>
