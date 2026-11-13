@@ -1,18 +1,21 @@
 package com.example.konteksto.ui.profile
 
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -36,6 +39,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,14 +53,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.AvatarGradients
 import com.example.konteksto.domain.model.UserProfile
-import com.example.konteksto.ui.components.debouncedClickable
-import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 
 @Composable
@@ -67,6 +70,11 @@ fun EditProfileScreen(
     modifier: Modifier = Modifier,
     isSaving: Boolean = false,
     errorMessage: String? = null,
+    isUploadingPhoto: Boolean = false,
+    photoErrorMessage: String? = null,
+    uploadedPhotoUrl: String? = null,
+    onUploadPhoto: (Uri) -> Unit = {},
+    onUploadedPhotoShown: () -> Unit = {},
 ) {
     var name by rememberSaveable(profile.uid) { mutableStateOf(profile.name) }
     var role by rememberSaveable(profile.uid) { mutableStateOf(profile.role) }
@@ -81,7 +89,15 @@ fun EditProfileScreen(
         contract = ActivityResultContracts.GetContent(),
     ) { uri ->
         if (uri != null) {
-            photoUrl = uri.toString()
+            onUploadPhoto(uri)
+        }
+    }
+
+    // Only replace the preview once the image has actually been uploaded.
+    LaunchedEffect(uploadedPhotoUrl) {
+        if (!uploadedPhotoUrl.isNullOrBlank()) {
+            photoUrl = uploadedPhotoUrl
+            onUploadedPhotoShown()
         }
     }
 
@@ -115,7 +131,7 @@ fun EditProfileScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(
-                    onClick = rememberDebouncedClick(onClick = onBackClick),
+                    onClick = onBackClick,
                     enabled = !isSaving,
                 ) {
                     Icon(
@@ -183,6 +199,22 @@ fun EditProfileScreen(
                             }
                         }
 
+                        if (isUploadingPhoto) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.45f)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(28.dp),
+                                    strokeWidth = 3.dp,
+                                    color = Color.White,
+                                )
+                            }
+                        }
+
                         // Verified shield badge
                         Box(
                             modifier = Modifier
@@ -215,8 +247,8 @@ fun EditProfileScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         OutlinedButton(
-                            onClick = rememberDebouncedClick { photoPickerLauncher.launch("image/*") },
-                            enabled = !isSaving,
+                            onClick = { photoPickerLauncher.launch("image/*") },
+                            enabled = !isSaving && !isUploadingPhoto,
                             shape = KontekstoButtonDefaults.shape,
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
@@ -241,8 +273,8 @@ fun EditProfileScreen(
 
                         if (!photoUrl.isNullOrBlank()) {
                             OutlinedButton(
-                                onClick = rememberDebouncedClick { photoUrl = null },
-                                enabled = !isSaving,
+                                onClick = { photoUrl = null },
+                                enabled = !isSaving && !isUploadingPhoto,
                                 shape = KontekstoButtonDefaults.shape,
                                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
@@ -265,6 +297,18 @@ fun EditProfileScreen(
                                 )
                             }
                         }
+                    }
+
+                    if (!photoErrorMessage.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = photoErrorMessage,
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))
@@ -305,7 +349,7 @@ fun EditProfileScreen(
                                     .padding(if (isSelected) 3.dp else 0.dp)
                                     .clip(CircleShape)
                                     .background(Brush.linearGradient(colors))
-                                    .debouncedClickable { selectedGradientIndex = index },
+                                    .clickable { selectedGradientIndex = index },
                                 contentAlignment = Alignment.Center,
                             ) {
                                 if (isSelected) {
@@ -471,13 +515,15 @@ fun EditProfileScreen(
                     placeholder = { Text("Tell speakers a little about yourself") },
                     leadingIcon = {
                         Box(
-                            modifier = Modifier.padding(top = 12.dp),
+                            modifier = Modifier.fillMaxHeight(),
                             contentAlignment = Alignment.TopCenter,
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_align_left),
                                 contentDescription = null,
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier
+                                    .padding(top = 16.dp)
+                                    .size(20.dp),
                             )
                         }
                     },
@@ -486,7 +532,9 @@ fun EditProfileScreen(
                     enabled = !isSaving,
                     shape = textFieldShape,
                     colors = activeTextFieldColors,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min),
                 )
 
                 if (!errorMessage.isNullOrBlank()) {
@@ -508,37 +556,13 @@ fun EditProfileScreen(
 
                 Spacer(modifier = Modifier.height(28.dp))
 
-                // Bottom Action Buttons: Cancel & Save Changes
-                Row(
+                // Bottom Action Buttons: Save Changes above Cancel, each full width so labels never clip.
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    OutlinedButton(
-                        onClick = rememberDebouncedClick(onClick = onBackClick),
-                        enabled = !isSaving,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(KontekstoButtonDefaults.Height),
-                        shape = KontekstoButtonDefaults.shape,
-                        border = BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                        ),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.onBackground,
-                        ),
-                    ) {
-                        Text(
-                            text = "Cancel",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp,
-                            ),
-                        )
-                    }
-
                     Button(
-                        onClick = rememberDebouncedClick {
+                        onClick = {
                             onSaveClick(
                                 name,
                                 role,
@@ -548,9 +572,10 @@ fun EditProfileScreen(
                                 photoUrl,
                             )
                         },
-                        enabled = !isSaving,
+                        // Saving mid-upload would store a photo URL that isn't ready yet.
+                        enabled = !isSaving && !isUploadingPhoto,
                         modifier = Modifier
-                            .weight(1.3f)
+                            .fillMaxWidth()
                             .height(KontekstoButtonDefaults.Height),
                         shape = KontekstoButtonDefaults.shape,
                         colors = ButtonDefaults.buttonColors(
@@ -581,6 +606,30 @@ fun EditProfileScreen(
                             )
                         }
                     }
+
+                    OutlinedButton(
+                        onClick = onBackClick,
+                        enabled = !isSaving,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(KontekstoButtonDefaults.Height),
+                        shape = KontekstoButtonDefaults.shape,
+                        border = BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                        ),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onBackground,
+                        ),
+                    ) {
+                        Text(
+                            text = "Cancel",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                            ),
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(28.dp))
@@ -588,3 +637,23 @@ fun EditProfileScreen(
         }
     }
 }
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+fun EditProfileScreenPreview() {
+    com.example.konteksto.ui.theme.KontekstoTheme(darkTheme = false) {
+        EditProfileScreen(
+            profile = UserProfile(
+                uid = "123",
+                name = "Jose Manuel R. Borjaqw",
+                role = "Attendee",
+                email = "josemanuelrborja@gmail.com",
+                organization = "hr",
+                bio = "qwe\nsecond line\nthird line",
+            ),
+            onBackClick = {},
+            onSaveClick = { _, _, _, _, _, _ -> },
+        )
+    }
+}
+

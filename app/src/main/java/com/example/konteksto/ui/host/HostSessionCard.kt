@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -49,7 +50,7 @@ import com.example.konteksto.domain.model.ConferenceThemeBanner
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.domain.model.UserProfile
 import com.example.konteksto.ui.components.LiveOnAirBadge
-import com.example.konteksto.ui.components.rememberDebouncedClick
+import com.example.konteksto.ui.components.SessionBadge
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 import com.example.konteksto.ui.theme.extendedColors
@@ -182,18 +183,29 @@ fun HostSessionCard(
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            text = speakerInitials,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 10.sp,
-                            ),
-                            color = if (ownProfile != null) {
-                                Color.White
-                            } else {
-                                MaterialTheme.colorScheme.primary
-                            },
-                        )
+                        if (!ownProfile?.photoUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = ownProfile.photoUrl,
+                                contentDescription = "Profile photo",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape),
+                            )
+                        } else {
+                            Text(
+                                text = speakerInitials,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp,
+                                ),
+                                color = if (ownProfile != null) {
+                                    Color.White
+                                } else {
+                                    MaterialTheme.colorScheme.primary
+                                },
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
@@ -283,7 +295,7 @@ fun HostSessionCard(
                         }
 
                         IconButton(
-                            onClick = rememberDebouncedClick {
+                            onClick = {
                                 clipboardManager.setText(AnnotatedString(session.talkCode))
                                 onShowMessage("Join code copied!")
                             },
@@ -308,7 +320,7 @@ fun HostSessionCard(
                 ) {
                     // Present QR Button
                     Button(
-                        onClick = rememberDebouncedClick { onPresentQrClick(session) },
+                        onClick = { onPresentQrClick(session) },
                         modifier = Modifier
                             .weight(1f)
                             .height(KontekstoButtonDefaults.Height),
@@ -338,7 +350,7 @@ fun HostSessionCard(
 
                     // Enter Room Button
                     Button(
-                        onClick = rememberDebouncedClick { onLiveRoomClick(session) },
+                        onClick = { onLiveRoomClick(session) },
                         modifier = Modifier
                             .weight(1f)
                             .height(KontekstoButtonDefaults.Height),
@@ -367,40 +379,6 @@ fun HostSessionCard(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun SessionBadge(
-    iconRes: Int,
-    text: String,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                painter = painterResource(id = iconRes),
-                contentDescription = null,
-                modifier = Modifier.size(14.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 11.sp,
-                ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }
