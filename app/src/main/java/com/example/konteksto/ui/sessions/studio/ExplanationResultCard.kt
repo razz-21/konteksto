@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
 import com.example.konteksto.ui.components.MarkdownText
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.extendedColors
 
@@ -77,7 +78,7 @@ fun ExplanationResultCard(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
-                            onClick = onRetry,
+                            onClick = rememberDebouncedClick(onClick = onRetry),
                             modifier = Modifier.height(KontekstoButtonDefaults.Height),
                             shape = KontekstoButtonDefaults.shape,
                         ) {

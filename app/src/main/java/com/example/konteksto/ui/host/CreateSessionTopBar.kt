@@ -24,6 +24,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 
@@ -45,7 +46,7 @@ fun CreateSessionTopBar(
             modifier = Modifier.weight(1f),
         ) {
             IconButton(
-                onClick = onBackClick,
+                onClick = rememberDebouncedClick(onClick = onBackClick),
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_arrow_back),
@@ -71,7 +72,7 @@ fun CreateSessionTopBar(
             Spacer(modifier = Modifier.width(8.dp))
 
             Button(
-                onClick = onCreateClick,
+                onClick = rememberDebouncedClick(onClick = onCreateClick),
                 shape = KontekstoButtonDefaults.shape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,

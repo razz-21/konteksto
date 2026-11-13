@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 
 @Composable
@@ -63,7 +64,7 @@ internal fun RoomCodeEntryView(
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = onVerify,
+            onClick = rememberDebouncedClick(onClick = onVerify),
             enabled = roomCode.isNotBlank() && !isVerifying,
             modifier = Modifier
                 .fillMaxWidth()
@@ -102,7 +103,7 @@ internal fun RoomCodeEntryView(
         Spacer(modifier = Modifier.height(20.dp))
 
         Button(
-            onClick = onScanQrClick,
+            onClick = rememberDebouncedClick(onClick = onScanQrClick),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(KontekstoButtonDefaults.Height),

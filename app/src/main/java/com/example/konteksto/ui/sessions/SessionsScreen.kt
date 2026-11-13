@@ -42,6 +42,7 @@ import com.example.konteksto.data.repository.FirebaseUserProfileRepository
 import com.example.konteksto.data.repository.SessionRepository
 import com.example.konteksto.data.repository.UserProfileRepository
 import com.example.konteksto.ui.components.KontekstoTopBar
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.components.showKontekstoSnackbar
 import com.example.konteksto.ui.sessions.attend.AttendSessionSheet
 import com.example.konteksto.ui.theme.KontekstoTheme
@@ -238,7 +239,7 @@ fun SessionsScreen(
 
             // Floating Action Button ("Attend session") on right side matching reference image
             Surface(
-                onClick = { viewModel.openAttendSheet() },
+                onClick = rememberDebouncedClick { viewModel.openAttendSheet() },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(end = 16.dp, bottom = 16.dp),

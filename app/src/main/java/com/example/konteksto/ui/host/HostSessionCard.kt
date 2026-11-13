@@ -49,6 +49,7 @@ import com.example.konteksto.domain.model.ConferenceThemeBanner
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.domain.model.UserProfile
 import com.example.konteksto.ui.components.LiveOnAirBadge
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 import com.example.konteksto.ui.theme.extendedColors
@@ -282,7 +283,7 @@ fun HostSessionCard(
                         }
 
                         IconButton(
-                            onClick = {
+                            onClick = rememberDebouncedClick {
                                 clipboardManager.setText(AnnotatedString(session.talkCode))
                                 onShowMessage("Join code copied!")
                             },
@@ -307,7 +308,7 @@ fun HostSessionCard(
                 ) {
                     // Present QR Button
                     Button(
-                        onClick = { onPresentQrClick(session) },
+                        onClick = rememberDebouncedClick { onPresentQrClick(session) },
                         modifier = Modifier
                             .weight(1f)
                             .height(KontekstoButtonDefaults.Height),
@@ -337,7 +338,7 @@ fun HostSessionCard(
 
                     // Enter Room Button
                     Button(
-                        onClick = { onLiveRoomClick(session) },
+                        onClick = rememberDebouncedClick { onLiveRoomClick(session) },
                         modifier = Modifier
                             .weight(1f)
                             .height(KontekstoButtonDefaults.Height),

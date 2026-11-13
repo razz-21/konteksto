@@ -6,7 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -55,6 +55,8 @@ import coil.compose.AsyncImage
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.AvatarGradients
 import com.example.konteksto.domain.model.UserProfile
+import com.example.konteksto.ui.components.debouncedClickable
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 
 @Composable
@@ -113,7 +115,7 @@ fun EditProfileScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(
-                    onClick = onBackClick,
+                    onClick = rememberDebouncedClick(onClick = onBackClick),
                     enabled = !isSaving,
                 ) {
                     Icon(
@@ -213,7 +215,7 @@ fun EditProfileScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         OutlinedButton(
-                            onClick = { photoPickerLauncher.launch("image/*") },
+                            onClick = rememberDebouncedClick { photoPickerLauncher.launch("image/*") },
                             enabled = !isSaving,
                             shape = KontekstoButtonDefaults.shape,
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
@@ -239,7 +241,7 @@ fun EditProfileScreen(
 
                         if (!photoUrl.isNullOrBlank()) {
                             OutlinedButton(
-                                onClick = { photoUrl = null },
+                                onClick = rememberDebouncedClick { photoUrl = null },
                                 enabled = !isSaving,
                                 shape = KontekstoButtonDefaults.shape,
                                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
@@ -303,7 +305,7 @@ fun EditProfileScreen(
                                     .padding(if (isSelected) 3.dp else 0.dp)
                                     .clip(CircleShape)
                                     .background(Brush.linearGradient(colors))
-                                    .clickable { selectedGradientIndex = index },
+                                    .debouncedClickable { selectedGradientIndex = index },
                                 contentAlignment = Alignment.Center,
                             ) {
                                 if (isSelected) {
@@ -512,7 +514,7 @@ fun EditProfileScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     OutlinedButton(
-                        onClick = onBackClick,
+                        onClick = rememberDebouncedClick(onClick = onBackClick),
                         enabled = !isSaving,
                         modifier = Modifier
                             .weight(1f)
@@ -536,7 +538,7 @@ fun EditProfileScreen(
                     }
 
                     Button(
-                        onClick = {
+                        onClick = rememberDebouncedClick {
                             onSaveClick(
                                 name,
                                 role,

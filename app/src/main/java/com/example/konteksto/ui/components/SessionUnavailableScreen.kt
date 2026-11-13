@@ -46,7 +46,7 @@ fun SessionUnavailableScreen(
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             IconButton(
-                onClick = onBackClick,
+                onClick = rememberDebouncedClick(onClick = onBackClick),
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .padding(4.dp),
@@ -115,7 +115,7 @@ private fun SessionUnavailableMessage(
             textAlign = TextAlign.Center,
         )
         Button(
-            onClick = onActionClick,
+            onClick = rememberDebouncedClick(onClick = onActionClick),
             modifier = Modifier.padding(top = 8.dp).height(KontekstoButtonDefaults.Height),
             shape = KontekstoButtonDefaults.shape,
         ) {

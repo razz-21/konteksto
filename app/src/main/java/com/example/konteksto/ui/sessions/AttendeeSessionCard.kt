@@ -1,7 +1,7 @@
 package com.example.konteksto.ui.sessions
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +40,8 @@ import com.example.konteksto.R
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.domain.model.UserProfile
 import com.example.konteksto.ui.components.LiveOnAirBadge
+import com.example.konteksto.ui.components.debouncedClickable
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 import com.example.konteksto.ui.theme.extendedColors
@@ -76,7 +78,7 @@ fun AttendeeSessionCard(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { onActionClick() },
+            .debouncedClickable { onActionClick() },
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surfaceContainerLowest,
     ) {
@@ -295,7 +297,7 @@ fun AttendeeSessionCard(
 
                     // Enter Room Button
                     Button(
-                        onClick = onActionClick,
+                        onClick = rememberDebouncedClick(onClick = onActionClick),
                         modifier = Modifier.height(KontekstoButtonDefaults.Height),
                         shape = KontekstoButtonDefaults.shape,
                         colors = ButtonDefaults.buttonColors(

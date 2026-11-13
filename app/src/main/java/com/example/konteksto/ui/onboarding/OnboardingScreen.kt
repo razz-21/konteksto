@@ -62,6 +62,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.konteksto.R
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 import com.example.konteksto.ui.theme.extendedColors
@@ -256,7 +257,7 @@ fun OnboardingScreen(
             ) {
                 if (currentStep > 1) {
                     OutlinedButton(
-                        onClick = { currentStep-- },
+                        onClick = rememberDebouncedClick { currentStep-- },
                         modifier = Modifier
                             .width(100.dp)
                             .height(KontekstoButtonDefaults.Height),
@@ -282,7 +283,7 @@ fun OnboardingScreen(
                 }
 
                 Button(
-                    onClick = {
+                    onClick = rememberDebouncedClick {
                         if (currentStep < 4) {
                             currentStep++
                         } else {

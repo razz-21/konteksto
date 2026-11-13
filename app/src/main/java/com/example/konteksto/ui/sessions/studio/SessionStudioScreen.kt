@@ -33,6 +33,7 @@ import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.domain.model.LiveConceptExplanationItem
 import com.example.konteksto.ui.components.FillRemainingHeightColumn
 import com.example.konteksto.ui.components.LiveTranscriptMinHeight
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.components.showKontekstoSnackbar
 import com.example.konteksto.ui.host.studio.DeleteDomainTermDialog
 import com.example.konteksto.ui.host.studio.DomainTermItem
@@ -98,7 +99,7 @@ fun SessionStudioScreen(
             },
             confirmButton = {
                 Button(
-                    onClick = {
+                    onClick = rememberDebouncedClick {
                         showLeaveConfirmDialog = false
                         onLeaveConfirm()
                     },
@@ -114,7 +115,7 @@ fun SessionStudioScreen(
             },
             dismissButton = {
                 OutlinedButton(
-                    onClick = { showLeaveConfirmDialog = false },
+                    onClick = rememberDebouncedClick { showLeaveConfirmDialog = false },
                     shape = KontekstoButtonDefaults.shape,
                     modifier = Modifier.height(KontekstoButtonDefaults.Height),
                 ) {

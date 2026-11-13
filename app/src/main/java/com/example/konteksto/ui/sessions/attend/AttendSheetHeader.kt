@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
+import com.example.konteksto.ui.components.rememberDebouncedClick
 
 @Composable
 internal fun AttendSheetHeader(
@@ -33,7 +34,7 @@ internal fun AttendSheetHeader(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (onBack != null) {
-                IconButton(onClick = onBack) {
+                IconButton(onClick = rememberDebouncedClick(onClick = onBack)) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_arrow_back),
                         contentDescription = "Back",
@@ -51,7 +52,7 @@ internal fun AttendSheetHeader(
             )
         }
 
-        IconButton(onClick = onDismiss) {
+        IconButton(onClick = rememberDebouncedClick(onClick = onDismiss)) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_close),
                 contentDescription = "Close",

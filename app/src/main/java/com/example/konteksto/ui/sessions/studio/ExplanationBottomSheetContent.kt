@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.LiveConceptExplanationItem
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 
@@ -135,7 +136,7 @@ fun ExplanationBottomSheetContent(
 
             // Close X Button
             IconButton(
-                onClick = onDismiss,
+                onClick = rememberDebouncedClick(onClick = onDismiss),
                 modifier = Modifier.size(36.dp),
             ) {
                 Icon(
@@ -173,7 +174,7 @@ fun ExplanationBottomSheetContent(
         ) {
             // Clear selection Outlined Button
             OutlinedButton(
-                onClick = onDismiss,
+                onClick = rememberDebouncedClick(onClick = onDismiss),
                 modifier = Modifier
                     .weight(1f)
                     .height(KontekstoButtonDefaults.Height),
@@ -196,7 +197,7 @@ fun ExplanationBottomSheetContent(
 
             // Got it Primary Button
             Button(
-                onClick = onDismiss,
+                onClick = rememberDebouncedClick(onClick = onDismiss),
                 modifier = Modifier
                     .weight(1f)
                     .height(KontekstoButtonDefaults.Height),

@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
 
+import com.example.konteksto.ui.components.rememberDebouncedClick
+
 @Composable
 fun EditFormTopBar(
     title: String,
@@ -33,7 +35,7 @@ fun EditFormTopBar(
             .height(48.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onBackClick) {
+        IconButton(onClick = rememberDebouncedClick(onClick = onBackClick)) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_arrow_back),
                 contentDescription = "Back",
