@@ -190,6 +190,7 @@ fun SessionStudioScreen(
                 // Hero Banner Card & Speaker Info Card with session details
                 SessionStudioHeaderCard(
                     session = session,
+                    speakerProfile = transcriptState.speakerProfile,
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))

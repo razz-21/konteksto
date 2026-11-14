@@ -105,7 +105,11 @@ fun MainScreen(
                 )
             }
             composable(MainTab.Glossary.route) {
-                GlossaryScreen(onShowMessage = showMessage)
+                GlossaryScreen(
+                    currentProfile = currentProfile,
+                    onProfileClick = navigateToProfileTab,
+                    onShowMessage = showMessage,
+                )
             }
             composable(MainTab.Profile.route) {
                 ProfileScreen(

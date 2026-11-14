@@ -152,4 +152,28 @@ class ProfilePhotoUploadTest {
         assertEquals("https://example.com/avatar.jpg", repository.savedProfile?.photoUrl)
         assertEquals(signedInUser.uid, repository.savedProfile?.uid)
     }
+
+    @Test
+    fun clearPhotoUploadErrorClearsError() = runTest(testDispatcher) {
+        val viewModel = viewModel()
+
+        viewModel.startPhotoUpload { Result.failure(Exception("network error")) }
+        advanceUntilIdle()
+        assertNotNull(viewModel.uiState.value.photoErrorMessage)
+
+        viewModel.clearPhotoUploadError()
+        assertNull(viewModel.uiState.value.photoErrorMessage)
+    }
+
+    @Test
+    fun consumeUploadedPhotoUrlResetsState() = runTest(testDispatcher) {
+        val viewModel = viewModel()
+
+        viewModel.startPhotoUpload { Result.success("https://example.com/avatar.jpg") }
+        advanceUntilIdle()
+        assertEquals("https://example.com/avatar.jpg", viewModel.uploadedPhotoUrl.value)
+
+        viewModel.consumeUploadedPhotoUrl()
+        assertNull(viewModel.uploadedPhotoUrl.value)
+    }
 }

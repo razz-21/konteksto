@@ -60,6 +60,7 @@ import coil.compose.AsyncImage
 import com.example.konteksto.R
 import com.example.konteksto.domain.model.AvatarGradients
 import com.example.konteksto.domain.model.UserProfile
+import com.example.konteksto.ui.components.rememberDebouncedClick
 import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 
 @Composable
@@ -131,7 +132,7 @@ fun EditProfileScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(
-                    onClick = onBackClick,
+                    onClick = rememberDebouncedClick(onClick = onBackClick),
                     enabled = !isSaving,
                 ) {
                     Icon(
@@ -246,37 +247,80 @@ fun EditProfileScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        val uploadEnabled = !isSaving && !isUploadingPhoto
                         OutlinedButton(
-                            onClick = { photoPickerLauncher.launch("image/*") },
-                            enabled = !isSaving && !isUploadingPhoto,
+                            onClick = rememberDebouncedClick { photoPickerLauncher.launch("image/*") },
+                            enabled = uploadEnabled,
                             shape = KontekstoButtonDefaults.shape,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                            border = BorderStroke(
+                                1.dp,
+                                if (uploadEnabled) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.outlineVariant
+                                },
+                            ),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                             modifier = Modifier.height(KontekstoButtonDefaults.Height),
                         ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_camera),
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Upload Photo",
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
-                                ),
-                                color = MaterialTheme.colorScheme.primary,
-                            )
+                            if (isUploadingPhoto) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Uploading…",
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                    ),
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            } else {
+                                val buttonColor = if (uploadEnabled) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_camera),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = buttonColor,
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Upload Photo",
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                    ),
+                                    color = buttonColor,
+                                )
+                            }
                         }
 
                         if (!photoUrl.isNullOrBlank()) {
+                            val removeEnabled = !isSaving && !isUploadingPhoto
+                            val removeColor = if (removeEnabled) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
                             OutlinedButton(
-                                onClick = { photoUrl = null },
-                                enabled = !isSaving && !isUploadingPhoto,
+                                onClick = rememberDebouncedClick { photoUrl = null },
+                                enabled = removeEnabled,
                                 shape = KontekstoButtonDefaults.shape,
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (removeEnabled) {
+                                        MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                                    } else {
+                                        MaterialTheme.colorScheme.outlineVariant
+                                    },
+                                ),
                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                                 modifier = Modifier.height(KontekstoButtonDefaults.Height),
                             ) {
@@ -284,7 +328,7 @@ fun EditProfileScreen(
                                     painter = painterResource(id = R.drawable.ic_delete),
                                     contentDescription = null,
                                     modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.error,
+                                    tint = removeColor,
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
@@ -293,7 +337,7 @@ fun EditProfileScreen(
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 12.sp,
                                     ),
-                                    color = MaterialTheme.colorScheme.error,
+                                    color = removeColor,
                                 )
                             }
                         }
@@ -562,7 +606,7 @@ fun EditProfileScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Button(
-                        onClick = {
+                        onClick = rememberDebouncedClick {
                             onSaveClick(
                                 name,
                                 role,
@@ -608,7 +652,7 @@ fun EditProfileScreen(
                     }
 
                     OutlinedButton(
-                        onClick = onBackClick,
+                        onClick = rememberDebouncedClick(onClick = onBackClick),
                         enabled = !isSaving,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -651,6 +695,46 @@ fun EditProfileScreenPreview() {
                 organization = "hr",
                 bio = "qwe\nsecond line\nthird line",
             ),
+            onBackClick = {},
+            onSaveClick = { _, _, _, _, _, _ -> },
+        )
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+fun EditProfileScreenUploadingPreview() {
+    com.example.konteksto.ui.theme.KontekstoTheme(darkTheme = false) {
+        EditProfileScreen(
+            profile = UserProfile(
+                uid = "123",
+                name = "Jose Manuel R. Borjaqw",
+                role = "Attendee",
+                email = "josemanuelrborja@gmail.com",
+                organization = "hr",
+                bio = "qwe\nsecond line\nthird line",
+            ),
+            isUploadingPhoto = true,
+            onBackClick = {},
+            onSaveClick = { _, _, _, _, _, _ -> },
+        )
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+fun EditProfileScreenErrorPreview() {
+    com.example.konteksto.ui.theme.KontekstoTheme(darkTheme = false) {
+        EditProfileScreen(
+            profile = UserProfile(
+                uid = "123",
+                name = "Jose Manuel R. Borjaqw",
+                role = "Attendee",
+                email = "josemanuelrborja@gmail.com",
+                organization = "hr",
+                bio = "qwe\nsecond line\nthird line",
+            ),
+            photoErrorMessage = "Couldn't upload your photo. Check your connection and try again.",
             onBackClick = {},
             onSaveClick = { _, _, _, _, _, _ -> },
         )

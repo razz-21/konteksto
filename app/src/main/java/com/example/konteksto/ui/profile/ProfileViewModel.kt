@@ -68,40 +68,44 @@ class ProfileViewModel(
     }
 
     fun setLoading() {
-        _uiState.value = ProfileUiState(isLoading = true, errorMessage = null)
+        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
     }
 
     fun signInWithGoogleIdToken(idToken: String) {
         if (idToken.isBlank()) {
-            _uiState.value = ProfileUiState(
-                isLoading = false,
-                errorMessage = "Google ID token was empty.",
-            )
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    errorMessage = "Google ID token was empty.",
+                )
+            }
             return
         }
 
-        _uiState.value = ProfileUiState(isLoading = true, errorMessage = null)
+        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
         viewModelScope.launch {
             authRepository.signInWithGoogleIdToken(idToken)
                 .onSuccess {
-                    _uiState.value = ProfileUiState(isLoading = false, errorMessage = null)
+                    _uiState.update { it.copy(isLoading = false, errorMessage = null) }
                 }
                 .onFailure { throwable ->
-                    _uiState.value = ProfileUiState(
-                        isLoading = false,
-                        errorMessage = throwable.localizedMessage
-                            ?: "Failed to authenticate with Firebase.",
-                    )
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = throwable.localizedMessage
+                                ?: "Failed to authenticate with Firebase.",
+                        )
+                    }
                 }
         }
     }
 
     fun onSignInCancelled() {
-        _uiState.value = ProfileUiState(isLoading = false, errorMessage = null)
+        _uiState.update { it.copy(isLoading = false, errorMessage = null) }
     }
 
     fun onSignInError(message: String) {
-        _uiState.value = ProfileUiState(isLoading = false, errorMessage = message)
+        _uiState.update { it.copy(isLoading = false, errorMessage = message) }
     }
 
     // Saves the Edit Profile fields, avatar color, and uploaded photo URL to Firestore & SharedPreferences.
@@ -116,15 +120,17 @@ class ProfileViewModel(
     ) {
         val user = currentUser
         if (user == null) {
-            _uiState.value = ProfileUiState(
-                isLoading = false,
-                errorMessage = "You must be signed in to edit your profile.",
-            )
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    errorMessage = "You must be signed in to edit your profile.",
+                )
+            }
             onComplete(false)
             return
         }
 
-        _uiState.value = ProfileUiState(isLoading = true, errorMessage = null)
+        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
         viewModelScope.launch {
             val updatedProfile = UserProfile(
                 uid = user.uid,
@@ -141,15 +147,17 @@ class ProfileViewModel(
             userProfileRepository.saveProfile(updatedProfile)
                 .onSuccess {
                     _profile.value = updatedProfile
-                    _uiState.value = ProfileUiState(isLoading = false, errorMessage = null)
+                    _uiState.update { it.copy(isLoading = false, errorMessage = null) }
                     onComplete(true)
                 }
                 .onFailure { throwable ->
-                    _uiState.value = ProfileUiState(
-                        isLoading = false,
-                        errorMessage = throwable.localizedMessage
-                            ?: "Failed to save your profile.",
-                    )
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = throwable.localizedMessage
+                                ?: "Failed to save your profile.",
+                        )
+                    }
                     onComplete(false)
                 }
         }
@@ -234,7 +242,7 @@ class ProfileViewModel(
 
     fun signOut() {
         authRepository.signOut()
-        _uiState.value = ProfileUiState(isLoading = false, errorMessage = null)
+        _uiState.update { it.copy(isLoading = false, errorMessage = null) }
     }
 
     companion object {
