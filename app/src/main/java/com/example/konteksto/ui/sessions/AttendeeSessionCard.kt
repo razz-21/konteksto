@@ -1,11 +1,9 @@
 package com.example.konteksto.ui.sessions
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -23,9 +21,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -36,9 +32,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -63,10 +59,8 @@ fun AttendeeSessionCard(
     onActionClick: () -> Unit,
     modifier: Modifier = Modifier,
     currentProfile: UserProfile? = null,
-    onShowMessage: (String) -> Unit = {},
+    onJoinCodeClick: () -> Unit = {},
 ) {
-    val clipboardManager = LocalClipboardManager.current
-
     // Use the signed-in user's profile avatar when this is their own session.
     val ownProfile = currentProfile?.takeIf { profile ->
         session.hostUid.isNullOrBlank() ||
@@ -93,15 +87,13 @@ fun AttendeeSessionCard(
             ?: ConferenceThemeBanner.DefaultCategories.first().imageUrl
     }
 
-    val categoryLabel = remember(session.category) {
-        session.category?.ifBlank { null } ?: "Technology & digital"
-    }
+    val categoryLabel = session.category?.ifBlank { null }
+        ?: stringResource(id = R.string.session_card_default_category)
 
     // Matches the Host Sessions card so both lists look the same.
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable { onActionClick() },
+        onClick = onActionClick,
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.extendedColors.cardContainer,
@@ -111,18 +103,33 @@ fun AttendeeSessionCard(
         Column(
             modifier = Modifier.fillMaxWidth(),
         ) {
-            // Cover Image Banner
+            // Cover Image Banner with the title laid over it
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(135.dp)
+                    .height(168.dp)
                     .background(MaterialTheme.colorScheme.primaryContainer),
             ) {
                 AsyncImage(
                     model = bannerUrl,
-                    contentDescription = session.title,
+                    contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
+                )
+
+                // Dark gradient so the white title stays readable on any banner
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Black.copy(alpha = 0.15f),
+                                    Color.Black.copy(alpha = 0.35f),
+                                    Color.Black.copy(alpha = 0.85f),
+                                ),
+                            ),
+                        ),
                 )
 
                 // Category overlay pill on top left
@@ -140,7 +147,7 @@ fun AttendeeSessionCard(
                         text = categoryLabel,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                         ),
                         color = Color.White,
                         maxLines = 1,
@@ -148,14 +155,32 @@ fun AttendeeSessionCard(
                     )
                 }
 
-                // Live On Air badge overlay on top right if session is live
+                // Live badge overlay on top right if session is live
                 if (session.isLive) {
                     LiveOnAirBadge(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(12.dp),
+                        label = stringResource(id = R.string.session_live),
+                        showWaveform = true,
                     )
                 }
+
+                // Session Title
+                Text(
+                    text = session.title,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        lineHeight = 25.sp,
+                    ),
+                    color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                )
             }
 
             // Card Details Content
@@ -164,26 +189,53 @@ fun AttendeeSessionCard(
                     .fillMaxWidth()
                     .padding(16.dp),
             ) {
-                // Session Title
-                Text(
-                    text = session.title,
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        lineHeight = 24.sp,
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
+                // Metadata Chips: Venue, Time, Attendees, Join code
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (session.venue.isNotBlank()) {
+                        SessionBadge(
+                            iconRes = R.drawable.ic_location,
+                            text = session.venue,
+                        )
+                    }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                    if (session.time.isNotBlank()) {
+                        SessionBadge(
+                            iconRes = R.drawable.ic_clock,
+                            text = session.time,
+                        )
+                    }
 
-                // Speaker Row
+                    SessionBadge(
+                        iconRes = R.drawable.ic_people,
+                        text = pluralStringResource(
+                            id = R.plurals.session_card_attendees,
+                            count = session.attendeesCount,
+                            session.attendeesCount,
+                        ),
+                    )
+
+                    if (session.talkCode.isNotBlank()) {
+                        SessionJoinCodeChip(
+                            code = session.talkCode,
+                            onClick = onJoinCodeClick,
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Speaker + Enter Room Row
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(26.dp)
+                            .size(40.dp)
                             .background(
                                 brush = if (ownProfile != null) {
                                     Brush.linearGradient(ownProfile.avatarGradientColors)
@@ -197,7 +249,7 @@ fun AttendeeSessionCard(
                         if (!ownProfile?.photoUrl.isNullOrBlank()) {
                             AsyncImage(
                                 model = ownProfile.photoUrl,
-                                contentDescription = "Profile photo",
+                                contentDescription = stringResource(id = R.string.session_card_speaker_photo),
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -206,127 +258,45 @@ fun AttendeeSessionCard(
                         } else {
                             Text(
                                 text = speakerInitials,
-                                style = MaterialTheme.typography.labelSmall.copy(
+                                style = MaterialTheme.typography.labelLarge.copy(
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 10.sp,
                                 ),
                                 color = if (ownProfile != null) {
                                     Color.White
                                 } else {
-                                    MaterialTheme.colorScheme.primary
+                                    MaterialTheme.colorScheme.onPrimaryContainer
                                 },
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
 
-                    Text(
-                        text = speakerName,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 13.sp,
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Metadata Chips: Venue, Time, Attendees
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    if (session.venue.isNotBlank()) {
-                        SessionBadge(
-                            iconRes = R.drawable.ic_location,
-                            text = session.venue,
-                        )
-                        if (session.time.isNotBlank()) {
-                            SessionBadge(
-                                iconRes = R.drawable.ic_clock,
-                                text = session.time,
-                            )
-                        }
-                        SessionBadge(
-                            iconRes = R.drawable.ic_people,
-                            text = "${session.attendeesCount} ${if (session.attendeesCount == 1) "attendee" else "attendees"}",
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // Join Code Container
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainer,
+                    Column(
+                        modifier = Modifier.weight(1f),
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_key),
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            Column(
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Text(
-                                    text = "Join code",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Medium,
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Spacer(modifier = Modifier.height(1.dp))
-                                Text(
-                                    text = session.talkCode,
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp,
-                                        letterSpacing = 1.sp,
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                )
-                            }
-
-                            IconButton(
-                                onClick = {
-                                    clipboardManager.setText(AnnotatedString(session.talkCode))
-                                    onShowMessage("Join code copied!")
-                                },
-                                modifier = Modifier.size(32.dp),
-                            ) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.ic_copy),
-                                    contentDescription = "Copy join code",
-                                    modifier = Modifier.size(18.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
+                        Text(
+                            text = speakerName,
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = stringResource(id = R.string.session_card_speaker_role),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
 
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
 
                     // Enter Room Button
                     Button(
                         onClick = onActionClick,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(KontekstoButtonDefaults.Height),
+                        modifier = Modifier.height(KontekstoButtonDefaults.Height),
                         shape = KontekstoButtonDefaults.shape,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
@@ -334,19 +304,17 @@ fun AttendeeSessionCard(
                         ),
                     ) {
                         Text(
-                            text = "Enter room",
+                            text = stringResource(id = R.string.session_card_enter_room),
                             style = MaterialTheme.typography.labelLarge.copy(
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp,
+                                fontSize = 14.sp,
                             ),
-                            color = MaterialTheme.colorScheme.onPrimary,
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Icon(
                             painter = painterResource(id = R.drawable.ic_arrow_forward),
                             contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(16.dp),
                         )
                     }
                 }
@@ -360,11 +328,11 @@ fun AttendeeSessionCard(
 fun AttendeeSessionCardLightPreview() {
     val sampleSession = HostSession(
         id = "1",
-        venue = "CDO Ayala",
-        time = "10:00 – 11:30 AM",
-        talkCode = "4VY4N6",
-        title = "Object Oriented Programming",
-        speakerName = "Ernesto Razo",
+        venue = "City Hall El Salvador",
+        time = "10:00 AM",
+        talkCode = "J9Y86V",
+        title = "Information Management Introduction",
+        speakerName = "Zhar",
         attendeesCount = 1,
         isLive = true,
         category = "Technology & digital",
@@ -384,11 +352,11 @@ fun AttendeeSessionCardLightPreview() {
 fun AttendeeSessionCardDarkPreview() {
     val sampleSession = HostSession(
         id = "1",
-        venue = "CDO Ayala",
-        time = "10:00 – 11:30 AM",
-        talkCode = "4VY4N6",
-        title = "Object Oriented Programming",
-        speakerName = "Ernesto Razo",
+        venue = "City Hall El Salvador",
+        time = "10:00 AM",
+        talkCode = "J9Y86V",
+        title = "Information Management Introduction",
+        speakerName = "Zhar",
         attendeesCount = 1,
         isLive = true,
         category = "Technology & digital",
@@ -411,9 +379,9 @@ fun AttendeeSessionCardLongVenuePreview() {
         venue = "Rodelsa Hall Liceo de Cagayan University",
         time = "10:00 AM – 11:30 PM",
         talkCode = "K38QZD",
-        title = "Introduction to Ethical Hacking",
+        title = "Introduction to Ethical Hacking and Penetration Testing for Beginners",
         speakerName = "ERNESTO RAZO",
-        attendeesCount = 1,
+        attendeesCount = 12,
         isLive = false,
         category = "Technology & Digital",
     )

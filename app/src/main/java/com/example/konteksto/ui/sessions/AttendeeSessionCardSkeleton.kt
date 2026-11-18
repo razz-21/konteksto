@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.konteksto.ui.theme.KontekstoButtonDefaults
 import com.example.konteksto.ui.theme.KontekstoTheme
 import com.example.konteksto.ui.theme.extendedColors
 
@@ -50,136 +52,119 @@ fun AttendeeSessionCardSkeleton(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.small,
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.extendedColors.cardContainer,
         ),
     ) {
         Column {
-            // Banner Image Skeleton Box
+            // Banner Skeleton with the category pill and two title lines over it
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
+                    .height(168.dp)
                     .background(skeletonColor),
             ) {
-                // Category Tag Pill Skeleton
                 Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(12.dp)
+                        .size(width = 120.dp, height = 24.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
+                )
+
+                Column(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .padding(12.dp)
-                        .size(width = 90.dp, height = 22.dp)
-                        .clip(MaterialTheme.shapes.extraSmall)
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
-                )
-
-                // Talk Code Badge Pill Skeleton
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(12.dp)
-                        .size(width = 65.dp, height = 22.dp)
-                        .clip(MaterialTheme.shapes.extraSmall)
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
-                )
-            }
-
-            // Card Content Skeleton
-            Column(modifier = Modifier.padding(18.dp)) {
-                // Header Row (Venue & Time)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(width = 120.dp, height = 14.dp)
+                            .fillMaxWidth(0.85f)
+                            .height(20.dp)
                             .clip(MaterialTheme.shapes.extraSmall)
-                            .background(skeletonColor),
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
                     )
                     Box(
                         modifier = Modifier
-                            .size(width = 60.dp, height = 14.dp)
+                            .fillMaxWidth(0.55f)
+                            .height(20.dp)
                             .clip(MaterialTheme.shapes.extraSmall)
-                            .background(skeletonColor),
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
                     )
                 }
+            }
 
-                Spacer(modifier = Modifier.height(10.dp))
+            Column(modifier = Modifier.padding(16.dp)) {
+                // Metadata Chips Skeleton
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(130.dp, 80.dp).forEach { chipWidth ->
+                        Box(
+                            modifier = Modifier
+                                .size(width = chipWidth, height = 24.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(skeletonColor),
+                        )
+                    }
+                }
 
-                // Session Title Skeleton (2 lines)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.9f)
-                        .height(18.dp)
-                        .clip(MaterialTheme.shapes.extraSmall)
-                        .background(skeletonColor),
-                )
+                Spacer(modifier = Modifier.height(8.dp))
 
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.65f)
-                        .height(18.dp)
-                        .clip(MaterialTheme.shapes.extraSmall)
-                        .background(skeletonColor),
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Speaker Row Skeleton
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(skeletonColor),
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Box(
-                        modifier = Modifier
-                            .size(width = 130.dp, height = 14.dp)
-                            .clip(MaterialTheme.shapes.extraSmall)
-                            .background(skeletonColor),
-                    )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(90.dp, 90.dp).forEach { chipWidth ->
+                        Box(
+                            modifier = Modifier
+                                .size(width = chipWidth, height = 24.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(skeletonColor),
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Stats Row Skeleton
+                // Speaker + Enter Room Row Skeleton
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(width = 100.dp, height = 14.dp)
-                            .clip(MaterialTheme.shapes.extraSmall)
+                            .size(40.dp)
+                            .clip(CircleShape)
                             .background(skeletonColor),
                     )
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(width = 80.dp, height = 14.dp)
+                                .clip(MaterialTheme.shapes.extraSmall)
+                                .background(skeletonColor),
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(width = 56.dp, height = 12.dp)
+                                .clip(MaterialTheme.shapes.extraSmall)
+                                .background(skeletonColor),
+                        )
+                    }
+
                     Box(
                         modifier = Modifier
-                            .size(width = 80.dp, height = 14.dp)
-                            .clip(MaterialTheme.shapes.extraSmall)
+                            .size(width = 132.dp, height = KontekstoButtonDefaults.Height)
+                            .clip(KontekstoButtonDefaults.shape)
                             .background(skeletonColor),
                     )
                 }
-
-                Spacer(modifier = Modifier.height(18.dp))
-
-                // Action Button Skeleton
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .clip(MaterialTheme.shapes.small)
-                        .background(skeletonColor),
-                )
             }
         }
     }

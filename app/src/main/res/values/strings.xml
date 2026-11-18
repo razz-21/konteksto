@@ -106,4 +106,14 @@
     <string name="profile_explanation_language_saved">Explanations will now be in %1$s</string>
     <string name="profile_explanation_language_save_failed">Couldn\'t save your explanation language. Please try again.</string>
     <string name="session_leave_failed">Couldn\'t leave the session. Please try again.</string>
+    <string name="session_live">Live</string>
+    <string name="session_card_default_category">Technology &amp; digital</string>
+    <string name="session_card_speaker_role">Speaker</string>
+    <string name="session_card_enter_room">Enter room</string>
+    <string name="session_card_speaker_photo">Speaker photo</string>
+    <string name="session_card_show_join_qr">Show join QR code</string>
+    <plurals name="session_card_attendees">
+        <item quantity="one">%1$d attendee</item>
+        <item quantity="other">%1$d attendees</item>
+    </plurals>
 </resources>
