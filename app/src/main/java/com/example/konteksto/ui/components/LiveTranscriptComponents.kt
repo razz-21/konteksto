@@ -1,5 +1,11 @@
 package com.example.konteksto.ui.components
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.StartOffset
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.scrollBy
@@ -41,6 +47,15 @@ import androidx.compose.ui.unit.sp
 import com.example.konteksto.R
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.launch
+
+/**
+ * Sent as the live text while someone is speaking but the engine has no words yet, such as Gemini,
+ * which only returns whole sentences. The bubble shows animated dots for it.
+ */
+const val LIVE_SPEAKING_PLACEHOLDER = "…"
+
+private const val SPEAKING_DOT_COUNT = 3
+private const val SPEAKING_DOT_STEP_MS = 180
 
 /** Smallest height of the live transcript card, so small phones still show several lines. */
 val LiveTranscriptMinHeight = 420.dp
@@ -198,14 +213,48 @@ fun LiveSpeakingBubble(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
-                    fontStyle = FontStyle.Italic,
+            if (text == LIVE_SPEAKING_PLACEHOLDER) {
+                SpeakingDots(modifier = Modifier.padding(vertical = 6.dp))
+            } else {
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp,
+                        fontStyle = FontStyle.Italic,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+    }
+}
+
+/** Three dots that pulse in turn while the speaker's words are on their way. */
+@Composable
+private fun SpeakingDots(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "speakingDots")
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        repeat(SPEAKING_DOT_COUNT) { index ->
+            val alpha by transition.animateFloat(
+                initialValue = 0.25f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = SPEAKING_DOT_STEP_MS * SPEAKING_DOT_COUNT),
+                    repeatMode = RepeatMode.Reverse,
+                    initialStartOffset = StartOffset(index * SPEAKING_DOT_STEP_MS),
                 ),
-                color = MaterialTheme.colorScheme.onSurface,
+                label = "speakingDot$index",
+            )
+            Box(
+                modifier = Modifier
+                    .size(7.dp)
+                    .graphicsLayer { this.alpha = alpha }
+                    .background(MaterialTheme.colorScheme.primary, CircleShape),
             )
         }
     }

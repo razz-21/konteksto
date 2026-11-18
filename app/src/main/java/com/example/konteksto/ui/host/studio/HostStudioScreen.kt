@@ -178,6 +178,7 @@ fun HostStudioScreen(
                             transcripts = transcripts,
                             partialTranscript = uiState?.partialTranscript ?: "",
                             inputDevice = uiState?.inputDevice,
+                            transcriptionEngine = uiState?.transcriptionEngine,
                             onAddTranscript = { text ->
                                 if (uiState != null) {
                                     onAddTranscript(text)

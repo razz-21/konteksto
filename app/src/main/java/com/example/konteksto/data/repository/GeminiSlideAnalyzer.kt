@@ -11,7 +11,8 @@ import com.example.konteksto.ui.host.studio.cleanDomainTerms
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
 import com.google.firebase.Firebase
-import com.google.firebase.vertexai.vertexAI
+import com.google.firebase.ai.ai
+import com.google.firebase.ai.type.GenerativeBackend
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -128,8 +129,8 @@ class GeminiSlideAnalyzer(
             } else {
                 for (modelName in candidateModelNames) {
                     try {
-                        val model = Firebase.vertexAI.generativeModel(modelName)
-                        val inputContent = com.google.firebase.vertexai.type.content {
+                        val model = Firebase.ai(backend = GenerativeBackend.agentPlatform()).generativeModel(modelName)
+                        val inputContent = com.google.firebase.ai.type.content {
                             inlineData(pdfBytes, "application/pdf")
                             text(prompt)
                         }

@@ -7,7 +7,8 @@ import com.example.konteksto.domain.model.LiveConceptExplanationItem
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.firebase.Firebase
 import com.google.firebase.functions.FirebaseFunctions
-import com.google.firebase.vertexai.vertexAI
+import com.google.firebase.ai.ai
+import com.google.firebase.ai.type.GenerativeBackend
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -149,7 +150,7 @@ class FirebaseExplanationRepository(
             } else {
                 for (modelName in candidateModelNames) {
                     try {
-                        val model = Firebase.vertexAI.generativeModel(modelName)
+                        val model = Firebase.ai(backend = GenerativeBackend.agentPlatform()).generativeModel(modelName)
                         val response = model.generateContent(prompt)
                         val textResult = response.text?.trim()
                         if (!textResult.isNullOrBlank()) {

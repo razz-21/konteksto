@@ -9,8 +9,10 @@ import com.example.konteksto.data.audio.AudioInputRepository
 import com.example.konteksto.data.repository.AuthRepository
 import com.example.konteksto.data.repository.FirebaseAuthRepository
 import com.example.konteksto.data.repository.FirebaseSessionRepository
+import com.example.konteksto.data.repository.GeminiLiveTranscriptionRepository
 import com.example.konteksto.data.repository.GeminiSlideAnalyzer
 import com.example.konteksto.data.repository.SessionRepository
+import com.example.konteksto.R
 import com.example.konteksto.domain.model.AudioInputDevice
 import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.components.SessionLookup
@@ -33,6 +35,7 @@ data class HostStudioUiState(
     val transcripts: List<TranscriptEntry> = emptyList(),
     val partialTranscript: String = "",
     val inputDevice: AudioInputDevice? = null,
+    val transcriptionEngine: TranscriptionEngineType = TranscriptionEngineType.Gemini,
     val contextNotes: List<ContextNoteItem> = emptyList(),
     val slideDeckInfo: SlideDeckInfo? = null,
     val analyzedSlides: List<AnalyzedSlideItem> = emptyList(),
@@ -128,6 +131,8 @@ class HostStudioViewModel(
         observeSession()
         observeTranscripts()
         observeLivePartial()
+        observeTranscriptionMessages()
+        observeTranscriptionEngine()
         observeAnalyzedSlides()
         observeContextNotes()
         observeDomainTerms()
@@ -247,6 +252,22 @@ class HostStudioViewModel(
                         )
                     }
                 }
+            }
+        }
+    }
+
+    private fun observeTranscriptionEngine() {
+        viewModelScope.launch {
+            transcriptionEngine.activeEngine.collect { engine ->
+                _uiState.update { it.copy(transcriptionEngine = engine) }
+            }
+        }
+    }
+
+    private fun observeTranscriptionMessages() {
+        viewModelScope.launch {
+            transcriptionEngine.messages.collect { message ->
+                _uiState.update { it.copy(errorMessage = message) }
             }
         }
     }
@@ -602,7 +623,12 @@ class HostStudioViewModel(
                 return HostStudioViewModel(
                     sessionId = sessionId,
                     transcriptionEngineFactory = { onSegmentComplete ->
-                        SpeechToTextManager(appContext, onSegmentComplete)
+                        GeminiTranscriptionEngine(
+                            repository = GeminiLiveTranscriptionRepository(),
+                            fallback = SpeechToTextManager(appContext, onSegmentComplete),
+                            onSegmentComplete = onSegmentComplete,
+                            fallbackMessage = appContext.getString(R.string.host_studio_transcription_fallback),
+                        )
                     },
                     audioInputRepository = AndroidAudioInputRepository(appContext),
                     sessionRepository = sessionRepository,

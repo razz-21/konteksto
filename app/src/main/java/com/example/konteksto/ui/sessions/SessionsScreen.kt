@@ -26,8 +26,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -44,6 +42,7 @@ import com.example.konteksto.data.repository.FirebaseSessionRepository
 import com.example.konteksto.data.repository.FirebaseUserProfileRepository
 import com.example.konteksto.data.repository.SessionRepository
 import com.example.konteksto.data.repository.UserProfileRepository
+import com.example.konteksto.domain.model.HostSession
 import com.example.konteksto.ui.components.KontekstoTopBar
 import com.example.konteksto.ui.components.showKontekstoSnackbar
 import com.example.konteksto.ui.sessions.attend.AttendSessionSheet
@@ -54,6 +53,7 @@ import com.example.konteksto.ui.theme.KontekstoTheme
 fun SessionsScreen(
     onNavigateToAttendeeRoom: (sessionId: String) -> Unit,
     modifier: Modifier = Modifier,
+    onNavigateToPresentQr: (HostSession) -> Unit = {},
     onProfileClick: () -> Unit = {},
     sessionRepository: SessionRepository = remember { FirebaseSessionRepository() },
     userProfileRepository: UserProfileRepository = LocalContext.current.let { context ->
@@ -75,10 +75,6 @@ fun SessionsScreen(
     val currentProfile by viewModel.currentProfile.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
-    val snackbarScope = rememberCoroutineScope()
-    val showMessage: (String) -> Unit = { message ->
-        snackbarScope.launch { snackbarHostState.showKontekstoSnackbar(message) }
-    }
 
     LaunchedEffect(Unit) {
         viewModel.snackbarMessage.collect { message ->
@@ -93,10 +89,8 @@ fun SessionsScreen(
                 viewModel.verifyCodeAndAttend(code, onResult)
             },
             onConfirmJoin = { session ->
-                viewModel.confirmJoinSession(session) { isLive ->
-                    if (isLive) {
-                        onNavigateToAttendeeRoom(session.id)
-                    }
+                viewModel.confirmJoinSession(session) { joinedSession ->
+                    onNavigateToAttendeeRoom(joinedSession.id)
                 }
             },
             sessionToConfirm = sessionToConfirm,
@@ -238,7 +232,9 @@ fun SessionsScreen(
                                     onNavigateToAttendeeRoom(session.id)
                                 },
                                 currentProfile = currentProfile,
-                                onShowMessage = showMessage,
+                                onJoinCodeClick = {
+                                    onNavigateToPresentQr(session)
+                                },
                             )
                         }
                     }

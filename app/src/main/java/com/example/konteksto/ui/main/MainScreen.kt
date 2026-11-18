@@ -86,6 +86,7 @@ fun MainScreen(
             composable(MainTab.Sessions.route) {
                 SessionsScreen(
                     onNavigateToAttendeeRoom = onNavigateToAttendeeRoom,
+                    onNavigateToPresentQr = onNavigateToPresentQr,
                     sessionRepository = sessionRepository,
                     onProfileClick = navigateToProfileTab,
                 )
