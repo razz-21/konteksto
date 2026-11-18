@@ -1,14 +1,13 @@
 package com.example.konteksto.data.repository
 
 import android.util.Log
-import com.example.konteksto.BuildConfig
 import com.example.konteksto.domain.model.ExplanationLanguage
 import com.example.konteksto.domain.model.LiveConceptExplanationItem
-import com.google.ai.client.generativeai.GenerativeModel
 import com.google.firebase.Firebase
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.ai.ai
 import com.google.firebase.ai.type.GenerativeBackend
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -25,7 +24,6 @@ interface ExplanationRepository {
 }
 
 class FirebaseExplanationRepository(
-    private val apiKey: String = BuildConfig.GEMINI_API_KEY,
     private val functionsProvider: () -> FirebaseFunctions = { FirebaseFunctions.getInstance("asia-southeast1") },
 ) : ExplanationRepository {
 
@@ -133,33 +131,19 @@ class FirebaseExplanationRepository(
         var responseText = ""
 
         try {
-            if (apiKey.isNotBlank()) {
-                for (modelName in candidateModelNames) {
-                    try {
-                        val model = GenerativeModel(modelName, apiKey = apiKey)
-                        val response = model.generateContent(prompt)
-                        val textResult = response.text?.trim()
-                        if (!textResult.isNullOrBlank()) {
-                            responseText = textResult
-                            break
-                        }
-                    } catch (e: Exception) {
-                        Log.w("FirebaseExplanationRepo", "Model $modelName explain fallback failed: ${e.message}")
+            for (modelName in candidateModelNames) {
+                try {
+                    val model = Firebase.ai(backend = GenerativeBackend.agentPlatform()).generativeModel(modelName)
+                    val response = model.generateContent(prompt)
+                    val textResult = response.text?.trim()
+                    if (!textResult.isNullOrBlank()) {
+                        responseText = textResult
+                        break
                     }
-                }
-            } else {
-                for (modelName in candidateModelNames) {
-                    try {
-                        val model = Firebase.ai(backend = GenerativeBackend.agentPlatform()).generativeModel(modelName)
-                        val response = model.generateContent(prompt)
-                        val textResult = response.text?.trim()
-                        if (!textResult.isNullOrBlank()) {
-                            responseText = textResult
-                            break
-                        }
-                    } catch (e: Exception) {
-                        Log.w("FirebaseExplanationRepo", "Firebase vertexAI model $modelName explain fallback failed: ${e.message}")
-                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.w("FirebaseExplanationRepo", "Firebase AI model $modelName explain fallback failed: ${e.message}")
                 }
             }
 
@@ -184,6 +168,8 @@ class FirebaseExplanationRepository(
                 )
                 return@withContext Result.success(item)
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("FirebaseExplanationRepo", "Error generating explanation fallback: ${e.message}", e)
         }

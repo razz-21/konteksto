@@ -311,7 +311,7 @@ class SlideDeckStateTest {
 
     @Test
     fun testAnalyzerRefusesToRunWithoutPdf() = runBlocking {
-        val analyzer = GeminiSlideAnalyzer(apiKey = "unused")
+        val analyzer = GeminiSlideAnalyzer()
 
         assertTrue(analyzer.analyzeSlideDeck(SlideDeckInfo(pdfBytes = null)).isFailure)
         assertTrue(analyzer.analyzeSlideDeck(SlideDeckInfo(pdfBytes = ByteArray(0))).isFailure)

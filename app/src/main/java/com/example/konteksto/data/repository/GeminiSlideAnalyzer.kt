@@ -1,18 +1,17 @@
 package com.example.konteksto.data.repository
 
 import android.util.Log
-import com.example.konteksto.BuildConfig
 import com.example.konteksto.ui.host.studio.AnalyzedSlideItem
 import com.example.konteksto.ui.host.studio.ContextNoteItem
 import com.example.konteksto.ui.host.studio.DomainTermItem
 import com.example.konteksto.ui.host.studio.SlideDeckAnalysis
 import com.example.konteksto.ui.host.studio.SlideDeckInfo
 import com.example.konteksto.ui.host.studio.cleanDomainTerms
-import com.google.ai.client.generativeai.GenerativeModel
-import com.google.ai.client.generativeai.type.content
 import com.google.firebase.Firebase
 import com.google.firebase.ai.ai
 import com.google.firebase.ai.type.GenerativeBackend
+import com.google.firebase.ai.type.content
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -41,9 +40,7 @@ internal fun buildContextNotesPrompt(notes: List<ContextNoteItem>): String {
     """.trimIndent() + "\n<host_notes>\n$noteLines\n</host_notes>"
 }
 
-class GeminiSlideAnalyzer(
-    private val apiKey: String = BuildConfig.GEMINI_API_KEY,
-) {
+class GeminiSlideAnalyzer {
 
     suspend fun analyzeSlideDeck(
         slideDeckInfo: SlideDeckInfo,
@@ -98,50 +95,32 @@ class GeminiSlideAnalyzer(
         var responseText = ""
 
         try {
-            if (apiKey.isNotBlank()) {
-                modelLoop@ for (modelName in candidateModelNames) {
-                    for (attempt in 1..2) {
-                        try {
-                            val model = GenerativeModel(modelName, apiKey = apiKey)
-                            val inputContent = content {
-                                blob("application/pdf", pdfBytes)
-                                text(prompt)
-                            }
-                            val response = model.generateContent(inputContent)
-                            val textResult = response.text?.trim()
-                            if (!textResult.isNullOrBlank()) {
-                                responseText = textResult
-                                Log.d("GeminiSlideAnalyzer", "Successfully generated slide analysis using model: $modelName")
-                                break@modelLoop
-                            }
-                        } catch (e: Exception) {
-                            val errMsg = e.message ?: ""
-                            if (errMsg.contains("503") || errMsg.contains("high demand") || errMsg.contains("UNAVAILABLE")) {
-                                Log.w("GeminiSlideAnalyzer", "Model $modelName 503 high demand on attempt $attempt. Retrying in 1s...")
-                                delay(1000)
-                            } else {
-                                Log.w("GeminiSlideAnalyzer", "Model $modelName failed: $errMsg, trying next candidate...")
-                                break // Skip retry for 404 / unsupported model errors
-                            }
-                        }
-                    }
-                }
-            } else {
-                for (modelName in candidateModelNames) {
+            val inputContent = content {
+                inlineData(pdfBytes, "application/pdf")
+                text(prompt)
+            }
+            modelLoop@ for (modelName in candidateModelNames) {
+                for (attempt in 1..2) {
                     try {
                         val model = Firebase.ai(backend = GenerativeBackend.agentPlatform()).generativeModel(modelName)
-                        val inputContent = com.google.firebase.ai.type.content {
-                            inlineData(pdfBytes, "application/pdf")
-                            text(prompt)
-                        }
                         val response = model.generateContent(inputContent)
                         val textResult = response.text?.trim()
                         if (!textResult.isNullOrBlank()) {
                             responseText = textResult
-                            break
+                            Log.d("GeminiSlideAnalyzer", "Successfully generated slide analysis using model: $modelName")
+                            break@modelLoop
                         }
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: Exception) {
-                        Log.w("GeminiSlideAnalyzer", "Firebase model $modelName failed: ${e.message}")
+                        val errMsg = e.message ?: ""
+                        if (errMsg.contains("503") || errMsg.contains("high demand") || errMsg.contains("UNAVAILABLE")) {
+                            Log.w("GeminiSlideAnalyzer", "Model $modelName 503 high demand on attempt $attempt. Retrying in 1s...")
+                            delay(1000)
+                        } else {
+                            Log.w("GeminiSlideAnalyzer", "Model $modelName failed: $errMsg, trying next candidate...")
+                            break // Skip retry for 404 / unsupported model errors
+                        }
                     }
                 }
             }
@@ -186,6 +165,8 @@ class GeminiSlideAnalyzer(
                     return@withContext Result.success(SlideDeckAnalysis(slides, cleanDomainTerms(terms)))
                 }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("GeminiSlideAnalyzer", "Gemini slide analysis parsing error: ${e.message}", e)
         }
