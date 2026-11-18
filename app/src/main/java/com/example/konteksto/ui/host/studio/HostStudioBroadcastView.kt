@@ -55,6 +55,7 @@ fun HostStudioBroadcastView(
     modifier: Modifier = Modifier,
     partialTranscript: String = "",
     inputDevice: AudioInputDevice? = null,
+    transcriptionEngine: TranscriptionEngineType? = null,
 ) {
     var newTranscriptText by remember { mutableStateOf("") }
     val transcriptListState = rememberLazyListState()
@@ -83,7 +84,7 @@ fun HostStudioBroadcastView(
                     .padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                // Header Row: Title & Input Device Pill
+                // Header Row: Title, Transcription Engine & Input Device Pills
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -108,8 +109,13 @@ fun HostStudioBroadcastView(
                         )
                     }
 
-                    if (inputDevice != null) {
-                        TranscriptInputDevicePill(device = inputDevice)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        if (transcriptionEngine != null) {
+                            TranscriptionEnginePill(engine = transcriptionEngine)
+                        }
+                        if (inputDevice != null) {
+                            TranscriptInputDevicePill(device = inputDevice)
+                        }
                     }
                 }
 

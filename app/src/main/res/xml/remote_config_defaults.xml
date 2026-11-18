@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Used until Remote Config fetches the live values from the Firebase console. -->
+<defaultsMap>
+    <!-- "gemini" or "on_device" (the phone's own speech recognizer). -->
+    <entry>
+        <key>transcription_engine</key>
+        <value>gemini</value>
+    </entry>
+    <entry>
+        <key>live_transcription_model</key>
+        <value>gemini-3.5-transcribe-live</value>
+    </entry>
+</defaultsMap>
