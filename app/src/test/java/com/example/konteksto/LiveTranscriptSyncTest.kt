@@ -168,6 +168,25 @@ class LiveTranscriptSyncTest {
     }
 
     @Test
+    fun unchangedTextIsPublishedAgainEachInterval() = runTest {
+        val partial = MutableStateFlow("")
+        val published = mutableListOf<String>()
+        val job = launch { partial.publishThrottled(1_000L) { published += it } }
+        runCurrent()
+
+        // Gemini's placeholder stays the same while the host talks, even after a finished line clears it.
+        partial.value = "…"
+        runCurrent()
+        advanceTimeBy(2_001L)
+        assertEquals(listOf("…", "…", "…"), published)
+
+        partial.value = ""
+        advanceTimeBy(3_000L)
+        assertEquals(3, published.size)
+        job.cancel()
+    }
+
+    @Test
     fun abandonedPartialExpiresButActiveSpeechDoesNot() = runTest {
         val source = MutableSharedFlow<String>()
         val seen = mutableListOf<String>()
@@ -354,6 +373,8 @@ class LiveTranscriptSyncTest {
         engine.speak("second")
         testScheduler.advanceTimeBy(1_001L)
         assertNull(host.uiState.value.errorMessage)
+        // Text in progress keeps being republished, so the test only ends once it is finished.
+        engine.finishSegment()
     }
 
     @Test

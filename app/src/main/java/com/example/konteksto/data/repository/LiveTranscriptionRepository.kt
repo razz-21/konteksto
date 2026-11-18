@@ -11,6 +11,7 @@ import com.google.firebase.ai.type.LiveServerContent
 import com.google.firebase.ai.type.LiveServerGoAway
 import com.google.firebase.ai.type.PublicPreviewAPI
 import com.google.firebase.ai.type.ResponseModality
+import com.google.firebase.ai.type.content
 import com.google.firebase.ai.type.liveGenerationConfig
 import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
@@ -37,6 +38,17 @@ private const val GEMINI_ENGINE = "gemini"
 private const val PCM_MIME_TYPE = "audio/pcm;rate=16000"
 
 private const val CLOSE_TIMEOUT_MS = 2_000L
+
+/**
+ * The SDK's transcription config has no language setting, so the languages hosts speak are given as
+ * an instruction instead. Whether the transcription follows it is up to the model.
+ */
+private val TRANSCRIPTION_INSTRUCTION = """
+    The speaker talks only in English, Tagalog (Filipino) and Cebuano (Bisaya), and often switches between them within a sentence.
+    - Transcribe every word exactly as spoken, in the language it was spoken in.
+    - Never translate, and never write the speech as any other language.
+    - Keep English technical terms in English.
+""".trimIndent()
 
 /** Starting a broadcast waits at most this long for fresh Remote Config values. */
 private const val REMOTE_CONFIG_FETCH_TIMEOUT_MS = 3_000L
@@ -76,6 +88,7 @@ class GeminiLiveTranscriptionRepository(
                 responseModality = ResponseModality.TEXT
                 inputAudioTranscription = AudioTranscriptionConfig()
             },
+            systemInstruction = content { text(TRANSCRIPTION_INSTRUCTION) },
         )
         val session = model.connect()
         val sending = launch {

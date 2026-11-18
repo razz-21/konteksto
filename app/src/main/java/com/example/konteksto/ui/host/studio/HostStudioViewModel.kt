@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -85,18 +86,19 @@ internal fun resolveAudioBroadcasting(
 private const val LIVE_PARTIAL_PUBLISH_INTERVAL_MS = 1_000L
 
 /**
- * Publishes the latest in-progress text at most once per [intervalMs]. Blank text is skipped because
- * saving the finished line already clears it, in the same write.
+ * Publishes the latest in-progress text at most once per [intervalMs], and again every interval while
+ * it stays the same. Saving a finished line clears the shared text, so text that outlasts a line, like
+ * Gemini's speaking placeholder while the host keeps talking, comes back for attendees, and they never
+ * expire it as stale. Blank text is skipped because saving the finished line already clears it, in
+ * the same write.
  */
 internal suspend fun StateFlow<String>.publishThrottled(
     intervalMs: Long,
     publish: suspend (String) -> Unit,
 ) {
-    collect { text ->
-        if (text.isNotBlank()) {
-            publish(text)
-            delay(intervalMs)
-        }
+    while (true) {
+        publish(first { it.isNotBlank() })
+        delay(intervalMs)
     }
 }
 
