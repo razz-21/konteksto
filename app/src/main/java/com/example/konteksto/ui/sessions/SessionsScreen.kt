@@ -89,10 +89,8 @@ fun SessionsScreen(
                 viewModel.verifyCodeAndAttend(code, onResult)
             },
             onConfirmJoin = { session ->
-                viewModel.confirmJoinSession(session) { isLive ->
-                    if (isLive) {
-                        onNavigateToAttendeeRoom(session.id)
-                    }
+                viewModel.confirmJoinSession(session) { joinedSession ->
+                    onNavigateToAttendeeRoom(joinedSession.id)
                 }
             },
             sessionToConfirm = sessionToConfirm,

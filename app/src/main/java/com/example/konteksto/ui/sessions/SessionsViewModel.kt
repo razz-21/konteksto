@@ -128,17 +128,14 @@ class SessionsViewModel(
         }
     }
 
-    fun confirmJoinSession(session: HostSession, onComplete: (isLive: Boolean) -> Unit) {
+    /** Joins the session, then hands it to [onJoined] so the screen can open its room, live or not. */
+    fun confirmJoinSession(session: HostSession, onJoined: (HostSession) -> Unit) {
         viewModelScope.launch {
             sessionRepository.joinSession(userUid, session.id)
                 .onSuccess { joinedSession ->
-                    _selectedSessionToConfirm.value = null
-                    _showAttendSheet.value = false
-                    val isLive = joinedSession.isLive || joinedSession.status.equals("live", ignoreCase = true)
-                    if (!isLive) {
-                        _snackbarMessage.emit("You're attending ${joinedSession.title}")
-                    }
-                    onComplete(isLive)
+                    _selectedSessionToConfirm.update { null }
+                    _showAttendSheet.update { false }
+                    onJoined(joinedSession)
                 }
                 .onFailure { error ->
                     _snackbarMessage.emit("Failed to join session: ${error.message}")
