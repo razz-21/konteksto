@@ -115,6 +115,10 @@ class SessionsViewModel(
         _selectedSessionToConfirm.value = null
     }
 
+    fun clearSelectedSessionToConfirm() {
+        _selectedSessionToConfirm.update { null }
+    }
+
     fun verifyCodeAndAttend(code: String, onResult: (Result<HostSession>) -> Unit) {
         viewModelScope.launch {
             sessionRepository.findSessionByCode(code)
