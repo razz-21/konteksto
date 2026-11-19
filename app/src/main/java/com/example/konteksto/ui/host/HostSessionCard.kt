@@ -80,16 +80,13 @@ fun HostSessionCard(
         session.category?.ifBlank { null } ?: "Technology & digital"
     }
 
-    // Use the signed-in user's profile avatar when this is their own session.
-    val ownProfile = currentProfile?.takeIf { profile ->
-        session.hostUid.isNullOrBlank() ||
-        session.hostUid == profile.uid ||
-        session.speakerName.isBlank() ||
-        session.speakerName.trim().equals(profile.name.trim(), ignoreCase = true)
-    } ?: currentProfile
-    val speakerName = ownProfile?.name ?: session.speakerName
-    val speakerInitials = remember(speakerName, ownProfile) {
-        ownProfile?.initials ?: getInitials(speakerName)
+    // Use the host's profile avatar when profile belongs to the host of this session.
+    val hostProfile = currentProfile?.takeIf { profile ->
+        !session.hostUid.isNullOrBlank() && session.hostUid == profile.uid
+    }
+    val speakerName = session.speakerName.trim().ifBlank { hostProfile?.name.orEmpty() }
+    val speakerInitials = remember(speakerName, hostProfile) {
+        hostProfile?.initials ?: getInitials(speakerName)
     }
 
     Card(
@@ -177,8 +174,8 @@ fun HostSessionCard(
                         modifier = Modifier
                             .size(26.dp)
                             .background(
-                                brush = if (ownProfile != null) {
-                                    Brush.linearGradient(ownProfile.avatarGradientColors)
+                                brush = if (hostProfile != null) {
+                                    Brush.linearGradient(hostProfile.avatarGradientColors)
                                 } else {
                                     SolidColor(MaterialTheme.colorScheme.primaryContainer)
                                 },
@@ -186,9 +183,9 @@ fun HostSessionCard(
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
-                        if (!ownProfile?.photoUrl.isNullOrBlank()) {
+                        if (!hostProfile?.photoUrl.isNullOrBlank()) {
                             AsyncImage(
-                                model = ownProfile.photoUrl,
+                                model = hostProfile.photoUrl,
                                 contentDescription = "Profile photo",
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
@@ -202,7 +199,7 @@ fun HostSessionCard(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 10.sp,
                                 ),
-                                color = if (ownProfile != null) {
+                                color = if (hostProfile != null) {
                                     Color.White
                                 } else {
                                     MaterialTheme.colorScheme.primary

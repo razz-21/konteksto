@@ -61,16 +61,13 @@ fun AttendeeSessionCard(
     currentProfile: UserProfile? = null,
     onJoinCodeClick: () -> Unit = {},
 ) {
-    // Use the signed-in user's profile avatar when this is their own session.
-    val ownProfile = currentProfile?.takeIf { profile ->
-        session.hostUid.isNullOrBlank() ||
-        session.hostUid == profile.uid ||
-        session.speakerName.isBlank() ||
-        session.speakerName.trim().equals(profile.name.trim(), ignoreCase = true)
+    // Use the host's profile avatar when profile belongs to the host of this session.
+    val hostProfile = currentProfile?.takeIf { profile ->
+        !session.hostUid.isNullOrBlank() && session.hostUid == profile.uid
     }
-    val speakerName = ownProfile?.name ?: session.speakerName
-    val speakerInitials = remember(speakerName, ownProfile) {
-        ownProfile?.initials ?: speakerName
+    val speakerName = session.speakerName.trim().ifBlank { hostProfile?.name.orEmpty() }
+    val speakerInitials = remember(speakerName, hostProfile) {
+        hostProfile?.initials ?: speakerName
             .trim()
             .split(" ")
             .filter { it.isNotBlank() }
@@ -237,8 +234,8 @@ fun AttendeeSessionCard(
                         modifier = Modifier
                             .size(40.dp)
                             .background(
-                                brush = if (ownProfile != null) {
-                                    Brush.linearGradient(ownProfile.avatarGradientColors)
+                                brush = if (hostProfile != null) {
+                                    Brush.linearGradient(hostProfile.avatarGradientColors)
                                 } else {
                                     SolidColor(MaterialTheme.colorScheme.primaryContainer)
                                 },
@@ -246,9 +243,9 @@ fun AttendeeSessionCard(
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
-                        if (!ownProfile?.photoUrl.isNullOrBlank()) {
+                        if (!hostProfile?.photoUrl.isNullOrBlank()) {
                             AsyncImage(
-                                model = ownProfile.photoUrl,
+                                model = hostProfile.photoUrl,
                                 contentDescription = stringResource(id = R.string.session_card_speaker_photo),
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
@@ -261,7 +258,7 @@ fun AttendeeSessionCard(
                                 style = MaterialTheme.typography.labelLarge.copy(
                                     fontWeight = FontWeight.Bold,
                                 ),
-                                color = if (ownProfile != null) {
+                                color = if (hostProfile != null) {
                                     Color.White
                                 } else {
                                     MaterialTheme.colorScheme.onPrimaryContainer
