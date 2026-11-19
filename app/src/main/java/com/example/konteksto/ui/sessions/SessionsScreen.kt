@@ -93,6 +93,7 @@ fun SessionsScreen(
                     onNavigateToAttendeeRoom(joinedSession.id)
                 }
             },
+            onClearSelectedSession = { viewModel.clearSelectedSessionToConfirm() },
             sessionToConfirm = sessionToConfirm,
         )
     }

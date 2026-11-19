@@ -14,6 +14,7 @@ fun AttendSessionSheet(
     onDismiss: () -> Unit,
     onVerifyCode: (code: String, onResult: (Result<HostSession>) -> Unit) -> Unit,
     onConfirmJoin: (session: HostSession) -> Unit,
+    onClearSelectedSession: () -> Unit = {},
     sessionToConfirm: HostSession? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -30,7 +31,7 @@ fun AttendSessionSheet(
             SessionConfirmationContent(
                 session = sessionToConfirm,
                 onDismiss = onDismiss,
-                onBackToCode = { onVerifyCode("") { } },
+                onBackToCode = onClearSelectedSession,
                 onConfirmJoin = { onConfirmJoin(sessionToConfirm) },
             )
         } else {
