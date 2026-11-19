@@ -51,17 +51,14 @@ fun SessionStudioHeaderCard(
     modifier: Modifier = Modifier,
     speakerProfile: UserProfile? = null,
 ) {
-    val ownProfile = speakerProfile?.takeIf { profile ->
-        session.hostUid.isNullOrBlank() ||
-        session.hostUid == profile.uid ||
-        session.speakerName.isBlank() ||
-        session.speakerName.trim().equals(profile.name.trim(), ignoreCase = true)
-    } ?: speakerProfile
+    val hostProfile = speakerProfile?.takeIf { profile ->
+        !session.hostUid.isNullOrBlank() && session.hostUid == profile.uid
+    }
 
-    // Details the host left blank are left out rather than filled in.
-    val speakerName = ownProfile?.name?.ifBlank { null } ?: session.speakerName.trim()
-    val speakerInitials = remember(speakerName, ownProfile) {
-        ownProfile?.initials ?: speakerName
+    // Always prioritize session.speakerName if set, or hostProfile.name if speakerName is blank.
+    val speakerName = session.speakerName.trim().ifBlank { hostProfile?.name.orEmpty() }
+    val speakerInitials = remember(speakerName, hostProfile) {
+        hostProfile?.initials ?: speakerName
             .split(" ")
             .filter { it.isNotBlank() }
             .take(2)
@@ -189,8 +186,8 @@ fun SessionStudioHeaderCard(
                                 modifier = Modifier
                                     .size(44.dp)
                                     .background(
-                                        brush = if (ownProfile != null) {
-                                            Brush.linearGradient(ownProfile.avatarGradientColors)
+                                        brush = if (hostProfile != null) {
+                                            Brush.linearGradient(hostProfile.avatarGradientColors)
                                         } else {
                                             SolidColor(MaterialTheme.colorScheme.primaryContainer)
                                         },
@@ -199,9 +196,9 @@ fun SessionStudioHeaderCard(
                                     .clip(CircleShape),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                if (!ownProfile?.photoUrl.isNullOrBlank()) {
+                                if (!hostProfile?.photoUrl.isNullOrBlank()) {
                                     AsyncImage(
-                                        model = ownProfile.photoUrl,
+                                        model = hostProfile.photoUrl,
                                         contentDescription = "Profile photo",
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier.fillMaxSize(),
@@ -213,7 +210,7 @@ fun SessionStudioHeaderCard(
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 15.sp,
                                         ),
-                                        color = if (ownProfile != null) {
+                                        color = if (hostProfile != null) {
                                             Color.White
                                         } else {
                                             MaterialTheme.colorScheme.onPrimaryContainer

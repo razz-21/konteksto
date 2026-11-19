@@ -130,22 +130,6 @@ class SessionStudioViewModel(
         _uiState.update { it.copy(didLiveTranscriptFail = false) }
         observeJob = viewModelScope.launch {
             launch {
-                observeCurrentProfile()
-                    .flatMapLatest { currentProf: UserProfile? ->
-                        val hostUid = (uiState.value.sessionLookup as? SessionLookup.Found)?.session?.hostUid
-                        if (!hostUid.isNullOrBlank() && hostUid != currentProf?.uid) {
-                            userProfileRepository.getProfileStream(hostUid)
-                                .map { hostProf -> hostProf ?: currentProf }
-                        } else {
-                            flowOf(currentProf)
-                        }
-                    }
-                    .catch { emit(null) }
-                    .collect { profile ->
-                        _uiState.update { state -> state.copy(speakerProfile = profile) }
-                    }
-            }
-            launch {
                 sessionRepository.getSessionStream(sessionId)
                     .catch {
                         // A session already on screen stays there; only a first load that fails is shown as one.
@@ -153,9 +137,20 @@ class SessionStudioViewModel(
                             if (state.sessionLookup is SessionLookup.Found) state else state.copy(sessionLookup = SessionLookup.Failed)
                         }
                     }
-                    .collect { session ->
+                    .flatMapLatest { session ->
                         val lookup = if (session != null) SessionLookup.Found(session) else SessionLookup.NotFound
                         _uiState.update { it.copy(sessionLookup = lookup) }
+
+                        val hostUid = session?.hostUid
+                        if (!hostUid.isNullOrBlank()) {
+                            userProfileRepository.getProfileStream(hostUid)
+                        } else {
+                            flowOf(null)
+                        }
+                    }
+                    .catch { emit(null) }
+                    .collect { hostProfile ->
+                        _uiState.update { state -> state.copy(speakerProfile = hostProfile) }
                     }
             }
             launch {
