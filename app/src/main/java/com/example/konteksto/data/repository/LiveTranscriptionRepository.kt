@@ -11,8 +11,10 @@ import com.google.firebase.ai.type.LiveServerContent
 import com.google.firebase.ai.type.LiveServerGoAway
 import com.google.firebase.ai.type.PublicPreviewAPI
 import com.google.firebase.ai.type.ResponseModality
+import com.google.firebase.ai.type.activityDetectionConfig
 import com.google.firebase.ai.type.content
 import com.google.firebase.ai.type.liveGenerationConfig
+import com.google.firebase.ai.type.realtimeInputConfig
 import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.google.firebase.remoteconfig.remoteConfig
@@ -38,6 +40,9 @@ private const val GEMINI_ENGINE = "gemini"
 private const val PCM_MIME_TYPE = "audio/pcm;rate=16000"
 
 private const val CLOSE_TIMEOUT_MS = 2_000L
+
+/** A pause this long ends the speaker's sentence, so Gemini sends it back and it becomes a card. */
+const val TRANSCRIPT_PAUSE_MS = 1_000
 
 /**
  * The SDK's transcription config has no language setting, so the languages hosts speak are given as
@@ -87,6 +92,11 @@ class GeminiLiveTranscriptionRepository(
             generationConfig = liveGenerationConfig {
                 responseModality = ResponseModality.TEXT
                 inputAudioTranscription = AudioTranscriptionConfig()
+                realtimeInputConfig = realtimeInputConfig {
+                    automaticActivityDetection = activityDetectionConfig {
+                        silenceDurationMs = TRANSCRIPT_PAUSE_MS
+                    }
+                }
             },
             systemInstruction = content { text(TRANSCRIPTION_INSTRUCTION) },
         )

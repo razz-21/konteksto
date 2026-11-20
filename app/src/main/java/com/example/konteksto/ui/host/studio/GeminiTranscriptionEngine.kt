@@ -4,6 +4,7 @@ import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import android.util.Log
 import com.example.konteksto.data.repository.LiveTranscriptionRepository
+import com.example.konteksto.data.repository.TRANSCRIPT_PAUSE_MS
 import com.example.konteksto.ui.components.LIVE_SPEAKING_PLACEHOLDER
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -27,8 +28,8 @@ import java.io.IOException
 private const val AUDIO_CHUNK_BYTES = MIC_SAMPLE_RATE_HZ / 10 * 2
 private const val AUDIO_CHUNK_MS = 100L
 
-/** A pause after the last words, so Gemini treats the sentence as finished and sends it back. */
-private const val TRAILING_SILENCE_CHUNKS = 10
+/** A pause after the last words, longer than the one that ends a sentence, so Gemini sends it back. */
+private const val TRAILING_SILENCE_CHUNKS = (TRANSCRIPT_PAUSE_MS / AUDIO_CHUNK_MS + 5).toInt()
 
 /** How long stopping waits for Gemini to send back the last sentence. */
 private const val FINAL_SEGMENT_WAIT_MS = 4_000L

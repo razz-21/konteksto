@@ -173,6 +173,11 @@ fun HostStudioScreen(
 
                         Spacer(modifier = Modifier.height(14.dp))
 
+                        uiState?.transcriptionNotice?.let { notice ->
+                            TranscriptionFallbackNotice(message = notice)
+                            Spacer(modifier = Modifier.height(14.dp))
+                        }
+
                         HostStudioBroadcastView(
                             isAudioBroadcasting = isAudioBroadcasting,
                             transcripts = transcripts,
