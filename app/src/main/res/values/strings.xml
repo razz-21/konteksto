@@ -71,7 +71,7 @@
     <string name="host_studio_live_transcript">LIVE TRANSCRIPT</string>
     <string name="host_studio_audio_live">Audio Live · Broadcasting</string>
     <string name="host_studio_audio_start">Start Audio Broadcast</string>
-    <string name="host_studio_transcription_fallback">Gemini transcription isn\'t available right now, so the phone\'s own speech recognizer took over.</string>
+    <string name="host_studio_transcription_fallback">Gemini transcription ran into an error, so the phone\'s own speech recognizer took over. Your transcript continues.</string>
     <string name="host_studio_input_device_description">Recording from %1$s</string>
     <string name="host_studio_input_builtin_mic">Phone mic</string>
     <string name="host_studio_input_wired_headset">Wired headset</string>

@@ -1,6 +1,7 @@
 package com.example.konteksto.ui.host.studio
 
 import android.speech.SpeechRecognizer
+import com.example.konteksto.data.repository.TRANSCRIPT_PAUSE_MS
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -9,7 +10,7 @@ internal const val SILENCE_RESTART_DELAY_MS = 300L
 internal const val ERROR_RESTART_DELAY_MS = 600L
 
 /** A speaker who stops for this long has finished a thought, so their words become a card. */
-internal const val PAUSE_COMMIT_DELAY_MS = 2_000L
+internal const val PAUSE_COMMIT_DELAY_MS = TRANSCRIPT_PAUSE_MS.toLong()
 
 /**
  * The recognizer can still fix a word or two it already sent, so a new text whose opening differs

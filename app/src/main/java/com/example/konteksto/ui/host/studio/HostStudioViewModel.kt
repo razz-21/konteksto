@@ -37,6 +37,8 @@ data class HostStudioUiState(
     val partialTranscript: String = "",
     val inputDevice: AudioInputDevice? = null,
     val transcriptionEngine: TranscriptionEngineType = TranscriptionEngineType.Gemini,
+    /** Shown above the transcript after Gemini fails and the phone's recognizer takes over. */
+    val transcriptionNotice: String? = null,
     val contextNotes: List<ContextNoteItem> = emptyList(),
     val slideDeckInfo: SlideDeckInfo? = null,
     val analyzedSlides: List<AnalyzedSlideItem> = emptyList(),
@@ -261,15 +263,22 @@ class HostStudioViewModel(
     private fun observeTranscriptionEngine() {
         viewModelScope.launch {
             transcriptionEngine.activeEngine.collect { engine ->
-                _uiState.update { it.copy(transcriptionEngine = engine) }
+                _uiState.update {
+                    it.copy(
+                        transcriptionEngine = engine,
+                        // Gemini is back for this broadcast, so the notice about it failing no longer applies.
+                        transcriptionNotice = if (engine == TranscriptionEngineType.Gemini) null else it.transcriptionNotice,
+                    )
+                }
             }
         }
     }
 
+    /** The transcript keeps going after a switch, so the host is told above it instead of in a dialog. */
     private fun observeTranscriptionMessages() {
         viewModelScope.launch {
             transcriptionEngine.messages.collect { message ->
-                _uiState.update { it.copy(errorMessage = message) }
+                _uiState.update { it.copy(transcriptionNotice = message) }
             }
         }
     }
